@@ -1,0 +1,25 @@
+name: tg_ai_bot
+
+services:
+  postgres:
+    image: postgres:17.4
+    container_name: tg_ai_bot-postgres
+    restart: "no"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASS}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - tg_ai_bot-postgres-data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7.4
+    container_name: tg_ai_bot-redis
+    restart: "no"
+    ports:
+      - "6379:6379"
+
+volumes:
+  tg_ai_bot-postgres-data:

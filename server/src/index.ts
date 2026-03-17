@@ -16,7 +16,18 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
+// В проде разрешаем только домен Vercel, в dev — всё
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : ['http://localhost:5173'];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // origin = undefined у server-to-server запросов и curl — пропускаем
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error(`CORS: origin ${origin} не разрешён`));
+  },
+}));
 app.use(express.json());
 
 // Роуты

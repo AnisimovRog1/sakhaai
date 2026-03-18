@@ -50,7 +50,7 @@ export function Home({ user, onNavigate }: Props) {
       </div>
 
       {/* Balance card */}
-      <div className="relative bg-gradient-to-br from-violet-700 via-indigo-700 to-cyan-700 rounded-3xl p-5 overflow-hidden shadow-2xl shadow-violet-500/25">
+      <div className="relative bg-gradient-to-br from-violet-700/80 via-indigo-700/75 to-cyan-700/70 rounded-3xl p-5 overflow-hidden shadow-2xl shadow-violet-500/30 backdrop-blur-sm border border-white/10">
         {/* Decorative aurora orbs inside card */}
         <div className="absolute -top-10 -right-10 w-40 h-40 bg-cyan-400/20 rounded-full blur-2xl pointer-events-none" />
         <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-violet-300/20 rounded-full blur-2xl pointer-events-none" />
@@ -93,7 +93,7 @@ export function Home({ user, onNavigate }: Props) {
       <div className="grid grid-cols-2 gap-3">
         <button
           onClick={() => onNavigate({ name: 'imageGen' })}
-          className="bg-white/[0.04] border border-white/[0.06] rounded-2xl p-4 text-left active:bg-white/[0.07] transition-all"
+          className="bg-white/[0.07] border border-white/[0.10] backdrop-blur-sm rounded-2xl p-4 text-left active:bg-white/[0.07] transition-all"
         >
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-pink-600/30 to-violet-600/30 flex items-center justify-center mb-3">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e879f9" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -107,7 +107,7 @@ export function Home({ user, onNavigate }: Props) {
         </button>
         <button
           onClick={() => onNavigate({ name: 'videoGen' })}
-          className="bg-white/[0.04] border border-white/[0.06] rounded-2xl p-4 text-left active:bg-white/[0.07] transition-all"
+          className="bg-white/[0.07] border border-white/[0.10] backdrop-blur-sm rounded-2xl p-4 text-left active:bg-white/[0.07] transition-all"
         >
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-600/30 to-blue-600/30 flex items-center justify-center mb-3">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -150,7 +150,7 @@ export function Home({ user, onNavigate }: Props) {
       </div>
 
       {/* Referral */}
-      <div className="bg-white/[0.04] border border-white/[0.06] rounded-2xl p-4 space-y-3">
+      <div className="bg-white/[0.07] border border-white/[0.10] backdrop-blur-sm rounded-2xl p-4 space-y-3">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-600/30 to-cyan-600/30 flex items-center justify-center">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

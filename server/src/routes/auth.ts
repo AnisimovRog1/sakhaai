@@ -66,9 +66,9 @@ authRouter.post('/', async (req: Request, res: Response) => {
   // 4. Сохраняем IP (асинхронно, не блокируем ответ)
   saveUserIp(Number(tgUser.id), ip).catch(console.error);
 
-  // 5. Реферальная связь — только для новых юзеров
-  if (user.is_new && referralCode) {
-    // referralCode = "ref_5120526651" → парсим ID реферера
+  // 5. Реферальная связь — регистрируем если есть ref-код и у юзера ещё нет реферала
+  // ON CONFLICT DO NOTHING внутри registerReferral не даст создать дубль
+  if (referralCode) {
     const match = String(referralCode).match(/^ref_(\d+)$/);
     if (match) {
       const referrerId = parseInt(match[1], 10);

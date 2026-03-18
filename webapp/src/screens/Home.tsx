@@ -26,7 +26,7 @@ export function Home({ user, onNavigate }: Props) {
   const progress = Math.min((user.credits / next) * 100, 100);
 
   const botUsername = import.meta.env.VITE_BOT_USERNAME ?? 'UraanxAI_bot';
-  const refLink = `https://t.me/${botUsername}?start=ref_${user.id}`;
+  const refLink = `https://t.me/${botUsername}?startapp=ref_${user.id}`;
 
   function copyRefLink() {
     navigator.clipboard.writeText(refLink).then(() => {

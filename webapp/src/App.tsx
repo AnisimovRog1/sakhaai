@@ -83,8 +83,8 @@ export function App() {
 
     const initData = getInitData();
     const referralCode =
-      window.Telegram?.WebApp?.initDataUnsafe?.start_param ??
-      new URLSearchParams(window.location.search).get('ref') ??
+      window.Telegram?.WebApp?.initDataUnsafe?.start_param ||
+      new URLSearchParams(window.location.search).get('ref') ||
       undefined;
 
     if (!initData) {

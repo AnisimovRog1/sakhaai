@@ -13,9 +13,8 @@ if (!BOT_TOKEN) {
 const bot = new Bot(BOT_TOKEN);
 
 bot.command('start', async (ctx) => {
-  const payload = ctx.match; // e.g. "ref_123456"
+  const payload = ctx.match; // "ref_123456" или пусто
   const webappUrl = payload ? `${WEBAPP_URL}?ref=${payload}` : WEBAPP_URL;
-
   const keyboard = new InlineKeyboard().webApp('🚀 Открыть UraanxAI', webappUrl);
 
   await ctx.reply(

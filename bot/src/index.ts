@@ -1,19 +1,36 @@
-import { Bot } from 'grammy';
+import { Bot, InlineKeyboard } from 'grammy';
 import * as dotenv from 'dotenv';
 
-dotenv.config({ path: '../.env' });
+dotenv.config();
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
+const WEBAPP_URL = process.env.WEBAPP_URL ?? 'https://dreamy-churros-2c46d7.netlify.app';
 
 if (!BOT_TOKEN) {
-  throw new Error('BOT_TOKEN не задан в .env');
+  throw new Error('BOT_TOKEN не задан');
 }
 
 const bot = new Bot(BOT_TOKEN);
 
-bot.command('start', (ctx) => {
-  ctx.reply('Привет! Я SakhaAI бот. Скоро здесь будет кое-что интересное 🚀');
+bot.command('start', async (ctx) => {
+  const keyboard = new InlineKeyboard().webApp('🚀 Открыть UraanxAI', WEBAPP_URL);
+
+  await ctx.reply(
+    `Привет, ${ctx.from?.first_name ?? 'друг'}! 👋\n\n` +
+    `Я UraanxAI — твой ИИ-ассистент.\n\n` +
+    `Нажми кнопку ниже, чтобы начать:`,
+    { reply_markup: keyboard }
+  );
 });
 
-bot.start();
-console.log('Бот запущен...');
+bot.command('help', async (ctx) => {
+  await ctx.reply(
+    'Команды:\n' +
+    '/start — открыть приложение\n' +
+    '/help — эта справка'
+  );
+});
+
+bot.start({
+  onStart: () => console.log('Бот @UraanxAI_bot запущен'),
+});

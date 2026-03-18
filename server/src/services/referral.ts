@@ -168,6 +168,42 @@ export async function processHeldReferrals(): Promise<number> {
 }
 
 // ─────────────────────────────────────────────────────────────────────
+// getFriends — список рефералов с деталями для UI
+// ─────────────────────────────────────────────────────────────────────
+export async function getReferralFriends(referrerId: number) {
+  const result = await pool.query(
+    `SELECT
+       r.id,
+       r.status,
+       r.package,
+       r.reward_credits,
+       r.created_at,
+       u.username,
+       u.first_name
+     FROM referrals r
+     JOIN users u ON u.id = r.referee_id
+     WHERE r.referrer_id = $1
+     ORDER BY r.created_at DESC
+     LIMIT 50`,
+    [referrerId]
+  );
+
+  return result.rows.map((row: {
+    id: number; status: string; package: string | null;
+    reward_credits: number | null; created_at: string;
+    username: string | null; first_name: string;
+  }) => ({
+    id:           row.id,
+    status:       row.status,
+    package:      row.package,
+    rewardCredits: row.reward_credits ?? 0,
+    createdAt:    row.created_at,
+    username:     row.username,
+    firstName:    row.first_name,
+  }));
+}
+
+// ─────────────────────────────────────────────────────────────────────
 // getStats — статистика реферера для отображения в UI
 // ─────────────────────────────────────────────────────────────────────
 export async function getReferralStats(referrerId: number) {

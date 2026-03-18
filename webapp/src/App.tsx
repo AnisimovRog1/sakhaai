@@ -6,6 +6,7 @@ import { ChatList } from './screens/ChatList';
 import { Chat } from './screens/Chat';
 import { ImageGen } from './screens/ImageGen';
 import { VideoGen } from './screens/VideoGen';
+import { Friends } from './screens/Friends';
 import { BottomNav } from './components/BottomNav';
 
 function getInitData(): string {
@@ -14,67 +15,13 @@ function getInitData(): string {
 
 // Фоновые фото для каждого экрана
 const BG: Record<string, string> = {
-  // Северное сияние над тёмным лесом — имитация Ленских столбов
-  home:
-    'https://images.unsplash.com/photo-1743677527481-e7927f07c77c?w=1080&q=90&fit=crop&crop=top',
-  // Аврора над одиноким деревом в снегу
-  chatList:
-    'https://images.unsplash.com/photo-1769779672756-3531f3313163?w=1080&q=90&fit=crop',
-  // Яркая аврора над ночным пейзажем
-  chat:
-    'https://images.unsplash.com/photo-1742309515288-b42bb61da9c7?w=1080&q=90&fit=crop',
-  // Сибирская река зимой — тайга Якутии
-  imageGen:
-    'https://images.unsplash.com/photo-1644155807115-8b9f4858472f?w=1080&q=90&fit=crop',
-  // Зелёная аврора над снежным ночным пейзажем
-  videoGen:
-    'https://images.unsplash.com/photo-1771258086117-110d15f19e53?w=1080&q=90&fit=crop',
+  home:     '/bg-home.jpg',
+  chatList: '/bg-chatlist.jpg',
+  chat:     '/bg-chat.jpg',
+  imageGen: '/bg-chat.jpg',
+  videoGen: '/bg-video.jpg',
+  friends:  '/bg-frends.jpg',
 };
-
-// Силуэт Ленских столбов — уникальные скальные колонны Якутии
-function LenaPillars() {
-  return (
-    <svg
-      viewBox="0 0 390 220"
-      xmlns="http://www.w3.org/2000/svg"
-      className="absolute bottom-0 left-0 w-full"
-      preserveAspectRatio="xMidYMax meet"
-    >
-      <path
-        d="
-          M0,220 L0,160
-          L8,155 L12,130 L15,125 L18,140 L22,135 L25,105
-          L28,98 L31,90 L34,85 L36,92 L38,80 L41,75 L44,88
-          L46,82 L49,70 L52,62 L54,58 L56,65 L58,55 L61,48
-          L63,52 L65,40 L67,35 L69,42 L71,30 L73,25 L75,32
-          L77,20 L79,15 L81,22 L83,30 L85,25 L87,18 L89,14
-          L91,20 L93,28 L95,22 L97,15 L99,10 L101,16 L103,24
-          L105,18 L107,12 L109,8  L111,14 L113,22 L115,16
-          L117,28 L119,22 L121,30 L123,35 L125,28 L127,38
-          L129,30 L131,42 L133,36 L135,48 L137,40 L139,52
-          L141,45 L143,55 L145,48 L147,62 L149,55 L151,68
-          L153,60 L155,72 L157,65 L159,75 L161,68 L163,80
-          L165,72 L167,85 L169,78 L171,92 L173,85 L175,98
-          L177,90 L179,105 L181,95 L183,112 L185,102 L187,118
-          L189,108 L191,125 L193,115 L195,130 L197,120 L199,138
-          L201,128 L203,142 L205,132 L207,148 L209,138 L211,152
-          L213,142 L215,155 L217,145 L219,158 L221,150 L225,155
-          L230,148 L234,160 L238,152 L242,162 L246,155 L250,165
-          L255,158 L260,168 L265,160 L270,170 L275,162 L280,172
-          L285,165 L290,175 L295,168 L300,175 L305,170 L310,178
-          L315,172 L320,180 L325,174 L330,182 L335,176 L340,184
-          L345,178 L350,186 L355,180 L360,188 L365,183 L370,190
-          L375,185 L380,192 L385,188 L390,192
-          L390,220 Z
-        "
-        fill="#070b14"
-        opacity="0.97"
-      />
-      {/* Река у подножия */}
-      <ellipse cx="195" cy="215" rx="200" ry="6" fill="#0a1628" opacity="0.6" />
-    </svg>
-  );
-}
 
 // Силуэт сэргэ — традиционные якутские столбы с аурой на площади
 function SergeSilhouette() {
@@ -215,8 +162,6 @@ export function App() {
         />
         {/* Тёмный градиент сверху вниз */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-[#070b14]/55 to-[#070b14]/92" />
-        {/* Ленские столбы на главном экране */}
-        {screen.name === 'home' && <LenaPillars />}
         {/* Сэргэ на экране видео */}
         {screen.name === 'videoGen' && <SergeSilhouette />}
       </div>
@@ -241,6 +186,9 @@ export function App() {
         )}
         {screen.name === 'videoGen' && (
           <VideoGen user={user} onCreditsUpdate={(c) => setUser({ ...user, credits: c })} />
+        )}
+        {screen.name === 'friends' && (
+          <Friends user={user} />
         )}
       </div>
 

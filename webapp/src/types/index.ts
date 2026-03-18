@@ -20,6 +20,28 @@ export type Message = {
   created_at: string;
 };
 
+// Реферальная статистика
+export type ReferralStats = {
+  total: number;
+  paid: number;
+  held: number;
+  pending: number;
+  totalEarned: number;
+  thisMonth: number;
+  monthlyLimit: number;
+};
+
+// Один реферал (друг)
+export type ReferralFriend = {
+  id: number;
+  status: 'pending' | 'held' | 'paid' | 'rejected';
+  package: string | null;
+  rewardCredits: number;
+  createdAt: string;
+  username: string | null;
+  firstName: string;
+};
+
 // Экраны приложения
 export type Screen =
   | { name: 'home' }
@@ -27,4 +49,5 @@ export type Screen =
   | { name: 'chat'; chatId: number; chatTitle: string }
   | { name: 'imageGen' }
   | { name: 'videoGen' }
+  | { name: 'friends' }
   | { name: 'settings' };

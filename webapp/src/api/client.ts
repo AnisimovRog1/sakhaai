@@ -92,4 +92,11 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ imageUrl, text }),
     }),
+
+  // ── Рефералы ────────────────────────────
+  getReferralStats: () =>
+    request<import('../types').ReferralStats & { rewards: Array<{ package: string; credits: number; label: string }> }>('/referral/stats'),
+
+  getReferralFriends: () =>
+    request<import('../types').ReferralFriend[]>('/referral/friends'),
 };

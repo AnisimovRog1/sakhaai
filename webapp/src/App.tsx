@@ -29,15 +29,9 @@ export function App() {
     // start_param содержит реферальный код вида "ref_123456"
     const referralCode = window.Telegram?.WebApp?.initDataUnsafe?.start_param ?? undefined;
 
-    // В dev-режиме (без Telegram) показываем заглушку
+    // Если initData пустой — приложение открыто не через Telegram
     if (!initData) {
-      setUser({
-        id: 0,
-        username: 'dev_user',
-        firstName: 'Dev',
-        credits: 1500,
-        languageCode: 'ru',
-      });
+      setError('Открой приложение через Telegram-бота @UraanxAI_bot');
       setLoading(false);
       return;
     }

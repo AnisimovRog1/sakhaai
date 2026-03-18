@@ -82,7 +82,10 @@ export function App() {
     window.Telegram?.WebApp?.expand();
 
     const initData = getInitData();
-    const referralCode = window.Telegram?.WebApp?.initDataUnsafe?.start_param ?? undefined;
+    const referralCode =
+      window.Telegram?.WebApp?.initDataUnsafe?.start_param ??
+      new URLSearchParams(window.location.search).get('ref') ??
+      undefined;
 
     if (!initData) {
       setError('Открой приложение через Telegram-бота @UraanxAI_bot');

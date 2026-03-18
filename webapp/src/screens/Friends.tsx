@@ -64,7 +64,7 @@ export function Friends({ user }: Props) {
   const [copied, setCopied]   = useState(false);
 
   const botUsername = import.meta.env.VITE_BOT_USERNAME ?? 'UraanxAI_bot';
-  const refLink = `https://t.me/${botUsername}?startapp=ref_${user.id}`;
+  const refLink = `https://t.me/${botUsername}?start=ref_${user.id}`;
 
   useEffect(() => {
     Promise.all([api.getReferralStats(), api.getReferralFriends()])

@@ -211,6 +211,7 @@ declare global {
         ready: () => void;
         expand: () => void;
         close: () => void;
+        openTelegramLink: (url: string) => void;
       };
     };
   }

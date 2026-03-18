@@ -61,7 +61,6 @@ export function Friends({ user }: Props) {
   const [stats, setStats]     = useState<ReferralStats | null>(null);
   const [friends, setFriends] = useState<ReferralFriend[]>([]);
   const [loading, setLoading] = useState(true);
-  const [copied, setCopied]   = useState(false);
 
   const botUsername = import.meta.env.VITE_BOT_USERNAME ?? 'UraanxAI_bot';
   const refLink = `https://t.me/${botUsername}?start=ref_${user.id}`;
@@ -73,11 +72,18 @@ export function Friends({ user }: Props) {
       .finally(() => setLoading(false));
   }, []);
 
-  function copyLink() {
-    navigator.clipboard.writeText(refLink).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+  const shareText =
+`Привет! Нашёл(а) крутой Якутский ИИ — работает прямо в Telegram!
+
+✨ Умный AI-чат на Якутском/Русском
+🎨 Генерация картинок за секунды
+🎬 Создание любого трендового видео
+
+Заходи по ссылке, будь в тренде`;
+
+  function shareLink() {
+    const url = `https://t.me/share/url?url=${encodeURIComponent(refLink)}&text=${encodeURIComponent(shareText)}`;
+    window.Telegram?.WebApp?.openTelegramLink?.(url);
   }
 
   return (
@@ -142,7 +148,7 @@ export function Friends({ user }: Props) {
           </div>
 
           {/* Строки */}
-          {friends.map(friend => (
+          {friends.map((friend: ReferralFriend) => (
             <div key={friend.id} className="grid grid-cols-[1fr_auto_auto] gap-2 items-center px-4 py-3 border-b border-white/[0.04] last:border-0">
               {/* Username */}
               <div className="flex items-center gap-2 min-w-0">
@@ -197,11 +203,11 @@ export function Friends({ user }: Props) {
 
       {/* Кнопка пригласить */}
       <button
-        onClick={copyLink}
+        onClick={shareLink}
         className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-gradient-to-r from-violet-600 to-cyan-500 shadow-lg shadow-violet-500/25 font-semibold text-white active:scale-[0.98] transition-transform"
       >
         <CopyIcon />
-        {copied ? 'Ссылка скопирована!' : 'Пригласить друга'}
+        Пригласить друга
       </button>
 
       {/* Легенда */}

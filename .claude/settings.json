@@ -28,7 +28,8 @@
       "Bash(mv \"IMAGE 2026-03-18 21:46:15.jpg\" bg-home.jpg)",
       "Bash(mv \"IMAGE 2026-03-18 21:46:16.jpg\" bg-chatlist.jpg)",
       "Bash(mv \"IMAGE 2026-03-18 21:46:19.jpg\" bg-chat.jpg)",
-      "Bash(mv \"IMAGE 2026-03-18 21:46:21.jpg\" bg-video.jpg)"
+      "Bash(mv \"IMAGE 2026-03-18 21:46:21.jpg\" bg-video.jpg)",
+      "Bash(chmod +x /Users/IGOR/Desktop/sakhaai/deploy.sh)"
     ]
   }
 }

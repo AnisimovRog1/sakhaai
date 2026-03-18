@@ -158,8 +158,9 @@ chatRouter.post('/:id/messages', async (req: Request, res: Response) => {
 
   res.json({ ...savedReply.rows[0], creditsLeft });
   } catch (err) {
-    console.error('POST /chats/:id/messages error:', err);
-    res.status(500).json({ error: 'Ошибка сервера' });
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('POST /chats/:id/messages error:', msg);
+    res.status(500).json({ error: msg });
   }
 });
 

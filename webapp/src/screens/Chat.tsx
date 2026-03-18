@@ -15,14 +15,12 @@ export function Chat({ chatId, chatTitle, onBack }: Props) {
   const [loading, setLoading] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Загружаем историю при открытии чата
   useEffect(() => {
     api.getMessages(chatId)
       .then(setMessages)
       .finally(() => setLoading(false));
   }, [chatId]);
 
-  // Автоскролл вниз при новых сообщениях
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -34,7 +32,6 @@ export function Chat({ chatId, chatTitle, onBack }: Props) {
     setInput('');
     setSending(true);
 
-    // Сразу показываем сообщение пользователя (оптимистичное обновление)
     const tempMsg: Message = {
       id: Date.now(),
       role: 'user',
@@ -46,15 +43,11 @@ export function Chat({ chatId, chatTitle, onBack }: Props) {
     try {
       const reply = await api.sendMessage(chatId, text);
       setMessages((prev) => [...prev, reply]);
-    } catch {
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Неизвестная ошибка';
       setMessages((prev) => [
         ...prev,
-        {
-          id: Date.now(),
-          role: 'model',
-          content: '❌ Ошибка. Попробуй ещё раз.',
-          created_at: new Date().toISOString(),
-        },
+        { id: Date.now(), role: 'model', content: `❌ ${msg}`, created_at: new Date().toISOString() },
       ]);
     } finally {
       setSending(false);
@@ -70,45 +63,60 @@ export function Chat({ chatId, chatTitle, onBack }: Props) {
 
   return (
     <div className="flex flex-col h-screen">
-      {/* Шапка */}
-      <div className="flex items-center gap-3 p-4 bg-[#1a1d27] border-b border-white/10 flex-shrink-0">
+
+      {/* Header */}
+      <div className="flex items-center gap-3 px-4 py-3.5 bg-[#070b14]/90 backdrop-blur-xl border-b border-white/[0.06] flex-shrink-0">
         <button
           onClick={onBack}
-          className="text-gray-400 active:text-white transition-colors text-xl p-1"
+          className="w-9 h-9 rounded-xl bg-white/[0.06] active:bg-white/[0.10] flex items-center justify-center transition-all"
         >
-          ←
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
         </button>
-        <div className="w-8 h-8 rounded-full bg-violet-600/30 flex items-center justify-center">
-          🤖
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-600 to-cyan-500 flex items-center justify-center shadow-md shadow-violet-500/20 flex-shrink-0">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+          </svg>
         </div>
-        <p className="font-medium truncate flex-1">{chatTitle}</p>
+        <p className="font-semibold text-slate-100 truncate flex-1">{chatTitle}</p>
       </div>
 
-      {/* Сообщения */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
         {loading && (
-          <div className="text-center text-gray-400 animate-pulse py-4">
-            Загрузка...
+          <div className="flex flex-col gap-2 pt-2">
+            {[1, 2].map((i) => (
+              <div key={i} className={`h-12 w-3/4 rounded-2xl animate-pulse bg-white/[0.04] ${i % 2 === 0 ? 'ml-auto' : ''}`} />
+            ))}
           </div>
         )}
 
         {!loading && messages.length === 0 && (
-          <div className="text-center py-16 space-y-2">
-            <p className="text-4xl">🤖</p>
-            <p className="text-gray-400 text-sm">Напиши что-нибудь — я отвечу!</p>
+          <div className="flex flex-col items-center justify-center h-full py-20 space-y-3">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-600/20 to-cyan-500/20 border border-white/[0.06] flex items-center justify-center">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+              </svg>
+            </div>
+            <p className="text-slate-400 text-sm">Напиши что-нибудь — отвечу!</p>
           </div>
         )}
 
         {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
+          <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            {msg.role === 'model' && (
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-600 to-cyan-500 flex items-center justify-center flex-shrink-0 mr-2 mt-1 shadow-sm shadow-violet-500/20">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+                </svg>
+              </div>
+            )}
             <div
-              className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+              className={`max-w-[78%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
                 msg.role === 'user'
-                  ? 'bg-violet-600 text-white rounded-br-sm'
-                  : 'bg-[#1a1d27] text-gray-100 rounded-bl-sm'
+                  ? 'bg-gradient-to-br from-violet-600 to-violet-700 text-white rounded-br-sm shadow-md shadow-violet-500/20'
+                  : 'bg-white/[0.06] border border-white/[0.08] text-slate-200 rounded-bl-sm'
               }`}
             >
               <p className="whitespace-pre-wrap">{msg.content}</p>
@@ -116,15 +124,20 @@ export function Chat({ chatId, chatTitle, onBack }: Props) {
           </div>
         ))}
 
-        {/* Индикатор печати */}
+        {/* Typing indicator */}
         {sending && (
-          <div className="flex justify-start">
-            <div className="bg-[#1a1d27] rounded-2xl rounded-bl-sm px-4 py-3">
-              <div className="flex gap-1">
+          <div className="flex justify-start items-end gap-2">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-600 to-cyan-500 flex items-center justify-center flex-shrink-0 shadow-sm shadow-violet-500/20">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+              </svg>
+            </div>
+            <div className="bg-white/[0.06] border border-white/[0.08] rounded-2xl rounded-bl-sm px-4 py-3.5">
+              <div className="flex gap-1.5">
                 {[0, 1, 2].map((i) => (
                   <div
                     key={i}
-                    className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                    className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-violet-400 to-cyan-400 animate-bounce"
                     style={{ animationDelay: `${i * 0.15}s` }}
                   />
                 ))}
@@ -136,8 +149,8 @@ export function Chat({ chatId, chatTitle, onBack }: Props) {
         <div ref={bottomRef} />
       </div>
 
-      {/* Поле ввода */}
-      <div className="p-4 bg-[#0f1117] border-t border-white/10 flex-shrink-0">
+      {/* Input */}
+      <div className="px-4 py-3 bg-[#070b14]/90 backdrop-blur-xl border-t border-white/[0.06] flex-shrink-0">
         <div className="flex gap-2 items-end">
           <textarea
             value={input}
@@ -145,18 +158,22 @@ export function Chat({ chatId, chatTitle, onBack }: Props) {
             onKeyDown={handleKeyDown}
             placeholder="Написать сообщение..."
             rows={1}
-            className="flex-1 bg-[#1a1d27] rounded-2xl px-4 py-3 text-sm resize-none outline-none placeholder-gray-500 text-white max-h-32"
+            className="flex-1 bg-white/[0.06] border border-white/[0.08] rounded-2xl px-4 py-3 text-sm resize-none outline-none placeholder-slate-600 text-slate-100 max-h-32 focus:border-violet-500/40 transition-colors"
             style={{ lineHeight: '1.4' }}
           />
           <button
             onClick={sendMessage}
             disabled={!input.trim() || sending}
-            className="w-11 h-11 bg-violet-600 rounded-xl flex items-center justify-center disabled:opacity-40 active:bg-violet-700 transition-all flex-shrink-0"
+            className="w-11 h-11 bg-gradient-to-br from-violet-600 to-cyan-500 rounded-xl flex items-center justify-center disabled:opacity-30 active:scale-95 transition-all shadow-md shadow-violet-500/25 flex-shrink-0"
           >
-            ➤
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"/>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
           </button>
         </div>
       </div>
+
     </div>
   );
 }

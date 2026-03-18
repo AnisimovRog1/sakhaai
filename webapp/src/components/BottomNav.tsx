@@ -5,30 +5,72 @@ type Props = {
   onNavigate: (screen: Screen) => void;
 };
 
+const HomeIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1V9.5z"/>
+    <path d="M9 21V13h6v8"/>
+  </svg>
+);
+
+const ChatIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+  </svg>
+);
+
+const ImageIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="3"/>
+    <circle cx="8.5" cy="8.5" r="1.5"/>
+    <path d="M21 15l-5-5L5 21"/>
+  </svg>
+);
+
+const VideoIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="6" width="14" height="12" rx="2"/>
+    <path d="M16 10l6-4v12l-6-4V10z"/>
+  </svg>
+);
+
 const items = [
-  { name: 'home' as const,     label: 'Главная',   icon: '🏠' },
-  { name: 'chatList' as const, label: 'Чаты',      icon: '💬' },
-  { name: 'imageGen' as const, label: 'Картинки',  icon: '🎨' },
-  { name: 'videoGen' as const, label: 'Видео',     icon: '🎬' },
+  { name: 'home'     as const, label: 'Главная',  Icon: HomeIcon  },
+  { name: 'chatList' as const, label: 'Чаты',     Icon: ChatIcon  },
+  { name: 'imageGen' as const, label: 'Картинки', Icon: ImageIcon },
+  { name: 'videoGen' as const, label: 'Видео',    Icon: VideoIcon },
 ];
 
 export function BottomNav({ current, onNavigate }: Props) {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-[#1a1d27] border-t border-white/10 flex">
-      {items.map((item) => (
-        <button
-          key={item.name}
-          onClick={() => onNavigate({ name: item.name })}
-          className={`flex-1 flex flex-col items-center py-3 gap-1 transition-colors ${
-            current === item.name
-              ? 'text-violet-400'
-              : 'text-gray-500 active:text-gray-300'
-          }`}
-        >
-          <span className="text-xl">{item.icon}</span>
-          <span className="text-xs">{item.label}</span>
-        </button>
-      ))}
+    <nav className="fixed bottom-0 left-0 right-0 max-w-[480px] mx-auto bg-[#070b14]/90 backdrop-blur-xl border-t border-white/[0.06]">
+      <div className="flex">
+        {items.map(({ name, label, Icon }) => {
+          const active = current === name;
+          return (
+            <button
+              key={name}
+              onClick={() => onNavigate({ name })}
+              className="flex-1 flex flex-col items-center gap-1 py-3 px-1 transition-all duration-200"
+            >
+              <div className={`transition-all duration-200 ${active ? 'text-violet-400' : 'text-slate-500'}`}>
+                <Icon />
+              </div>
+              <span className={`text-[10px] font-medium transition-all duration-200 ${
+                active
+                  ? 'text-violet-400'
+                  : 'text-slate-500'
+              }`}>
+                {label}
+              </span>
+              {active && (
+                <div className="absolute bottom-0 w-8 h-0.5 bg-gradient-to-r from-violet-500 to-cyan-400 rounded-full" />
+              )}
+            </button>
+          );
+        })}
+      </div>
+      {/* Safe area */}
+      <div className="h-safe-bottom" />
     </nav>
   );
 }

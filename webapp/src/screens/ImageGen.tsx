@@ -7,7 +7,13 @@ type Props = {
   onCreditsUpdate: (credits: number) => void;
 };
 
-const IMAGE_COST = 79; // кредитов
+const IMAGE_COST = 79;
+
+const EXAMPLES = [
+  'Якутская природа, лиственницы в инее, северное сияние',
+  'Портрет якутского шамана в традиционном костюме',
+  'Современный Якутск зимой, −50 градусов',
+];
 
 export function ImageGen({ user, onCreditsUpdate }: Props) {
   const [prompt, setPrompt] = useState('');
@@ -22,7 +28,6 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
     setLoading(true);
     setError(null);
     setImageUrl(null);
-
     try {
       const result = await api.generateImage(prompt.trim());
       setImageUrl(result.imageUrl);
@@ -35,112 +40,148 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
   }
 
   return (
-    <div className="p-4 space-y-4">
-      {/* Заголовок */}
-      <div className="pt-2">
-        <h1 className="text-xl font-bold">🎨 Генерация картинок</h1>
-        <p className="text-gray-400 text-sm mt-1">Powered by NanaBanana</p>
+    <div className="p-5 space-y-4 pb-6">
+
+      {/* Header */}
+      <div className="pt-2 flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-600/30 to-violet-600/30 border border-white/[0.06] flex items-center justify-center">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e879f9" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="3"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <path d="M21 15l-5-5L5 21"/>
+          </svg>
+        </div>
+        <div>
+          <h1 className="text-lg font-bold text-slate-100">Генерация картинок</h1>
+          <p className="text-slate-500 text-xs">Powered by NanaBanana</p>
+        </div>
       </div>
 
-      {/* Баланс и стоимость */}
-      <div className="flex justify-between items-center bg-[#1a1d27] rounded-xl px-4 py-3">
-        <span className="text-gray-400 text-sm">Баланс: <span className="text-white font-medium">{user.credits.toLocaleString('ru')} кр.</span></span>
-        <span className="text-violet-400 text-sm font-medium">Стоимость: {IMAGE_COST} кр.</span>
+      {/* Balance bar */}
+      <div className="flex justify-between items-center bg-white/[0.04] border border-white/[0.06] rounded-xl px-4 py-3">
+        <span className="text-slate-400 text-sm">
+          Баланс: <span className="text-slate-100 font-semibold">{user.credits.toLocaleString('ru')} кр.</span>
+        </span>
+        <span className="text-xs font-semibold bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">
+          {IMAGE_COST} кр.
+        </span>
       </div>
 
-      {/* Поле промпта */}
+      {/* Prompt */}
       <div className="space-y-2">
-        <label className="text-sm text-gray-400">Опиши изображение</label>
+        <label className="text-slate-400 text-xs font-medium uppercase tracking-widest">Опиши изображение</label>
         <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           placeholder="Якутская женщина в национальном костюме на фоне северного сияния..."
           rows={4}
-          className="w-full bg-[#1a1d27] rounded-2xl p-4 text-sm resize-none outline-none placeholder-gray-600 text-white"
+          className="w-full bg-white/[0.04] border border-white/[0.06] rounded-2xl p-4 text-sm resize-none outline-none placeholder-slate-600 text-slate-100 focus:border-violet-500/40 transition-colors"
         />
       </div>
 
-      {/* Кнопка */}
+      {/* Generate button */}
       <button
         onClick={generate}
         disabled={!canGenerate}
-        className="w-full bg-violet-600 rounded-2xl py-4 font-semibold text-lg disabled:opacity-40 active:bg-violet-700 transition-all"
+        className="w-full rounded-2xl py-4 font-semibold text-base transition-all active:scale-[0.98] disabled:opacity-40 disabled:scale-100 bg-gradient-to-r from-violet-600 to-cyan-500 shadow-lg shadow-violet-500/25"
       >
         {loading ? (
           <span className="flex items-center justify-center gap-2">
-            <span className="animate-spin">⏳</span> Генерирую...
+            <svg className="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" opacity="0.3"/>
+              <path d="M12 3a9 9 0 019 9"/>
+            </svg>
+            Генерирую...
           </span>
         ) : user.credits < IMAGE_COST ? (
-          '❌ Недостаточно кредитов'
+          'Недостаточно кредитов'
         ) : (
-          '✨ Сгенерировать'
+          <span className="flex items-center justify-center gap-2">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+            Сгенерировать
+          </span>
         )}
       </button>
 
-      {/* Ошибка */}
+      {/* Error */}
       {error && (
-        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 text-red-400 text-sm">
+        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-red-400 text-sm">
           {error}
         </div>
       )}
 
-      {/* Результат */}
+      {/* Loading placeholder */}
       {loading && !imageUrl && (
-        <div className="bg-[#1a1d27] rounded-2xl aspect-square flex items-center justify-center">
+        <div className="bg-white/[0.04] border border-white/[0.06] rounded-2xl aspect-square flex items-center justify-center">
           <div className="text-center space-y-3">
-            <div className="text-4xl animate-pulse">🎨</div>
-            <p className="text-gray-400 text-sm">Создаю шедевр...</p>
-            <p className="text-gray-600 text-xs">Обычно 10–30 секунд</p>
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-pink-600/30 to-violet-600/30 flex items-center justify-center mx-auto">
+              <svg className="animate-pulse" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e879f9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="3"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <path d="M21 15l-5-5L5 21"/>
+              </svg>
+            </div>
+            <p className="text-slate-400 text-sm font-medium">Создаю изображение...</p>
+            <p className="text-slate-600 text-xs">Обычно 10–30 секунд</p>
           </div>
         </div>
       )}
 
+      {/* Result */}
       {imageUrl && (
         <div className="space-y-3">
           <img
             src={imageUrl}
             alt="Сгенерированное изображение"
-            className="w-full rounded-2xl object-cover"
+            className="w-full rounded-2xl shadow-xl shadow-black/40"
           />
           <div className="flex gap-2">
             <a
               href={imageUrl}
-              download="sakhaai-image.png"
+              download="uraanxai-image.png"
               target="_blank"
               rel="noreferrer"
-              className="flex-1 bg-[#1a1d27] rounded-xl py-3 text-center text-sm font-medium active:bg-[#22263a] transition-colors"
+              className="flex-1 bg-white/[0.06] border border-white/[0.08] rounded-xl py-3 text-center text-sm font-medium active:bg-white/[0.10] transition-all flex items-center justify-center gap-1.5"
             >
-              ⬇️ Скачать
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              Скачать
             </a>
             <button
               onClick={() => { setImageUrl(null); setPrompt(''); }}
-              className="flex-1 bg-violet-600/20 rounded-xl py-3 text-sm font-medium text-violet-400 active:bg-violet-600/30 transition-colors"
+              className="flex-1 bg-gradient-to-r from-violet-600/20 to-cyan-500/20 border border-violet-500/20 rounded-xl py-3 text-sm font-medium text-violet-300 active:opacity-80 transition-all flex items-center justify-center gap-1.5"
             >
-              🔄 Новое
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="1 4 1 10 7 10"/>
+                <path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
+              </svg>
+              Новое
             </button>
           </div>
         </div>
       )}
 
-      {/* Примеры промптов */}
+      {/* Examples */}
       {!imageUrl && !loading && (
         <div className="space-y-2">
-          <p className="text-gray-500 text-xs">Попробуй:</p>
-          {[
-            'Якутская природа, лиственницы в инее, северное сияние',
-            'Портрет якутского шамана в традиционном костюме',
-            'Современный город Якутск зимой, -50 градусов',
-          ].map((example) => (
+          <p className="text-slate-600 text-xs font-medium uppercase tracking-widest">Попробуй:</p>
+          {EXAMPLES.map((example) => (
             <button
               key={example}
               onClick={() => setPrompt(example)}
-              className="w-full text-left bg-[#1a1d27] rounded-xl px-3 py-2 text-xs text-gray-400 active:bg-[#22263a] transition-colors"
+              className="w-full text-left bg-white/[0.03] border border-white/[0.05] rounded-xl px-3 py-2.5 text-xs text-slate-400 active:bg-white/[0.06] transition-all"
             >
               {example}
             </button>
           ))}
         </div>
       )}
+
     </div>
   );
 }

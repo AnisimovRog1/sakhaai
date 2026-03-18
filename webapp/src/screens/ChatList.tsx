@@ -9,6 +9,7 @@ type Props = {
 export function ChatList({ onNavigate }: Props) {
   const [chats, setChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     api.getChats()
@@ -17,8 +18,13 @@ export function ChatList({ onNavigate }: Props) {
   }, []);
 
   async function createChat() {
-    const chat = await api.createChat('Новый чат');
-    onNavigate({ name: 'chat', chatId: chat.id, chatTitle: chat.title });
+    try {
+      setError(null);
+      const chat = await api.createChat('Новый чат');
+      onNavigate({ name: 'chat', chatId: chat.id, chatTitle: chat.title });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Ошибка создания чата');
+    }
   }
 
   async function deleteChat(id: number, e: React.MouseEvent) {
@@ -48,6 +54,13 @@ export function ChatList({ onNavigate }: Props) {
           + Новый
         </button>
       </div>
+
+      {/* Ошибка */}
+      {error && (
+        <div className="mx-4 mb-2 px-4 py-3 bg-red-500/20 border border-red-500/40 rounded-xl text-red-400 text-sm">
+          {error}
+        </div>
+      )}
 
       {/* Список */}
       <div className="flex-1 px-4 space-y-2">

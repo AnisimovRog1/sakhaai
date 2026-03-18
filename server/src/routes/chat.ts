@@ -17,58 +17,73 @@ chatRouter.use(requireAuth);
 // GET /chats — список всех чатов юзера
 // ─────────────────────────────────────
 chatRouter.get('/', async (req: Request, res: Response) => {
-  const result = await pool.query(
-    `SELECT id, title, created_at, updated_at
-     FROM chats
-     WHERE user_id = $1
-     ORDER BY updated_at DESC`,
-    [req.userId]
-  );
-  res.json(result.rows);
+  try {
+    const result = await pool.query(
+      `SELECT id, title, created_at, updated_at
+       FROM chats
+       WHERE user_id = $1
+       ORDER BY updated_at DESC`,
+      [req.userId]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('GET /chats error:', err);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
 });
 
 // ─────────────────────────────────────
 // POST /chats — создать новый чат
 // ─────────────────────────────────────
 chatRouter.post('/', async (req: Request, res: Response) => {
-  const { title = 'Новый чат' } = req.body;
-  const result = await pool.query(
-    `INSERT INTO chats (user_id, title) VALUES ($1, $2) RETURNING *`,
-    [req.userId, title]
-  );
-  res.status(201).json(result.rows[0]);
+  try {
+    const { title = 'Новый чат' } = req.body;
+    const result = await pool.query(
+      `INSERT INTO chats (user_id, title) VALUES ($1, $2) RETURNING *`,
+      [req.userId, title]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error('POST /chats error:', err);
+    res.status(500).json({ error: 'Ошибка создания чата' });
+  }
 });
 
 // ─────────────────────────────────────
 // GET /chats/:id/messages — история сообщений
 // ─────────────────────────────────────
 chatRouter.get('/:id/messages', async (req: Request, res: Response) => {
-  const chatId = Number(req.params.id);
+  try {
+    const chatId = Number(req.params.id);
 
-  // Проверяем, что чат принадлежит этому юзеру
-  const chat = await pool.query(
-    `SELECT id FROM chats WHERE id = $1 AND user_id = $2`,
-    [chatId, req.userId]
-  );
-  if (chat.rowCount === 0) {
-    res.status(404).json({ error: 'Чат не найден' });
-    return;
+    const chat = await pool.query(
+      `SELECT id FROM chats WHERE id = $1 AND user_id = $2`,
+      [chatId, req.userId]
+    );
+    if (chat.rowCount === 0) {
+      res.status(404).json({ error: 'Чат не найден' });
+      return;
+    }
+
+    const result = await pool.query(
+      `SELECT id, role, content, created_at
+       FROM messages
+       WHERE chat_id = $1
+       ORDER BY created_at ASC`,
+      [chatId]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('GET /chats/:id/messages error:', err);
+    res.status(500).json({ error: 'Ошибка сервера' });
   }
-
-  const result = await pool.query(
-    `SELECT id, role, content, created_at
-     FROM messages
-     WHERE chat_id = $1
-     ORDER BY created_at ASC`,
-    [chatId]
-  );
-  res.json(result.rows);
 });
 
 // ─────────────────────────────────────
 // POST /chats/:id/messages — отправить сообщение
 // ─────────────────────────────────────
 chatRouter.post('/:id/messages', async (req: Request, res: Response) => {
+  try {
   const chatId = Number(req.params.id);
   const { message } = req.body;
 
@@ -142,20 +157,29 @@ chatRouter.post('/:id/messages', async (req: Request, res: Response) => {
   markAiRequest(req.userId!).catch(console.error);
 
   res.json({ ...savedReply.rows[0], creditsLeft });
+  } catch (err) {
+    console.error('POST /chats/:id/messages error:', err);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
 });
 
 // ─────────────────────────────────────
 // DELETE /chats/:id — удалить чат
 // ─────────────────────────────────────
 chatRouter.delete('/:id', async (req: Request, res: Response) => {
-  const chatId = Number(req.params.id);
-  const result = await pool.query(
-    `DELETE FROM chats WHERE id = $1 AND user_id = $2`,
-    [chatId, req.userId]
-  );
-  if (result.rowCount === 0) {
-    res.status(404).json({ error: 'Чат не найден' });
-    return;
+  try {
+    const chatId = Number(req.params.id);
+    const result = await pool.query(
+      `DELETE FROM chats WHERE id = $1 AND user_id = $2`,
+      [chatId, req.userId]
+    );
+    if (result.rowCount === 0) {
+      res.status(404).json({ error: 'Чат не найден' });
+      return;
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error('DELETE /chats/:id error:', err);
+    res.status(500).json({ error: 'Ошибка сервера' });
   }
-  res.json({ success: true });
 });

@@ -1,5 +1,6 @@
 import { Bot, InlineKeyboard } from 'grammy';
 import * as dotenv from 'dotenv';
+import https from 'https';
 
 dotenv.config();
 
@@ -8,6 +9,29 @@ const WEBAPP_URL = process.env.WEBAPP_URL ?? 'https://anisimovrog1.github.io/sak
 const SERVER_URL = process.env.SERVER_URL ?? 'https://sakhaai-production.up.railway.app';
 
 if (!BOT_TOKEN) throw new Error('BOT_TOKEN не задан');
+
+// HTTP POST через https модуль (работает на любой версии Node.js)
+function httpPost(url: string, data: object, headers: Record<string, string>): Promise<any> {
+  return new Promise((resolve, reject) => {
+    const body = JSON.stringify(data);
+    const parsed = new URL(url);
+    const req = https.request({
+      hostname: parsed.hostname,
+      path: parsed.pathname,
+      method: 'POST',
+      headers: { ...headers, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+    }, (res) => {
+      let responseData = '';
+      res.on('data', (chunk) => { responseData += chunk; });
+      res.on('end', () => {
+        try { resolve(JSON.parse(responseData)); } catch { resolve({}); }
+      });
+    });
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
+}
 
 const bot = new Bot(BOT_TOKEN);
 
@@ -19,19 +43,16 @@ bot.command('start', async (ctx) => {
     const match = payload.match(/^ref_(\d+)$/);
     if (match) {
       const referrerId = parseInt(match[1], 10);
-      fetch(`${SERVER_URL}/referral/preregister`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${BOT_TOKEN}`,
-        },
-        body: JSON.stringify({
-          refereeId:        ctx.from.id,
-          refereeFirstName: ctx.from.first_name,
-          refereeUsername:  ctx.from.username ?? null,
-          referrerId,
-        }),
-      }).catch((err) => console.error('preregister failed:', err));
+      httpPost(`${SERVER_URL}/referral/preregister`, {
+        refereeId:        ctx.from.id,
+        refereeFirstName: ctx.from.first_name,
+        refereeUsername:  ctx.from.username ?? null,
+        referrerId,
+      }, {
+        'Authorization': `Bearer ${BOT_TOKEN}`,
+      })
+        .then((res) => console.log(`🤝 Preregister: ${JSON.stringify(res)}`))
+        .catch((err) => console.error('preregister failed:', err));
     }
   }
 

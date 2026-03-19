@@ -8,10 +8,11 @@ git add -A
 git diff --cached --quiet || git commit -m "deploy: $(date '+%Y-%m-%d %H:%M')"
 git push
 
-# 2. Netlify (webapp)
+# 2. GitHub Pages (webapp)
 cd webapp
 npm run build
-npx netlify-cli deploy --dir=dist --prod
+cp dist/index.html dist/404.html
+npx gh-pages -d dist
 cd ..
 
 echo "✅ Готово!"

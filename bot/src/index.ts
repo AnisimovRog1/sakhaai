@@ -4,7 +4,7 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 const BOT_TOKEN  = process.env.BOT_TOKEN;
-const WEBAPP_URL = process.env.WEBAPP_URL ?? 'https://dreamy-churros-2c46d7.netlify.app';
+const WEBAPP_URL = process.env.WEBAPP_URL ?? 'https://anisimovrog1.github.io/sakhaai/';
 const SERVER_URL = process.env.SERVER_URL ?? 'https://sakhaai-production.up.railway.app';
 
 if (!BOT_TOKEN) throw new Error('BOT_TOKEN не задан');

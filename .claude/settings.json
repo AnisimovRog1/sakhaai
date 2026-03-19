@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git commit:*)",
+      "Bash(npm run:*)",
+      "Bash(npx netlify-cli:*)",
+      "Bash(ls /Users/IGOR/Desktop/sakhaai/bot/.env*)",
+      "Bash(curl -s https://sakhaai-production.up.railway.app/health)",
+      "Bash(curl -s https://sakhaai-production.up.railway.app/)",
+      "Bash(railway --version)",
+      "Bash(node -e \":*)",
+      "Read(//dev/**)",
+      "Bash(curl -s -X POST \"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyBybEiXs_HQd_WkL588dzyhxDq2gEAdXqk\" -H \"Content-Type: application/json\" -d '{\"\"\"\"contents\"\"\"\":[{\"\"\"\"role\"\"\"\":\"\"\"\"user\"\"\"\",\"\"\"\"parts\"\"\"\":[{\"\"\"\"text\"\"\"\":\"\"\"\"Привет! Ответь одним словом.\"\"\"\"}]}]}')",
+      "Bash(python3 -m json.tool)",
+      "Bash(for model:*)",
+      "Bash(do echo:*)",
+      "WebFetch(domain:unsplash.com)",
+      "WebFetch(domain:www.pexels.com)",
+      "WebFetch(domain:commons.wikimedia.org)",
+      "WebFetch(domain:api.unsplash.com)",
+      "WebFetch(domain:pixabay.com)",
+      "WebFetch(domain:en.wikipedia.org)",
+      "WebFetch(domain:en.m.wikipedia.org)",
+      "WebFetch(domain:www.flickr.com)",
+      "WebFetch(domain:api.flickr.com)",
+      "WebFetch(domain:www.google.com)",
+      "WebFetch(domain:source.unsplash.com)",
+      "Bash(mv \"IMAGE 2026-03-18 21:46:15.jpg\" bg-home.jpg)",
+      "Bash(mv \"IMAGE 2026-03-18 21:46:16.jpg\" bg-chatlist.jpg)",
+      "Bash(mv \"IMAGE 2026-03-18 21:46:19.jpg\" bg-chat.jpg)",
+      "Bash(mv \"IMAGE 2026-03-18 21:46:21.jpg\" bg-video.jpg)",
+      "Bash(chmod +x /Users/IGOR/Desktop/sakhaai/deploy.sh)"
+    ]
+  }
+}

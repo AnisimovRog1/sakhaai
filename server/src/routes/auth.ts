@@ -82,7 +82,23 @@ authRouter.post('/', async (req: Request, res: Response) => {
     }
   }
 
-  // 6. Выдаём JWT токен на 30 дней
+  // 6. Получаем аватарку через Bot API (гарантированный способ)
+  let photoUrl: string | null = null;
+  try {
+    const botToken = process.env.BOT_TOKEN!;
+    const chatRes = await fetch(`https://api.telegram.org/bot${botToken}/getUserProfilePhotos?user_id=${tgUser.id}&limit=1`);
+    const chatData = await chatRes.json() as any;
+    if (chatData.ok && chatData.result?.photos?.length > 0) {
+      const fileId = chatData.result.photos[0][0].file_id;
+      const fileRes = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${fileId}`);
+      const fileData = await fileRes.json() as any;
+      if (fileData.ok) {
+        photoUrl = `https://api.telegram.org/file/bot${botToken}/${fileData.result.file_path}`;
+      }
+    }
+  } catch { /* не критично */ }
+
+  // 7. Выдаём JWT токен на 30 дней
   const token = jwt.sign(
     { userId: user.id },
     process.env.JWT_SECRET!,
@@ -94,10 +110,10 @@ authRouter.post('/', async (req: Request, res: Response) => {
     user: {
       id: user.id,
       username: user.username,
-      firstName: user.first_name,
+      firstName: tgUser.firstName,
       credits: user.credits,
       languageCode: user.language_code,
-      photoUrl: (tgUser as any).photoUrl ?? null,
+      photoUrl,
     },
   });
 });

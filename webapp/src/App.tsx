@@ -16,7 +16,7 @@ function getInitData(): string {
 // Фоновые фото для каждого экрана
 const base = import.meta.env.BASE_URL;
 const BG: Record<string, string> = {
-  home:     `${base}bg-home.jpg`,
+  home:     `${base}newhome.jpg`,
   chatList: `${base}bg-chatlist.jpg`,
   chat:     `${base}bg-chat.jpg`,
   imageGen: `${base}bg-chat.jpg`,
@@ -122,10 +122,6 @@ export function App() {
     api.auth(initData, referralCode)
       .then(({ token, user }) => {
         setToken(token);
-        // Берём реальные данные из Telegram
-        const tgU = (window.Telegram?.WebApp as any)?.initDataUnsafe?.user;
-        if (tgU?.first_name) user.firstName = tgU.first_name;
-        if (tgU?.photo_url) user.photoUrl = tgU.photo_url;
         setUser(user);
       })
       .catch((err) => setError(err.message))

@@ -112,14 +112,14 @@ export function App() {
         />
         <div className="fixed inset-0 -z-10 bg-gradient-to-b from-black/40 via-[#070b14]/60 to-[#070b14]/95" />
         <div className="relative flex flex-col items-center gap-5">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-600 to-cyan-500 flex items-center justify-center shadow-2xl shadow-violet-500/40 text-2xl font-bold">
-            ✦
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-2xl shadow-blue-500/40 text-2xl font-bold text-white">
+            U
           </div>
           <div className="flex gap-2">
             {[0, 1, 2].map((i) => (
               <div
                 key={i}
-                className="w-2 h-2 rounded-full bg-gradient-to-r from-violet-400 to-cyan-400 animate-bounce"
+                className="w-2 h-2 rounded-full bg-blue-400 animate-bounce"
                 style={{ animationDelay: `${i * 0.15}s` }}
               />
             ))}
@@ -138,13 +138,13 @@ export function App() {
         />
         <div className="fixed inset-0 -z-10 bg-gradient-to-b from-black/50 to-[#070b14]/95" />
         <div className="relative w-full max-w-sm bg-white/[0.06] border border-white/[0.08] rounded-3xl p-6 text-center space-y-3 backdrop-blur-md">
-          <div className="w-12 h-12 rounded-2xl bg-red-500/20 flex items-center justify-center mx-auto">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2" strokeLinecap="round">
+          <div className="w-12 h-12 rounded-2xl bg-red-500/15 border border-red-500/20 flex items-center justify-center mx-auto">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F87171" strokeWidth="2" strokeLinecap="round">
               <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
             </svg>
           </div>
-          <p className="text-slate-100 font-semibold">Ошибка входа</p>
-          <p className="text-slate-400 text-sm">{error}</p>
+          <p className="text-white font-bold">Ошибка входа</p>
+          <p className="text-slate-300 text-sm font-medium">{error}</p>
         </div>
       </div>
     );

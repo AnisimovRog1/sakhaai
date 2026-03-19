@@ -52,7 +52,7 @@ const items = [
 
 export function BottomNav({ current, onNavigate }: Props) {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 max-w-[480px] mx-auto bg-[#070b14]/90 backdrop-blur-xl border-t border-white/[0.06]">
+    <nav className="fixed bottom-0 left-0 right-0 max-w-[480px] mx-auto bg-[#070b14]/95 backdrop-blur-xl border-t border-white/[0.08]">
       <div className="flex">
         {items.map(({ name, label, Icon }) => {
           const active = current === name;
@@ -60,26 +60,25 @@ export function BottomNav({ current, onNavigate }: Props) {
             <button
               key={name}
               onClick={() => onNavigate({ name })}
-              className="flex-1 flex flex-col items-center gap-1 py-3 px-1 transition-all duration-200"
+              className="flex-1 flex flex-col items-center gap-1 py-3 px-1 transition-all duration-200 relative"
             >
-              <div className={`transition-all duration-200 ${active ? 'text-violet-400' : 'text-slate-500'}`}>
+              <div className={`transition-all duration-200 ${active ? 'text-blue-400' : 'text-slate-500'}`}>
                 <Icon />
               </div>
-              <span className={`text-[10px] font-medium transition-all duration-200 ${
+              <span className={`text-[10px] font-bold transition-all duration-200 ${
                 active
-                  ? 'text-violet-400'
+                  ? 'text-blue-400'
                   : 'text-slate-500'
               }`}>
                 {label}
               </span>
               {active && (
-                <div className="absolute bottom-0 w-8 h-0.5 bg-gradient-to-r from-violet-500 to-cyan-400 rounded-full" />
+                <div className="absolute bottom-0 w-8 h-0.5 bg-gradient-to-r from-blue-500 to-blue-400 rounded-full" />
               )}
             </button>
           );
         })}
       </div>
-      {/* Safe area */}
       <div className="h-safe-bottom" />
     </nav>
   );

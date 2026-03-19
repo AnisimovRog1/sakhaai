@@ -15,12 +15,13 @@ const COSTS: Record<Tab, number> = {
   avatar: 810,
 };
 
-const TABS: Record<Tab, { label: string; desc: string; color: string; stroke: string; icon: React.ReactNode }> = {
+const TABS: Record<Tab, { label: string; desc: string; colorBg: string; colorBorder: string; stroke: string; icon: React.ReactNode }> = {
   video: {
     label: 'Видео',
     desc: 'Текст → Видео 3 сек',
-    color: 'from-cyan-600/30 to-blue-600/30',
-    stroke: '#22d3ee',
+    colorBg: 'bg-green-500/15',
+    colorBorder: 'border-green-500/20',
+    stroke: '#4ADE80',
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="2" y="6" width="14" height="12" rx="2"/>
@@ -31,8 +32,9 @@ const TABS: Record<Tab, { label: string; desc: string; color: string; stroke: st
   motion: {
     label: 'Motion',
     desc: 'Картинка → Видео 3 сек',
-    color: 'from-violet-600/30 to-pink-600/30',
-    stroke: '#a78bfa',
+    colorBg: 'bg-blue-500/15',
+    colorBorder: 'border-blue-500/20',
+    stroke: '#60A5FA',
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <polygon points="5 3 19 12 5 21 5 3"/>
@@ -42,8 +44,9 @@ const TABS: Record<Tab, { label: string; desc: string; color: string; stroke: st
   avatar: {
     label: 'Аватар',
     desc: 'Аватар говорит твой текст',
-    color: 'from-amber-600/30 to-orange-600/30',
-    stroke: '#fbbf24',
+    colorBg: 'bg-yellow-500/15',
+    colorBorder: 'border-yellow-500/20',
+    stroke: '#FBBF24',
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
@@ -94,40 +97,40 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
     setVideoUrl(null); setPrompt(''); setImageUrl(''); setAvatarText(''); setError(null);
   }
 
-  const inputClass = "w-full bg-white/[0.04] border border-white/[0.06] rounded-2xl p-4 text-sm resize-none outline-none placeholder-slate-600 text-slate-100 focus:border-violet-500/40 transition-colors";
+  const inputClass = "w-full bg-white/[0.06] border border-white/[0.10] rounded-2xl p-4 text-sm font-medium resize-none outline-none placeholder-slate-500 text-white focus:border-blue-500/50 transition-colors";
 
   return (
     <div className="p-5 space-y-4 pb-6">
 
       {/* Header */}
       <div className="pt-2 flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-600/30 to-blue-600/30 border border-white/[0.06] flex items-center justify-center">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <div className="w-10 h-10 rounded-xl bg-green-500/15 border border-green-500/20 flex items-center justify-center">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4ADE80" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <rect x="2" y="6" width="14" height="12" rx="2"/>
             <path d="M16 10l6-4v12l-6-4V10z"/>
           </svg>
         </div>
         <div>
-          <h1 className="text-lg font-bold text-slate-100">Генерация видео</h1>
-          <p className="text-slate-500 text-xs">Powered by Kling AI</p>
+          <h1 className="text-lg font-bold text-white">Генерация видео</h1>
+          <p className="text-slate-400 text-xs font-medium">Powered by Kling AI</p>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex bg-white/[0.04] border border-white/[0.06] rounded-2xl p-1 gap-1">
+      <div className="flex bg-white/[0.05] border border-white/[0.10] rounded-2xl p-1 gap-1">
         {(Object.keys(TABS) as Tab[]).map((t) => {
           const active = tab === t;
           return (
             <button
               key={t}
               onClick={() => { setTab(t); reset(); }}
-              className={`flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-semibold transition-all duration-200 ${
+              className={`flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-bold transition-all duration-200 ${
                 active
-                  ? 'bg-gradient-to-r from-violet-600 to-cyan-500 text-white shadow-md shadow-violet-500/20'
-                  : 'text-slate-500 active:text-slate-300'
+                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md shadow-blue-500/20'
+                  : 'text-slate-400 active:text-white'
               }`}
             >
-              <span className={active ? 'text-white' : 'text-slate-500'}>
+              <span className={active ? 'text-white' : 'text-slate-400'}>
                 {TABS[t].icon}
               </span>
               {TABS[t].label}
@@ -138,18 +141,18 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
 
       {/* Tab description */}
       <div className="flex items-center gap-2 px-1">
-        <div className={`w-7 h-7 rounded-lg bg-gradient-to-br ${TABS[tab].color} flex items-center justify-center`} style={{ color: TABS[tab].stroke }}>
+        <div className={`w-7 h-7 rounded-lg ${TABS[tab].colorBg} ${TABS[tab].colorBorder} border flex items-center justify-center`} style={{ color: TABS[tab].stroke }}>
           {TABS[tab].icon}
         </div>
-        <p className="text-slate-400 text-sm">{TABS[tab].desc}</p>
+        <p className="text-slate-300 text-sm font-medium">{TABS[tab].desc}</p>
       </div>
 
       {/* Balance bar */}
-      <div className="flex justify-between items-center bg-white/[0.04] border border-white/[0.06] rounded-xl px-4 py-3">
-        <span className="text-slate-400 text-sm">
-          Баланс: <span className="text-slate-100 font-semibold">{user.credits.toLocaleString('ru')} кр.</span>
+      <div className="flex justify-between items-center bg-white/[0.06] border border-white/[0.10] rounded-xl px-4 py-3">
+        <span className="text-slate-300 text-sm font-medium">
+          Баланс: <span className="text-white font-bold">{user.credits.toLocaleString('ru')} кр.</span>
         </span>
-        <span className="text-xs font-semibold bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">
+        <span className="text-xs font-bold text-green-400">
           {cost} кр.
         </span>
       </div>
@@ -157,7 +160,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
       {/* Form */}
       {tab === 'video' && (
         <div className="space-y-2">
-          <label className="text-slate-400 text-xs font-medium uppercase tracking-widest">Опиши видео</label>
+          <label className="text-slate-300 text-xs font-semibold uppercase tracking-[0.12em]">Опиши видео</label>
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
@@ -171,7 +174,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
       {tab === 'motion' && (
         <div className="space-y-3">
           <div className="space-y-2">
-            <label className="text-slate-400 text-xs font-medium uppercase tracking-widest">URL изображения</label>
+            <label className="text-slate-300 text-xs font-semibold uppercase tracking-[0.12em]">URL изображения</label>
             <input
               type="url"
               value={imageUrl}
@@ -181,7 +184,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
             />
           </div>
           <div className="space-y-2">
-            <label className="text-slate-400 text-xs font-medium uppercase tracking-widest">Описание движения (необязательно)</label>
+            <label className="text-slate-300 text-xs font-semibold uppercase tracking-[0.12em]">Описание движения (необязательно)</label>
             <input
               type="text"
               value={prompt}
@@ -196,7 +199,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
       {tab === 'avatar' && (
         <div className="space-y-3">
           <div className="space-y-2">
-            <label className="text-slate-400 text-xs font-medium uppercase tracking-widest">URL фото аватара</label>
+            <label className="text-slate-300 text-xs font-semibold uppercase tracking-[0.12em]">URL фото аватара</label>
             <input
               type="url"
               value={imageUrl}
@@ -206,7 +209,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
             />
           </div>
           <div className="space-y-2">
-            <label className="text-slate-400 text-xs font-medium uppercase tracking-widest">Текст (аватар произнесёт вслух)</label>
+            <label className="text-slate-300 text-xs font-semibold uppercase tracking-[0.12em]">Текст (аватар произнесёт вслух)</label>
             <textarea
               value={avatarText}
               onChange={(e) => setAvatarText(e.target.value)}
@@ -222,7 +225,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
       <button
         onClick={generate}
         disabled={!canGenerate}
-        className="w-full rounded-2xl py-4 font-semibold text-base transition-all active:scale-[0.98] disabled:opacity-40 disabled:scale-100 bg-gradient-to-r from-violet-600 to-cyan-500 shadow-lg shadow-violet-500/25"
+        className="w-full rounded-2xl py-4 font-bold text-base text-white transition-all active:scale-[0.98] disabled:opacity-40 disabled:scale-100 bg-gradient-to-r from-green-500 to-green-600 shadow-lg shadow-green-500/25"
       >
         {loading ? (
           <span className="flex items-center justify-center gap-2">
@@ -246,22 +249,22 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
 
       {/* Error */}
       {error && (
-        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-red-400 text-sm">
+        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-red-300 text-sm font-medium">
           {error}
         </div>
       )}
 
       {/* Loading */}
       {loading && (
-        <div className="bg-white/[0.04] border border-white/[0.06] rounded-2xl p-8 flex flex-col items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-600/30 to-blue-600/30 flex items-center justify-center">
-            <svg className="animate-pulse" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <div className="bg-white/[0.06] border border-white/[0.10] rounded-2xl p-8 flex flex-col items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-green-500/15 border border-green-500/20 flex items-center justify-center">
+            <svg className="animate-pulse" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4ADE80" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <rect x="2" y="6" width="14" height="12" rx="2"/>
               <path d="M16 10l6-4v12l-6-4V10z"/>
             </svg>
           </div>
-          <p className="text-slate-300 text-sm font-medium">Генерирую видео...</p>
-          <p className="text-slate-600 text-xs">Обычно 1–3 минуты</p>
+          <p className="text-white text-sm font-semibold">Генерирую видео...</p>
+          <p className="text-slate-400 text-xs font-medium">Обычно 1–3 минуты</p>
         </div>
       )}
 
@@ -280,7 +283,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
               download="uraanxai-video.mp4"
               target="_blank"
               rel="noreferrer"
-              className="flex-1 bg-white/[0.06] border border-white/[0.08] rounded-xl py-3 text-center text-sm font-medium active:bg-white/[0.10] transition-all flex items-center justify-center gap-1.5"
+              className="flex-1 bg-white/[0.08] border border-white/[0.10] rounded-xl py-3 text-center text-sm font-bold text-white active:bg-white/[0.12] transition-all flex items-center justify-center gap-1.5"
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
@@ -291,7 +294,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
             </a>
             <button
               onClick={reset}
-              className="flex-1 bg-gradient-to-r from-violet-600/20 to-cyan-500/20 border border-violet-500/20 rounded-xl py-3 text-sm font-medium text-violet-300 active:opacity-80 transition-all flex items-center justify-center gap-1.5"
+              className="flex-1 bg-blue-500/15 border border-blue-500/20 rounded-xl py-3 text-sm font-bold text-blue-300 active:opacity-80 transition-all flex items-center justify-center gap-1.5"
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="1 4 1 10 7 10"/>

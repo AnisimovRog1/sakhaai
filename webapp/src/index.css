@@ -21,9 +21,10 @@ html, body, #root {
 body {
   background: #070b14;
   color: #f1f5f9;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
   font-size: 16px;
   line-height: 1.5;
+  letter-spacing: -0.01em;
 }
 
 #root {
@@ -36,3 +37,20 @@ body {
 }
 
 p { margin: 0; }
+
+/* Якутская палитра — CSS custom properties */
+:root {
+  --sakha-blue: #3B82F6;
+  --sakha-blue-light: #60A5FA;
+  --sakha-red: #EF4444;
+  --sakha-red-warm: #F87171;
+  --sakha-green: #22C55E;
+  --sakha-green-light: #4ADE80;
+  --sakha-white: #F8FAFC;
+  --sakha-gold: #FBBF24;
+
+  /* Карточки */
+  --card-bg: rgba(255, 255, 255, 0.06);
+  --card-border: rgba(255, 255, 255, 0.10);
+  --card-border-hover: rgba(255, 255, 255, 0.16);
+}

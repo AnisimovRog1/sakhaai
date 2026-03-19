@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { api } from '../api/client';
 import type { User, Screen } from '../types';
 
 type Props = {
@@ -22,6 +23,8 @@ function getLevel(credits: number) {
 
 export function Home({ user, onNavigate }: Props) {
   const [selectedPkg, setSelectedPkg] = useState<typeof PACKAGES[0] | null>(null);
+  const [payLoading, setPayLoading] = useState(false);
+  const [payError, setPayError] = useState<string | null>(null);
   const { level, next, from, to } = getLevel(user.credits);
   const progress = Math.min((user.credits / next) * 100, 100);
 
@@ -29,9 +32,25 @@ export function Home({ user, onNavigate }: Props) {
   const tgPhotoUrl = (window.Telegram?.WebApp as any)?.initDataUnsafe?.user?.photo_url as string | undefined;
   const displayName = user.username ? `@${user.username}` : user.firstName;
 
-  function handlePayment() {
-    // Заглушка — YooMoney подключим на шаге 8
-    window.Telegram?.WebApp?.close?.();
+  async function handlePayment() {
+    if (!selectedPkg) return;
+    setPayLoading(true);
+    setPayError(null);
+    try {
+      const pkgKey = selectedPkg.label === 'Старт' ? 'start'
+        : selectedPkg.label === 'Базовый' ? 'basic'
+        : selectedPkg.label === 'Про' ? 'pro' : 'max';
+      const { paymentUrl, message } = await api.createPayment(pkgKey);
+      if (paymentUrl) {
+        window.open(paymentUrl, '_blank');
+      } else {
+        setPayError(message || 'Оплата временно недоступна');
+      }
+    } catch (err: any) {
+      setPayError(err.message || 'Ошибка');
+    } finally {
+      setPayLoading(false);
+    }
   }
 
   return (
@@ -161,17 +180,22 @@ export function Home({ user, onNavigate }: Props) {
         {/* Payment button */}
         <button
           onClick={handlePayment}
-          disabled={!selectedPkg}
+          disabled={!selectedPkg || payLoading}
           className={`w-full py-4 rounded-2xl font-semibold text-base transition-all duration-200 ${
-            selectedPkg
+            selectedPkg && !payLoading
               ? 'bg-gradient-to-r from-violet-600 to-cyan-500 shadow-lg shadow-violet-500/25 active:scale-[0.98] text-white'
               : 'bg-white/[0.04] border border-white/[0.06] text-slate-600 cursor-not-allowed'
           }`}
         >
-          {selectedPkg
-            ? `Оплатить ${selectedPkg.price}`
-            : 'Выберите пакет'}
+          {payLoading
+            ? 'Создаём заказ...'
+            : selectedPkg
+              ? `Оплатить ${selectedPkg.price}`
+              : 'Выберите пакет'}
         </button>
+        {payError && (
+          <p className="text-center text-amber-400 text-sm">{payError}</p>
+        )}
       </div>
 
     </div>

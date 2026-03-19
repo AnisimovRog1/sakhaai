@@ -99,4 +99,11 @@ export const api = {
 
   getReferralFriends: () =>
     request<import('../types').ReferralFriend[]>('/referral/friends'),
+
+  // ── Оплата ────────────────────────────
+  createPayment: (pkg: string) =>
+    request<{ orderId: string; paymentUrl: string | null; message?: string }>('/payment/create', {
+      method: 'POST',
+      body: JSON.stringify({ package: pkg }),
+    }),
 };

@@ -72,6 +72,21 @@ export async function migrate() {
 
     CREATE INDEX IF NOT EXISTS referrals_referrer_idx ON referrals (referrer_id);
     CREATE INDEX IF NOT EXISTS referrals_status_idx   ON referrals (status);
+
+    -- Заказы на оплату
+    CREATE TABLE IF NOT EXISTS orders (
+      id          TEXT PRIMARY KEY,              -- уникальный ID заказа (uuid)
+      user_id     BIGINT NOT NULL REFERENCES users(id),
+      package     TEXT NOT NULL,                 -- 'start' | 'basic' | 'pro' | 'max'
+      amount_rub  INTEGER NOT NULL,              -- сумма в рублях
+      credits     INTEGER NOT NULL,              -- сколько кредитов начислить
+      status      TEXT NOT NULL DEFAULT 'pending', -- pending | paid | expired
+      paid_at     TIMESTAMPTZ,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE INDEX IF NOT EXISTS orders_user_idx   ON orders (user_id);
+    CREATE INDEX IF NOT EXISTS orders_status_idx ON orders (status);
   `);
 
   console.log('✅ Миграции применены');

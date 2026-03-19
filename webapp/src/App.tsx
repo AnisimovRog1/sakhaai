@@ -14,13 +14,14 @@ function getInitData(): string {
 }
 
 // Фоновые фото для каждого экрана
+const base = import.meta.env.BASE_URL;
 const BG: Record<string, string> = {
-  home:     '/bg-home.jpg',
-  chatList: '/bg-chatlist.jpg',
-  chat:     '/bg-chat.jpg',
-  imageGen: '/bg-chat.jpg',
-  videoGen: '/bg-video.jpg',
-  friends:  '/bg-frends.jpg',
+  home:     `${base}bg-home.jpg`,
+  chatList: `${base}bg-chatlist.jpg`,
+  chat:     `${base}bg-chat.jpg`,
+  imageGen: `${base}bg-chat.jpg`,
+  videoGen: `${base}bg-video.jpg`,
+  friends:  `${base}bg-frends.jpg`,
 };
 
 // Силуэт сэргэ — традиционные якутские столбы с аурой на площади

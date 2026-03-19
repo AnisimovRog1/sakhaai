@@ -1,132 +1,121 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { api } from '../api/client';
-import type { Chat, Screen } from '../types';
+import type { User, Screen } from '../types';
 
 type Props = {
+  user: User;
   onNavigate: (screen: Screen) => void;
 };
 
-export function ChatList({ onNavigate }: Props) {
-  const [chats, setChats] = useState<Chat[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+const QUICK_ACTIONS = [
+  'Проведи исследование',
+  'Помоги написать текст',
+  'Дай совет',
+  'Переведи на якутский',
+];
 
-  useEffect(() => {
-    api.getChats()
-      .then(setChats)
-      .finally(() => setLoading(false));
-  }, []);
+export function ChatList({ user, onNavigate }: Props) {
+  const [input, setInput] = useState('');
+  const [sending, setSending] = useState(false);
 
-  async function createChat() {
+  const tgPhotoUrl = (window.Telegram?.WebApp as any)?.initDataUnsafe?.user?.photo_url as string | undefined;
+  const firstName = user.firstName || 'друг';
+
+  async function startChat(text: string) {
+    if (!text.trim() || sending) return;
+    setSending(true);
     try {
-      setError(null);
-      const chat = await api.createChat('Новый чат');
+      const chat = await api.createChat(text.trim().slice(0, 40));
       onNavigate({ name: 'chat', chatId: chat.id, chatTitle: chat.title });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка создания чата');
+    } catch {
+      setSending(false);
     }
   }
 
-  async function deleteChat(id: number, e: React.MouseEvent) {
-    e.stopPropagation();
-    await api.deleteChat(id);
-    setChats((prev) => prev.filter((c) => c.id !== id));
-  }
-
-  function formatDate(dateStr: string) {
-    const date = new Date(dateStr);
-    const now = new Date();
-    const isToday = date.toDateString() === now.toDateString();
-    return isToday
-      ? date.toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })
-      : date.toLocaleDateString('ru', { day: 'numeric', month: 'short' });
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      startChat(input);
+    }
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col" style={{ minHeight: 'calc(var(--tg-viewport-height, 100vh) - 64px)' }}>
 
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 pt-6 pb-4">
-        <div>
-          <p className="text-blue-300/60 text-xs font-semibold uppercase tracking-[0.15em] mb-1">Ассистент</p>
-          <h1 className="text-xl font-bold text-white">Мои чаты</h1>
+      {/* ─── Header ─── */}
+      <div className="flex items-center justify-between px-5 pt-5 pb-2">
+        {/* Menu placeholder for balance */}
+        <div className="w-9" />
+        {/* App name */}
+        <div className="text-center">
+          <p className="text-white text-lg font-bold">UraanxAI</p>
         </div>
-        <button
-          onClick={createChat}
-          className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-blue-500/25 active:scale-95 transition-all flex items-center gap-1.5"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
-          Новый
-        </button>
+        {/* TG Avatar */}
+        {tgPhotoUrl ? (
+          <img
+            src={tgPhotoUrl}
+            alt="avatar"
+            className="w-9 h-9 rounded-full object-cover ring-2 ring-white/20"
+          />
+        ) : (
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-sm font-bold text-white ring-2 ring-white/20">
+            {firstName[0].toUpperCase()}
+          </div>
+        )}
       </div>
 
-      {/* Error */}
-      {error && (
-        <div className="mx-5 mb-3 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-300 text-sm font-medium">
-          {error}
-        </div>
-      )}
+      {/* ─── Greeting ─── */}
+      <div className="flex-1 flex items-center justify-center px-8">
+        <p className="text-3xl font-bold text-center text-white leading-snug">
+          Здравствуйте,
+          <br />
+          <span className="bg-gradient-to-r from-blue-400 to-blue-300 bg-clip-text text-transparent">{firstName}!</span>
+        </p>
+      </div>
 
-      {/* List */}
-      <div className="flex-1 px-5 space-y-2">
-
-        {loading && (
-          <div className="space-y-2 pt-2">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-16 bg-white/[0.04] border border-white/[0.06] rounded-2xl animate-pulse" />
-            ))}
-          </div>
-        )}
-
-        {!loading && chats.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-20 space-y-4">
-            <div className="w-16 h-16 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
-              </svg>
-            </div>
-            <div className="text-center">
-              <p className="text-white font-bold text-base">Нет чатов</p>
-              <p className="text-slate-400 text-sm mt-1 font-medium">Начни свой первый разговор с AI</p>
-            </div>
+      {/* ─── Quick Actions ─── */}
+      <div className="px-5 pb-3">
+        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+          {QUICK_ACTIONS.map((action) => (
             <button
-              onClick={createChat}
-              className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl px-6 py-3 font-bold text-sm text-white shadow-lg shadow-blue-500/25 active:scale-95 transition-all"
+              key={action}
+              onClick={() => startChat(action)}
+              disabled={sending}
+              className="flex-shrink-0 bg-white/[0.08] border border-white/[0.12] rounded-2xl px-4 py-2.5 text-sm font-semibold text-slate-200 active:bg-white/[0.14] transition-all whitespace-nowrap"
             >
-              Начать чат
+              {action}
             </button>
-          </div>
-        )}
+          ))}
+        </div>
+      </div>
 
-        {chats.map((chat) => (
+      {/* ─── Input ─── */}
+      <div className="px-5 pb-5">
+        <div className="flex gap-2 items-end">
+          <div className="flex-1 bg-white/[0.08] border border-white/[0.12] rounded-2xl px-4 py-3 flex items-center">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Спросите UraanxAI"
+              disabled={sending}
+              className="flex-1 bg-transparent text-sm font-medium text-white placeholder-slate-400 outline-none"
+            />
+          </div>
           <button
-            key={chat.id}
-            onClick={() => onNavigate({ name: 'chat', chatId: chat.id, chatTitle: chat.title })}
-            className="w-full bg-white/[0.06] border border-white/[0.10] active:bg-white/[0.10] active:border-white/[0.16] rounded-2xl px-4 py-3.5 text-left transition-all flex items-center gap-3"
+            onClick={() => startChat(input)}
+            disabled={!input.trim() || sending}
+            className="w-11 h-11 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center disabled:opacity-30 active:scale-95 transition-all shadow-md shadow-blue-500/25 flex-shrink-0"
           >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-md shadow-blue-500/20">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
-              </svg>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-white font-semibold text-sm truncate">{chat.title}</p>
-              <p className="text-slate-400 text-xs mt-0.5 font-medium">{formatDate(chat.updated_at)}</p>
-            </div>
-            <button
-              onClick={(e) => deleteChat(chat.id, e)}
-              className="text-slate-600 active:text-red-400 p-1.5 transition-colors rounded-lg"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-              </svg>
-            </button>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"/>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
           </button>
-        ))}
-
+        </div>
       </div>
+
     </div>
   );
 }

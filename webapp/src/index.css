@@ -16,6 +16,7 @@ html, body, #root {
   height: 100%;
   margin: 0;
   padding: 0;
+  overflow: hidden;
 }
 
 body {
@@ -38,19 +39,28 @@ body {
 
 p { margin: 0; }
 
-/* Якутская палитра — CSS custom properties */
+/* Telegram Mini App viewport fix:
+   Telegram WebApp resizes the viewport when keyboard opens,
+   so we use 100% height instead of 100vh which is unreliable */
+.tg-viewport {
+  height: 100%;
+  height: var(--tg-viewport-height, 100%);
+}
+
+/* Safe areas for iOS notch */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Якутская палитра */
 :root {
   --sakha-blue: #3B82F6;
-  --sakha-blue-light: #60A5FA;
   --sakha-red: #EF4444;
-  --sakha-red-warm: #F87171;
   --sakha-green: #22C55E;
-  --sakha-green-light: #4ADE80;
   --sakha-white: #F8FAFC;
   --sakha-gold: #FBBF24;
-
-  /* Карточки */
   --card-bg: rgba(255, 255, 255, 0.06);
   --card-border: rgba(255, 255, 255, 0.10);
-  --card-border-hover: rgba(255, 255, 255, 0.16);
 }

@@ -78,6 +78,19 @@ export function App() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Синхронизируем CSS-переменную с реальной высотой viewport Telegram
+  useEffect(() => {
+    function updateHeight() {
+      const vh = window.Telegram?.WebApp?.viewportHeight || window.innerHeight;
+      document.documentElement.style.setProperty('--tg-viewport-height', `${vh}px`);
+    }
+    updateHeight();
+    window.addEventListener('resize', updateHeight);
+    // Telegram WebApp event
+    (window.Telegram?.WebApp as any)?.onEvent?.('viewportChanged', updateHeight);
+    return () => window.removeEventListener('resize', updateHeight);
+  }, []);
+
   useEffect(() => {
     window.Telegram?.WebApp?.ready();
     window.Telegram?.WebApp?.expand();
@@ -171,30 +184,21 @@ export function App() {
       </div>
 
       {/* ─── Контент экранов ─── */}
-      <div className="flex-1 overflow-y-auto pb-20">
-        {screen.name === 'home' && (
-          <Home user={user} onNavigate={setScreen} />
-        )}
-        {screen.name === 'chatList' && (
-          <ChatList onNavigate={setScreen} />
-        )}
-        {screen.name === 'chat' && (
-          <Chat
-            chatId={screen.chatId}
-            chatTitle={screen.chatTitle}
-            onBack={() => setScreen({ name: 'chatList' })}
-          />
-        )}
-        {screen.name === 'imageGen' && (
-          <ImageGen user={user} onCreditsUpdate={(c) => setUser({ ...user, credits: c })} />
-        )}
-        {screen.name === 'videoGen' && (
-          <VideoGen user={user} onCreditsUpdate={(c) => setUser({ ...user, credits: c })} />
-        )}
-        {screen.name === 'friends' && (
-          <Friends user={user} />
-        )}
-      </div>
+      {screen.name === 'chat' ? (
+        <Chat
+          chatId={screen.chatId}
+          chatTitle={screen.chatTitle}
+          onBack={() => setScreen({ name: 'chatList' })}
+        />
+      ) : (
+        <div className="flex-1 overflow-y-auto pb-20">
+          {screen.name === 'home' && <Home user={user} />}
+          {screen.name === 'chatList' && <ChatList user={user} onNavigate={setScreen} />}
+          {screen.name === 'imageGen' && <ImageGen user={user} onCreditsUpdate={(c) => setUser({ ...user, credits: c })} />}
+          {screen.name === 'videoGen' && <VideoGen user={user} onCreditsUpdate={(c) => setUser({ ...user, credits: c })} />}
+          {screen.name === 'friends' && <Friends user={user} />}
+        </div>
+      )}
 
       {screen.name !== 'chat' && (
         <BottomNav current={screen.name} onNavigate={setScreen} />
@@ -208,11 +212,13 @@ declare global {
     Telegram?: {
       WebApp?: {
         initData: string;
-        initDataUnsafe?: { start_param?: string };
+        initDataUnsafe?: { start_param?: string; user?: { photo_url?: string } };
+        viewportHeight?: number;
         ready: () => void;
         expand: () => void;
         close: () => void;
         openTelegramLink: (url: string) => void;
+        onEvent?: (event: string, callback: () => void) => void;
       };
     };
   }

@@ -62,7 +62,7 @@ export function Chat({ chatId, chatTitle, onBack }: Props) {
   }
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col tg-viewport">
 
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3.5 bg-[#070b14]/90 backdrop-blur-xl border-b border-white/[0.08] flex-shrink-0">

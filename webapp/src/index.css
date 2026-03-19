@@ -17,6 +17,8 @@ html, body, #root {
   margin: 0;
   padding: 0;
   overflow: hidden;
+  touch-action: pan-x pan-y;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
@@ -30,8 +32,6 @@ body {
 
 #root {
   width: 100%;
-  max-width: 480px;
-  margin: 0 auto;
   min-height: 100%;
   display: flex;
   flex-direction: column;
@@ -39,12 +39,15 @@ body {
 
 p { margin: 0; }
 
-/* Telegram Mini App viewport fix:
-   Telegram WebApp resizes the viewport when keyboard opens,
-   so we use 100% height instead of 100vh which is unreliable */
+/* Telegram Mini App viewport fix */
 .tg-viewport {
   height: 100%;
   height: var(--tg-viewport-height, 100%);
+}
+
+/* Отступ сверху для полноэкранного режима Telegram Mini App */
+.pt-tg-header {
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
 /* Safe areas for iOS notch */

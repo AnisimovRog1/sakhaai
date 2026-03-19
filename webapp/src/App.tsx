@@ -92,8 +92,20 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    window.Telegram?.WebApp?.ready();
-    window.Telegram?.WebApp?.expand();
+    const wa = window.Telegram?.WebApp;
+    wa?.ready();
+    wa?.expand();
+
+    // Безопасно пробуем включить полный экран и тёмный хедер
+    setTimeout(() => {
+      try {
+        const w = window.Telegram?.WebApp as any;
+        if (w?.requestFullscreen) w.requestFullscreen();
+        if (w?.setHeaderColor) w.setHeaderColor('#070b14');
+        if (w?.setBackgroundColor) w.setBackgroundColor('#070b14');
+        if (w?.disableVerticalSwipes) w.disableVerticalSwipes();
+      } catch (e) { /* старая версия Telegram — игнорируем */ }
+    }, 100);
 
     const initData = getInitData();
     const referralCode =
@@ -110,6 +122,10 @@ export function App() {
     api.auth(initData, referralCode)
       .then(({ token, user }) => {
         setToken(token);
+        // Берём реальные данные из Telegram
+        const tgU = (window.Telegram?.WebApp as any)?.initDataUnsafe?.user;
+        if (tgU?.first_name) user.firstName = tgU.first_name;
+        if (tgU?.photo_url) user.photoUrl = tgU.photo_url;
         setUser(user);
       })
       .catch((err) => setError(err.message))
@@ -171,7 +187,7 @@ export function App() {
     <div className="flex flex-col min-h-screen text-slate-100 relative">
 
       {/* ─── Фиксированный фон (фото + оверлей + силуэты) ─── */}
-      <div className="fixed inset-0 -z-10 max-w-[480px] mx-auto overflow-hidden">
+      <div className="fixed inset-0 -z-10 max-w-full mx-auto overflow-hidden">
         {/* Фотография */}
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-1000"
@@ -191,7 +207,7 @@ export function App() {
           onBack={() => setScreen({ name: 'chatList' })}
         />
       ) : (
-        <div className="flex-1 overflow-y-auto pb-20">
+        <div className="flex-1 overflow-y-auto pb-20 pt-14">
           {screen.name === 'home' && <Home user={user} />}
           {screen.name === 'chatList' && <ChatList user={user} onNavigate={setScreen} />}
           {screen.name === 'imageGen' && <ImageGen user={user} onCreditsUpdate={(c) => setUser({ ...user, credits: c })} />}

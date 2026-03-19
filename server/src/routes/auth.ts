@@ -97,6 +97,7 @@ authRouter.post('/', async (req: Request, res: Response) => {
       firstName: user.first_name,
       credits: user.credits,
       languageCode: user.language_code,
+      photoUrl: (tgUser as any).photoUrl ?? null,
     },
   });
 });

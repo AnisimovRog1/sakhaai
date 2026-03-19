@@ -4,6 +4,7 @@ export type User = {
   firstName: string;
   credits: number;
   languageCode: 'ru' | 'sah';
+  photoUrl: string | null;
 };
 
 export type Chat = {
@@ -46,7 +47,7 @@ export type ReferralFriend = {
 export type Screen =
   | { name: 'home' }
   | { name: 'chatList' }
-  | { name: 'chat'; chatId: number; chatTitle: string }
+  | { name: 'chat'; chatId: number; chatTitle: string; initialMessage?: string }
   | { name: 'imageGen' }
   | { name: 'videoGen' }
   | { name: 'friends' }

@@ -52,7 +52,7 @@ const items = [
 
 export function BottomNav({ current, onNavigate }: Props) {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 max-w-[480px] mx-auto bg-[#070b14]/95 backdrop-blur-xl border-t border-white/[0.08]">
+    <nav className="fixed bottom-0 left-0 right-0 w-full bg-[#070b14]/95 backdrop-blur-xl border-t border-white/[0.08]">
       <div className="flex">
         {items.map(({ name, label, Icon }) => {
           const active = current === name;

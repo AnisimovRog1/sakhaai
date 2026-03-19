@@ -44,10 +44,10 @@ export function Chat({ chatId, chatTitle, onBack }: Props) {
       const reply = await api.sendMessage(chatId, text);
       setMessages((prev) => [...prev, reply]);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Неизвестная ошибка';
+      const msg = err instanceof Error ? err.message : 'Ошибка';
       setMessages((prev) => [
         ...prev,
-        { id: Date.now(), role: 'model', content: `${msg}`, created_at: new Date().toISOString() },
+        { id: Date.now(), role: 'model', content: msg, created_at: new Date().toISOString() },
       ]);
     } finally {
       setSending(false);
@@ -62,10 +62,10 @@ export function Chat({ chatId, chatTitle, onBack }: Props) {
   }
 
   return (
-    <div className="flex flex-col tg-viewport">
+    <div className="flex flex-col tg-viewport pt-14">
 
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3.5 bg-[#070b14]/90 backdrop-blur-xl border-b border-white/[0.08] flex-shrink-0">
+      <div className="flex items-center gap-3 px-4 py-3 bg-[#070b14]/90 backdrop-blur-xl border-b border-white/[0.08] flex-shrink-0">
         <button
           onClick={onBack}
           className="w-9 h-9 rounded-xl bg-white/[0.08] active:bg-white/[0.14] flex items-center justify-center transition-all"
@@ -92,21 +92,10 @@ export function Chat({ chatId, chatTitle, onBack }: Props) {
           </div>
         )}
 
-        {!loading && messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full py-20 space-y-3">
-            <div className="w-14 h-14 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
-              </svg>
-            </div>
-            <p className="text-slate-300 text-sm font-medium">Напиши что-нибудь — отвечу!</p>
-          </div>
-        )}
-
         {messages.map((msg) => (
           <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             {msg.role === 'model' && (
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0 mr-2 mt-1 shadow-sm shadow-blue-500/20">
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0 mr-2 mt-1">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
                 </svg>
@@ -115,7 +104,7 @@ export function Chat({ chatId, chatTitle, onBack }: Props) {
             <div
               className={`max-w-[78%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
                 msg.role === 'user'
-                  ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-br-sm shadow-md shadow-blue-500/20'
+                  ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-br-sm'
                   : 'bg-white/[0.08] border border-white/[0.10] text-slate-100 rounded-bl-sm'
               }`}
             >
@@ -124,10 +113,9 @@ export function Chat({ chatId, chatTitle, onBack }: Props) {
           </div>
         ))}
 
-        {/* Typing indicator */}
         {sending && (
           <div className="flex justify-start items-end gap-2">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm shadow-blue-500/20">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
               </svg>
@@ -135,11 +123,7 @@ export function Chat({ chatId, chatTitle, onBack }: Props) {
             <div className="bg-white/[0.08] border border-white/[0.10] rounded-2xl rounded-bl-sm px-4 py-3.5">
               <div className="flex gap-1.5">
                 {[0, 1, 2].map((i) => (
-                  <div
-                    key={i}
-                    className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-bounce"
-                    style={{ animationDelay: `${i * 0.15}s` }}
-                  />
+                  <div key={i} className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
                 ))}
               </div>
             </div>
@@ -150,7 +134,7 @@ export function Chat({ chatId, chatTitle, onBack }: Props) {
       </div>
 
       {/* Input */}
-      <div className="px-4 py-3 bg-[#070b14]/90 backdrop-blur-xl border-t border-white/[0.08] flex-shrink-0">
+      <div className="px-4 py-3 bg-[#070b14]/90 backdrop-blur-xl border-t border-white/[0.08] flex-shrink-0 pb-safe">
         <div className="flex gap-2 items-end">
           <textarea
             value={input}

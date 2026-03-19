@@ -1,8 +1,22 @@
 import { Router, Request, Response } from 'express';
 import { parse, validate } from '@telegram-apps/init-data-node';
 import jwt from 'jsonwebtoken';
+import https from 'https';
 import { pool } from '../db/pool';
 import { saveUserIp, registerReferral } from '../services/referral';
+
+// HTTP GET запрос через https модуль (работает на любой версии Node.js)
+function httpGet(url: string): Promise<any> {
+  return new Promise((resolve, reject) => {
+    https.get(url, (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        try { resolve(JSON.parse(data)); } catch { reject(new Error('JSON parse error')); }
+      });
+    }).on('error', reject);
+  });
+}
 
 export const authRouter = Router();
 
@@ -82,21 +96,23 @@ authRouter.post('/', async (req: Request, res: Response) => {
     }
   }
 
-  // 6. Получаем аватарку через Bot API (гарантированный способ)
+  // 6. Получаем аватарку через Bot API (https модуль — работает на любой версии Node)
   let photoUrl: string | null = null;
   try {
     const botToken = process.env.BOT_TOKEN!;
-    const chatRes = await fetch(`https://api.telegram.org/bot${botToken}/getUserProfilePhotos?user_id=${tgUser.id}&limit=1`);
-    const chatData = await chatRes.json() as any;
-    if (chatData.ok && chatData.result?.photos?.length > 0) {
-      const fileId = chatData.result.photos[0][0].file_id;
-      const fileRes = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${fileId}`);
-      const fileData = await fileRes.json() as any;
+    const photosData = await httpGet(`https://api.telegram.org/bot${botToken}/getUserProfilePhotos?user_id=${tgUser.id}&limit=1`);
+    if (photosData.ok && photosData.result?.photos?.length > 0) {
+      const fileId = photosData.result.photos[0][0].file_id;
+      const fileData = await httpGet(`https://api.telegram.org/bot${botToken}/getFile?file_id=${fileId}`);
       if (fileData.ok) {
         photoUrl = `https://api.telegram.org/file/bot${botToken}/${fileData.result.file_path}`;
       }
     }
-  } catch { /* не критично */ }
+  } catch (err) {
+    console.error('Avatar fetch error:', err);
+  }
+
+  console.log(`Auth: user=${tgUser.id}, name=${tgUser.firstName}, photo=${photoUrl ? 'YES' : 'NO'}`);
 
   // 7. Выдаём JWT токен на 30 дней
   const token = jwt.sign(

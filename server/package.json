@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "SakhaAI Backend Server",
   "main": "dist/index.js",
+  "engines": { "node": ">=18" },
   "scripts": {
     "dev": "nodemon --exec ts-node src/index.ts",
     "build": "tsc",

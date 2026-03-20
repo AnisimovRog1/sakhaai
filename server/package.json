@@ -3,13 +3,16 @@
   "version": "1.0.0",
   "description": "SakhaAI Backend Server",
   "main": "dist/index.js",
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "dev": "nodemon --exec ts-node src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js"
   },
   "dependencies": {
+    "@fal-ai/client": "^1.9.4",
     "@google/genai": "^0.7.0",
     "@telegram-apps/init-data-node": "^1.1.0",
     "cors": "^2.8.5",

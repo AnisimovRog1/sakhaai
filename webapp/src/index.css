@@ -67,3 +67,31 @@ p { margin: 0; }
   --card-bg: rgba(255, 255, 255, 0.06);
   --card-border: rgba(255, 255, 255, 0.10);
 }
+
+/* Анимация shimmer для прогресс-бара */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.progress-shimmer {
+  background-size: 200% 100%;
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+/* Анимация появления bottom sheet */
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+/* Пульсация свечения */
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(139, 92, 246, 0.3), 0 0 20px rgba(6, 182, 212, 0.15); }
+  50% { box-shadow: 0 0 16px rgba(139, 92, 246, 0.5), 0 0 40px rgba(6, 182, 212, 0.25); }
+}
+.glow-animate {
+  animation: glow-pulse 3s ease-in-out infinite;
+}

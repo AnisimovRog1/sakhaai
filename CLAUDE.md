@@ -32,10 +32,9 @@ git push  # Railway автодеплой по main
 | `DATABASE_URL` | PostgreSQL Railway (выдаётся автоматически) |
 | `BOT_TOKEN` | Токен @UraanxAI_bot от BotFather |
 | `JWT_SECRET` | Случайная строка для подписи JWT |
-| `GEMINI_API_KEY` | Ключ от **второго** Google-аккаунта (первый исчерпан) |
+| `GEMINI_API_KEY` | Ключ Google AI Studio — используется для чата И генерации картинок (gemini-2.5-flash-image) |
+| `FAL_KEY` | Ключ fal.ai — используется для видео (Kling) и аватаров (Kling Avatar v2) |
 | `ALLOWED_ORIGINS` | https://dreamy-churros-2c46d7.netlify.app |
-| `NANABANANA_API_KEY` | ⬜ Ещё не задан |
-| `KLING_API_KEY` | ⬜ Ещё не задан |
 
 ### Railway — сервис `focused-clarity` (bot)
 | Переменная | Описание |

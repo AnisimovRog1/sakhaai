@@ -5,6 +5,8 @@ type Props = {
   user: User;
 };
 
+type PaymentMethod = 'card' | 'sbp' | 'crypto';
+
 const PACKAGES = [
   { key: 'start', label: 'Старт',   price: '99₽',   credits: 1100,  popular: false },
   { key: 'basic', label: 'Базовый', price: '299₽',  credits: 3500,  popular: false },
@@ -12,19 +14,61 @@ const PACKAGES = [
   { key: 'max',   label: 'Макс',    price: '1990₽', credits: 28000, popular: false },
 ];
 
+const PAYMENT_METHODS: { id: PaymentMethod; label: string; icon: React.ReactNode }[] = [
+  {
+    id: 'card',
+    label: 'Банковская карта',
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="1" y="4" width="22" height="16" rx="3"/><line x1="1" y1="10" x2="23" y2="10"/>
+      </svg>
+    ),
+  },
+  {
+    id: 'sbp',
+    label: 'СБП',
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+      </svg>
+    ),
+  },
+  {
+    id: 'crypto',
+    label: 'Криптовалютой',
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10"/><path d="M9.5 8h5a2.5 2.5 0 010 5H9.5V8z"/><path d="M9.5 13h5.5a2.5 2.5 0 010 5H9.5v-5z"/><line x1="12" y1="6" x2="12" y2="8"/><line x1="12" y1="18" x2="12" y2="20"/>
+      </svg>
+    ),
+  },
+];
+
 function getLevel(credits: number) {
-  if (credits < 1100)  return { level: 'Старт',   next: 1100,  color: 'from-blue-500 to-blue-400'   };
-  if (credits < 3500)  return { level: 'Базовый', next: 3500,  color: 'from-blue-500 to-cyan-400'   };
-  if (credits < 10000) return { level: 'Про',     next: 10000, color: 'from-blue-500 to-green-400'  };
-  return                      { level: 'Макс',    next: 28000, color: 'from-yellow-400 to-red-400'  };
+  if (credits < 1100)  return { level: 'Старт',   next: 1100  };
+  if (credits < 3500)  return { level: 'Базовый', next: 3500  };
+  if (credits < 10000) return { level: 'Про',     next: 10000 };
+  return                      { level: 'Макс',    next: 28000 };
 }
 
 export function Home({ user }: Props) {
   const [selectedPkg, setSelectedPkg] = useState<typeof PACKAGES[0] | null>(null);
-  const { level, next, color } = getLevel(user.credits);
+  const [showPayment, setShowPayment] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
+  const { level, next } = getLevel(user.credits);
   const progress = Math.min((user.credits / next) * 100, 100);
 
   const displayName = user.username ? `@${user.username}` : user.firstName;
+
+  function handlePay() {
+    if (!selectedPkg) return;
+    setShowPayment(true);
+  }
+
+  function handleConfirmPay() {
+    // TODO: интеграция UnitPay — вызов API с selectedPkg и paymentMethod
+    setShowPayment(false);
+  }
 
   return (
     <div className="flex flex-col justify-between px-5" style={{ minHeight: 'calc(var(--tg-viewport-height, 100vh) - 130px)' }}>
@@ -32,7 +76,7 @@ export function Home({ user }: Props) {
       {/* ─── Top content ─── */}
       <div className="space-y-6">
 
-        {/* Header — отступ сверху чтобы не перекрывался кнопкой Закрыть */}
+        {/* Header */}
         <div className="flex items-center justify-between pt-8">
           <div>
             <p className="text-blue-200/70 text-sm font-medium tracking-wide">Добро пожаловать</p>
@@ -47,30 +91,40 @@ export function Home({ user }: Props) {
           )}
         </div>
 
-        {/* Balance Card — отступ от хедера */}
-        <div className="relative rounded-2xl p-5 overflow-hidden shadow-xl mt-2">
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-900" />
-          <div className="absolute -top-6 -right-6 w-28 h-28 bg-white/10 rounded-full blur-2xl" />
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-red-500 via-red-400 to-green-500" />
+        {/* Balance Card — флаг Якутии */}
+        <div className="relative rounded-2xl p-5 overflow-hidden shadow-xl mt-2 glow-animate">
+          <div className="absolute inset-0 bg-gradient-to-b from-[#1a6bc4] via-[#155da8] to-[#0e4a8a]" />
+          <div className="absolute -top-4 -right-4 w-24 h-24 rounded-full bg-white/[0.12] blur-xl" />
+          <div className="absolute top-3 right-4 w-10 h-10 rounded-full bg-white/[0.15] shadow-[0_0_20px_rgba(255,255,255,0.2)]" />
+          <div className="absolute bottom-0 left-0 right-0 h-[6px] flex">
+            <div className="flex-1 bg-gradient-to-r from-red-500 to-red-400" />
+            <div className="flex-1 bg-gradient-to-r from-green-500 to-green-400" />
+          </div>
           <div className="relative space-y-3">
-            <p className="text-blue-100/80 text-[10px] font-semibold uppercase tracking-[0.15em]">Баланс кредитов</p>
+            <p className="text-blue-100/90 text-[10px] font-semibold uppercase tracking-[0.15em]">Баланс кредитов</p>
             <div className="flex items-baseline gap-2">
-              <p className="text-4xl font-extrabold text-white">{user.credits.toLocaleString('ru')}</p>
-              <span className="text-base font-medium text-blue-200/70">кр.</span>
+              <p className="text-4xl font-extrabold text-white drop-shadow-lg">{user.credits.toLocaleString('ru')}</p>
+              <span className="text-base font-medium text-blue-100/80">кр.</span>
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <div className="flex justify-between text-xs">
-                <span className="text-blue-100/70">Уровень: <span className="text-white font-semibold">{level}</span></span>
-                <span className="text-blue-100/70">{user.credits.toLocaleString('ru')} / {next.toLocaleString('ru')}</span>
+                <span className="text-blue-100/80">Уровень: <span className="text-white font-bold">{level}</span></span>
+                <span className="text-blue-100/80">{user.credits.toLocaleString('ru')} / {next.toLocaleString('ru')}</span>
               </div>
-              <div className="h-1.5 bg-white/15 rounded-full overflow-hidden">
-                <div className={`h-full bg-gradient-to-r ${color} rounded-full transition-all duration-700`} style={{ width: `${progress}%` }} />
+              <div className="h-2.5 bg-white/[0.15] rounded-full overflow-hidden shadow-inner">
+                <div
+                  className="h-full rounded-full transition-all duration-1000 progress-shimmer"
+                  style={{
+                    width: `${progress}%`,
+                    background: 'linear-gradient(90deg, #8B5CF6, #06B6D4, #8B5CF6, #06B6D4)',
+                  }}
+                />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Packages — центрированы, побольше, отступ от баланса */}
+        {/* Packages */}
         <div className="space-y-3 mt-2">
           <p className="text-white text-base font-bold text-center">Купить AI-кредиты</p>
           <div className="grid grid-cols-2 gap-3">
@@ -83,7 +137,7 @@ export function Home({ user }: Props) {
                   className={`relative rounded-2xl p-4 text-left transition-all duration-200 active:scale-[0.97] ${
                     sel
                       ? 'bg-blue-500/20 border-2 border-blue-400/60 shadow-lg shadow-blue-500/15'
-                      : 'bg-white/[0.06] border border-white/[0.10]'
+                      : 'bg-white/[0.08] border border-white/[0.12]'
                   }`}
                 >
                   {pkg.popular && (
@@ -96,7 +150,7 @@ export function Home({ user }: Props) {
                   )}
                   <p className="text-2xl font-extrabold text-white">{pkg.price}</p>
                   <p className="text-slate-200 text-sm font-semibold mt-1">{pkg.label}</p>
-                  <p className="text-blue-300/60 text-xs mt-0.5 font-medium">{pkg.credits.toLocaleString('ru')} кр.</p>
+                  <p className="text-blue-300/80 text-xs mt-0.5 font-medium">{pkg.credits.toLocaleString('ru')} кр.</p>
                 </button>
               );
             })}
@@ -104,19 +158,81 @@ export function Home({ user }: Props) {
         </div>
       </div>
 
-      {/* ─── Payment Button — прижата к низу ─── */}
+      {/* ─── Payment Button ─── */}
       <div className="pt-5 pb-3">
         <button
+          onClick={handlePay}
           disabled={!selectedPkg}
           className={`w-full py-4 rounded-2xl font-bold text-base transition-all duration-200 ${
             selectedPkg
-              ? 'bg-gradient-to-r from-green-500 to-green-600 shadow-lg shadow-green-500/25 active:scale-[0.98] text-white'
+              ? 'bg-gradient-to-r from-violet-600 to-cyan-500 shadow-lg shadow-violet-500/25 active:scale-[0.98] text-white'
               : 'bg-white/[0.05] border border-white/[0.08] text-slate-500 cursor-not-allowed'
           }`}
         >
           {selectedPkg ? `Оплатить ${selectedPkg.price}` : 'Выберите пакет'}
         </button>
       </div>
+
+      {/* ─── Payment Method Modal ─── */}
+      {showPayment && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setShowPayment(false)}>
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+
+          {/* Bottom sheet */}
+          <div
+            className="relative w-full max-w-md bg-[#0f1420] border-t border-white/[0.12] rounded-t-3xl p-6 pb-8 space-y-5 animate-slide-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Handle */}
+            <div className="flex items-center justify-between">
+              <h2 className="text-white text-lg font-bold uppercase tracking-wide">Выбрать тип оплаты</h2>
+              <button onClick={() => setShowPayment(false)} className="w-8 h-8 rounded-full bg-white/[0.08] flex items-center justify-center">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+
+            {/* Methods */}
+            <div className="space-y-3">
+              {PAYMENT_METHODS.map((m) => {
+                const selected = paymentMethod === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => setPaymentMethod(m.id)}
+                    className={`w-full flex items-center justify-between px-5 py-4 rounded-2xl transition-all duration-200 ${
+                      selected
+                        ? 'bg-white/[0.08] border-2 border-violet-500/60 shadow-lg shadow-violet-500/10'
+                        : 'bg-white/[0.04] border border-white/[0.10]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className={selected ? 'text-violet-400' : 'text-slate-400'}>{m.icon}</span>
+                      <span className={`text-base font-semibold ${selected ? 'text-white' : 'text-slate-300'}`}>{m.label}</span>
+                    </div>
+                    {/* Radio */}
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+                      selected ? 'border-violet-500' : 'border-slate-500'
+                    }`}>
+                      {selected && <div className="w-3 h-3 rounded-full bg-violet-500" />}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Confirm */}
+            <button
+              onClick={handleConfirmPay}
+              className="w-full py-4 rounded-2xl font-bold text-base text-white bg-gradient-to-r from-violet-600 to-cyan-500 shadow-lg shadow-violet-500/25 active:scale-[0.98] transition-all"
+            >
+              Далее
+            </button>
+          </div>
+        </div>
+      )}
 
     </div>
   );

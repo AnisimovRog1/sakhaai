@@ -56,15 +56,17 @@ videoRouter.post('/motion', async (req: Request, res: Response) => {
   res.json({ ...result, creditsLeft, cost: COSTS.motion.credits });
 });
 
-// POST /video/avatar
+// POST /video/avatar — изображение + аудио → говорящий аватар
 videoRouter.post('/avatar', async (req: Request, res: Response) => {
-  const { imageUrl, text } = req.body;
-  if (!imageUrl || !text) { res.status(400).json({ error: 'imageUrl и text обязательны' }); return; }
+  const { imageUrl, audioUrl, text } = req.body;
+  // Поддерживаем и audioUrl (новый формат), и text (старый, для обратной совместимости)
+  const audio = audioUrl || text;
+  if (!imageUrl || !audio) { res.status(400).json({ error: 'imageUrl и audioUrl обязательны' }); return; }
 
   const creditsLeft = await charge(req, res, 'avatar');
   if (creditsLeft === null) return;
 
-  const result = await generateAvatar(imageUrl, text).catch((e: Error) => {
+  const result = await generateAvatar(imageUrl, audio).catch((e: Error) => {
     res.status(500).json({ error: e.message }); return null;
   });
   if (!result) return;

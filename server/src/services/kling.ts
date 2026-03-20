@@ -1,63 +1,76 @@
-// Сервис генерации видео через Kling AI API
-// Документация: https://klingai.com/api-reference
+// Генерация видео через fal.ai + Kling
+// Требуется FAL_KEY в переменных окружения
+
+import { fal } from '@fal-ai/client';
+
+// Конфигурация fal.ai
+fal.config({
+  credentials: process.env.FAL_KEY!,
+});
 
 export type VideoGenResult = {
   videoUrl: string;
   taskId: string;
 };
 
-type KlingHeaders = {
-  'Authorization': string;
-  'Content-Type': string;
-};
+// Текст → Видео (Kling v3)
+export async function generateVideo(prompt: string): Promise<VideoGenResult> {
+  if (!process.env.FAL_KEY) throw new Error('FAL_KEY не задан');
 
-function headers(): KlingHeaders {
-  const apiKey = process.env.KLING_API_KEY;
-  if (!apiKey) throw new Error('KLING_API_KEY не задан');
+  const result = await fal.subscribe('fal-ai/kling-video/v3/standard/text-to-video', {
+    input: {
+      prompt,
+      duration: 5,
+      aspect_ratio: '9:16',
+    },
+  });
+
+  const data = result.data as any;
   return {
-    'Authorization': `Bearer ${apiKey}`,
-    'Content-Type': 'application/json',
+    videoUrl: data.video?.url ?? '',
+    taskId: result.requestId ?? '',
   };
 }
 
-// Текст → Видео (3 сек)
-export async function generateVideo(prompt: string): Promise<VideoGenResult> {
-  const response = await fetch('https://api.klingai.com/v1/videos/text2video', {
-    method: 'POST',
-    headers: headers(),
-    body: JSON.stringify({ prompt, duration: 3 }),
-  });
-  if (!response.ok) throw new Error('Ошибка Kling API (video)');
-  const data = await response.json() as { video_url: string; task_id: string };
-  return { videoUrl: data.video_url, taskId: data.task_id };
-}
-
-// Картинка → Видео (Motion, 3 сек)
+// Картинка → Видео (Motion, Kling v3)
 export async function generateMotion(
   imageUrl: string,
   prompt?: string
 ): Promise<VideoGenResult> {
-  const response = await fetch('https://api.klingai.com/v1/videos/image2video', {
-    method: 'POST',
-    headers: headers(),
-    body: JSON.stringify({ image_url: imageUrl, prompt: prompt ?? '', duration: 3 }),
+  if (!process.env.FAL_KEY) throw new Error('FAL_KEY не задан');
+
+  const result = await fal.subscribe('fal-ai/kling-video/v3/standard/image-to-video', {
+    input: {
+      start_image_url: imageUrl,
+      prompt: prompt ?? '',
+      duration: 5,
+    },
   });
-  if (!response.ok) throw new Error('Ошибка Kling API (motion)');
-  const data = await response.json() as { video_url: string; task_id: string };
-  return { videoUrl: data.video_url, taskId: data.task_id };
+
+  const data = result.data as any;
+  return {
+    videoUrl: data.video?.url ?? '',
+    taskId: result.requestId ?? '',
+  };
 }
 
-// Avatar — говорящая аватарка
+// Avatar — говорящая аватарка (Kling Avatar v2 Pro)
 export async function generateAvatar(
   imageUrl: string,
-  text: string
+  audioUrl: string
 ): Promise<VideoGenResult> {
-  const response = await fetch('https://api.klingai.com/v1/videos/avatar', {
-    method: 'POST',
-    headers: headers(),
-    body: JSON.stringify({ image_url: imageUrl, text }),
+  if (!process.env.FAL_KEY) throw new Error('FAL_KEY не задан');
+
+  const result = await fal.subscribe('fal-ai/kling-video/ai-avatar/v2/pro', {
+    input: {
+      image_url: imageUrl,
+      audio_url: audioUrl,
+    },
   });
-  if (!response.ok) throw new Error('Ошибка Kling API (avatar)');
-  const data = await response.json() as { video_url: string; task_id: string };
-  return { videoUrl: data.video_url, taskId: data.task_id };
+
+  const data = result.data as any;
+  return {
+    videoUrl: data.video?.url ?? '',
+    taskId: result.requestId ?? '',
+  };
 }

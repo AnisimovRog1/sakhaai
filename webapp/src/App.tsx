@@ -24,6 +24,34 @@ const BG: Record<string, string> = {
   friends:  `${base}bg-frends.jpg`,
 };
 
+// Разные оверлеи для каждого экрана — подчёркивают уникальность каждого фото
+const OVERLAYS: Record<string, string> = {
+  // Ледяные скульптуры + Ленские столбы — лёгкий, максимально показываем красоту
+  home:     'bg-gradient-to-b from-transparent via-[#070b14]/30 to-[#070b14]/85',
+  // Цветные столбы — лёгкий синий оттенок сверху, тёмный низ для контента
+  chatList: 'bg-gradient-to-b from-indigo-950/20 via-[#070b14]/40 to-[#070b14]/90',
+  // Маяк + северное сияние — потемнее для читаемости чата
+  chat:     'bg-gradient-to-b from-[#070b14]/40 via-[#070b14]/65 to-[#070b14]/95',
+  // Генерация картинок — фиолетовый акцент (творчество)
+  imageGen: 'bg-gradient-to-b from-purple-950/25 via-[#070b14]/50 to-[#070b14]/90',
+  // Сэргэ-дерево — бирюзовый оттенок авроры
+  videoGen: 'bg-gradient-to-b from-teal-950/20 via-[#070b14]/35 to-[#070b14]/88',
+  // Ураса + сэргэ столбы — тёплый оттенок, снизу тёмный чтобы скрыть снег
+  friends:  'bg-gradient-to-b from-amber-950/15 via-[#070b14]/35 to-[#070b14]/95',
+};
+
+// Предзагрузка всех фонов
+const preloadedImages = new Set<string>();
+function preloadAllBGs() {
+  Object.values(BG).forEach((src) => {
+    if (preloadedImages.has(src)) return;
+    preloadedImages.add(src);
+    const img = new Image();
+    img.src = src;
+  });
+}
+preloadAllBGs();
+
 // Силуэт сэргэ — традиционные якутские столбы с аурой на площади
 function SergeSilhouette() {
   return (
@@ -177,20 +205,26 @@ export function App() {
 
   if (!user) return null;
 
-  const currentBg = BG[screen.name] ?? BG.home;
+  const currentOverlay = OVERLAYS[screen.name] ?? OVERLAYS.home;
 
   return (
     <div className="flex flex-col min-h-screen text-slate-100 relative">
 
-      {/* ─── Фиксированный фон (фото + оверлей + силуэты) ─── */}
+      {/* ─── Фиксированный фон: все картинки рендерятся сразу, переключаем opacity ─── */}
       <div className="fixed inset-0 -z-10 max-w-full mx-auto overflow-hidden">
-        {/* Фотография */}
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-1000"
-          style={{ backgroundImage: `url(${currentBg})` }}
-        />
-        {/* Тёмный градиент сверху вниз */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-[#070b14]/55 to-[#070b14]/92" />
+        {/* Все фоновые картинки — предзагружены, мгновенный crossfade */}
+        {Object.entries(BG).map(([key, src]) => (
+          <img
+            key={key}
+            src={src}
+            alt=""
+            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${
+              (BG[screen.name] ?? BG.home) === src ? 'opacity-100' : 'opacity-0'
+            } ${key === 'friends' ? 'object-top' : ''}`}
+          />
+        ))}
+        {/* Градиентный оверлей — разный для каждого экрана */}
+        <div className={`absolute inset-0 ${currentOverlay} transition-all duration-500`} />
         {/* Сэргэ на экране видео */}
         {screen.name === 'videoGen' && <SergeSilhouette />}
       </div>

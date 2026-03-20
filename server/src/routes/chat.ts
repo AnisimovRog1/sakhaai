@@ -5,8 +5,28 @@ import { sendToGemini, ChatMessage } from '../services/gemini';
 import { deduct } from '../services/balance';
 import { markAiRequest } from '../services/referral';
 
+import { GoogleGenAI } from '@google/genai';
+
 // Стоимость одного сообщения (0.097 руб / 0.1 руб/кредит ≈ 1 кредит)
 const CHAT_COST = 1;
+
+// Генерация осмысленного названия чата через Gemini
+async function generateChatTitle(chatId: number, firstMessage: string) {
+  try {
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: [{ parts: [{ text: `Придумай короткое название (максимум 5 слов) для чата, где первое сообщение пользователя: "${firstMessage}". Отвечай ТОЛЬКО названием, без кавычек и пояснений.` }] }],
+      config: { maxOutputTokens: 30, temperature: 0.3 },
+    });
+    const title = response.text?.trim().slice(0, 60);
+    if (title) {
+      await pool.query('UPDATE chats SET title = $1 WHERE id = $2', [title, chatId]);
+    }
+  } catch (e) {
+    console.error('Auto-title error:', e);
+  }
+}
 
 export const chatRouter = Router();
 
@@ -152,6 +172,11 @@ chatRouter.post('/:id/messages', async (req: Request, res: Response) => {
     `UPDATE chats SET updated_at = NOW() WHERE id = $1`,
     [chatId]
   );
+
+  // 9. Автоназвание чата — по первому сообщению генерируем осмысленное короткое название
+  if (history.length === 0) {
+    generateChatTitle(chatId, message).catch(console.error);
+  }
 
   // Правило 4: отмечаем первый AI-запрос (асинхронно, не блокируем ответ)
   markAiRequest(req.userId!).catch(console.error);

@@ -169,7 +169,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
   // Avatar
   const [avatarImage, setAvatarImage] = useState<string | null>(null);
   const [speechText, setSpeechText] = useState('');
-  const [selectedVoice, setSelectedVoice] = useState('David');
+  const [selectedVoice, setSelectedVoice] = useState('Давид');
   const [showVoicePicker, setShowVoicePicker] = useState(false);
   const [speechRate, setSpeechRate] = useState(1.0);
   const [emotion, setEmotion] = useState<Emotion>('neutral');

@@ -46,6 +46,11 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'sakhaai-server' });
 });
 
+// UnitPay верификация домена
+app.get('/verification-16693.txt', (_req, res) => {
+  res.type('text/plain').send('16693ad0a9f05ceba9ce1b6a59b655');
+});
+
 // Запуск
 migrate()
   .then(() => {

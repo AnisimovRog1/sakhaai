@@ -2,11 +2,12 @@ import { Router, Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth';
 import { generateImage } from '../services/nanabanana';
 import { deduct } from '../services/balance';
+import { saveGeneration } from '../services/generations';
 
 export const imageRouter = Router();
 imageRouter.use(requireAuth);
 
-const IMAGE_COST = 79; // 7.88 руб / 0.1 руб на кредит
+const IMAGE_COST = 79;
 
 // POST /image/generate
 imageRouter.post('/generate', async (req: Request, res: Response) => {
@@ -16,7 +17,6 @@ imageRouter.post('/generate', async (req: Request, res: Response) => {
     return;
   }
 
-  // Списываем кредиты атомарно (проверка баланса внутри deduct)
   const creditsLeft = await deduct(
     req.userId!,
     IMAGE_COST,
@@ -28,6 +28,14 @@ imageRouter.post('/generate', async (req: Request, res: Response) => {
   });
   if (creditsLeft === null) return;
 
-  const result = await generateImage(prompt);
-  res.json({ imageUrl: result.imageUrl, creditsLeft, cost: IMAGE_COST });
+  try {
+    const result = await generateImage(prompt);
+
+    // Автосохранение в историю
+    await saveGeneration(req.userId!, 'image', prompt, result.imageUrl, IMAGE_COST).catch(console.error);
+
+    res.json({ imageUrl: result.imageUrl, creditsLeft, cost: IMAGE_COST });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message ?? 'Ошибка генерации' });
+  }
 });

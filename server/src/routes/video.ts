@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth';
 import { generateVideo, generateMotion, generateAvatar } from '../services/kling';
 import { deduct, TxType } from '../services/balance';
+import { saveGeneration } from '../services/generations';
 
 export const videoRouter = Router();
 videoRouter.use(requireAuth);
@@ -32,12 +33,13 @@ videoRouter.post('/generate', async (req: Request, res: Response) => {
   const creditsLeft = await charge(req, res, 'video');
   if (creditsLeft === null) return;
 
-  const result = await generateVideo(prompt).catch((e: Error) => {
-    res.status(500).json({ error: e.message }); return null;
-  });
-  if (!result) return;
-
-  res.json({ ...result, creditsLeft, cost: COSTS.video.credits });
+  try {
+    const result = await generateVideo(prompt);
+    await saveGeneration(req.userId!, 'video', prompt, result.videoUrl, COSTS.video.credits).catch(console.error);
+    res.json({ ...result, creditsLeft, cost: COSTS.video.credits });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message ?? 'Ошибка генерации' });
+  }
 });
 
 // POST /video/motion — картинка → видео
@@ -48,28 +50,29 @@ videoRouter.post('/motion', async (req: Request, res: Response) => {
   const creditsLeft = await charge(req, res, 'motion');
   if (creditsLeft === null) return;
 
-  const result = await generateMotion(imageUrl, prompt).catch((e: Error) => {
-    res.status(500).json({ error: e.message }); return null;
-  });
-  if (!result) return;
-
-  res.json({ ...result, creditsLeft, cost: COSTS.motion.credits });
+  try {
+    const result = await generateMotion(imageUrl, prompt);
+    await saveGeneration(req.userId!, 'motion', prompt || null, result.videoUrl, COSTS.motion.credits).catch(console.error);
+    res.json({ ...result, creditsLeft, cost: COSTS.motion.credits });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message ?? 'Ошибка генерации' });
+  }
 });
 
 // POST /video/avatar — изображение + аудио → говорящий аватар
 videoRouter.post('/avatar', async (req: Request, res: Response) => {
   const { imageUrl, audioUrl, text } = req.body;
-  // Поддерживаем и audioUrl (новый формат), и text (старый, для обратной совместимости)
   const audio = audioUrl || text;
   if (!imageUrl || !audio) { res.status(400).json({ error: 'imageUrl и audioUrl обязательны' }); return; }
 
   const creditsLeft = await charge(req, res, 'avatar');
   if (creditsLeft === null) return;
 
-  const result = await generateAvatar(imageUrl, audio).catch((e: Error) => {
-    res.status(500).json({ error: e.message }); return null;
-  });
-  if (!result) return;
-
-  res.json({ ...result, creditsLeft, cost: COSTS.avatar.credits });
+  try {
+    const result = await generateAvatar(imageUrl, audio);
+    await saveGeneration(req.userId!, 'avatar', null, result.videoUrl, COSTS.avatar.credits).catch(console.error);
+    res.json({ ...result, creditsLeft, cost: COSTS.avatar.credits });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message ?? 'Ошибка генерации' });
+  }
 });

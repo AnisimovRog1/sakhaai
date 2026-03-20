@@ -87,6 +87,19 @@ export async function migrate() {
 
     CREATE INDEX IF NOT EXISTS orders_user_idx   ON orders (user_id);
     CREATE INDEX IF NOT EXISTS orders_status_idx ON orders (status);
+
+    -- История генераций (картинки, видео, аватары)
+    CREATE TABLE IF NOT EXISTS generations (
+      id          SERIAL PRIMARY KEY,
+      user_id     BIGINT NOT NULL REFERENCES users(id),
+      type        TEXT NOT NULL,                 -- 'image' | 'video' | 'motion' | 'avatar'
+      prompt      TEXT,
+      result_url  TEXT NOT NULL,                 -- URL или data:base64
+      cost        INTEGER NOT NULL DEFAULT 0,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE INDEX IF NOT EXISTS generations_user_idx ON generations (user_id, created_at DESC);
   `);
 
   console.log('✅ Миграции применены');

@@ -100,6 +100,10 @@ export const api = {
   getReferralFriends: () =>
     request<import('../types').ReferralFriend[]>('/referral/friends'),
 
+  // ── История генераций ──────────────────
+  getGenerations: (type?: string, limit = 20, offset = 0) =>
+    request<Array<{ id: number; type: string; prompt: string | null; resultUrl: string; cost: number; createdAt: string }>>(`/generations?${new URLSearchParams({ ...(type ? { type } : {}), limit: String(limit), offset: String(offset) })}`),
+
   // ── Оплата ────────────────────────────
   createPayment: (pkg: string) =>
     request<{ orderId: string; paymentUrl: string | null; message?: string }>('/payment/create', {

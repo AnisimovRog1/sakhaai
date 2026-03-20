@@ -51,6 +51,11 @@ app.get('/verification-16693.txt', (_req, res) => {
   res.type('text/plain').send('16693ad0a9f05ceba9ce1b6a59b655');
 });
 
+// Главная страница с мета-тэгом UnitPay
+app.get('/', (_req, res) => {
+  res.type('text/html').send(`<!DOCTYPE html><html><head><meta name="verification" content="16693ad0a9f05ceba9ce1b6a59b655" /><title>SakhaAI</title></head><body>SakhaAI Server</body></html>`);
+});
+
 // Запуск
 migrate()
   .then(() => {

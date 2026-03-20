@@ -1,6 +1,8 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { api } from '../api/client';
 import type { User } from '../types';
+
+type HistoryItem = { id: number; type: string; prompt: string | null; resultUrl: string; cost: number; createdAt: string };
 
 type Props = {
   user: User;
@@ -38,6 +40,18 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
+  useEffect(() => {
+    loadHistory();
+  }, []);
+
+  function loadHistory() {
+    setHistoryLoading(true);
+    api.getGenerations('image', 20).then(setHistory).catch(console.error).finally(() => setHistoryLoading(false));
+  }
 
   const cost = BASE_COST * count;
   const canGenerate = prompt.trim().length > 0 && user.credits >= cost && !loading
@@ -69,6 +83,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
       const result = await api.generateImage(prompt.trim());
       setImageUrl(result.imageUrl);
       onCreditsUpdate(result.creditsLeft);
+      loadHistory();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Ошибка генерации');
     } finally {
@@ -380,6 +395,54 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
           </div>
         </div>
       )}
+
+      {/* ─── Мои генерации ─── */}
+      <div className="space-y-3 pt-2">
+        <button
+          onClick={() => setShowHistory(!showHistory)}
+          className="w-full flex items-center justify-between text-white text-sm font-bold"
+        >
+          <span>Мои генерации</span>
+          <div className="flex items-center gap-2">
+            {history.length > 0 && (
+              <span className="text-xs text-violet-400 font-semibold">{history.length}</span>
+            )}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className={`transition-transform ${showHistory ? 'rotate-180' : ''}`}>
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+        </button>
+
+        {showHistory && (
+          historyLoading ? (
+            <div className="flex justify-center py-6">
+              <div className="flex gap-2">
+                {[0,1,2].map(i => <div key={i} className="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: `${i*0.15}s` }}/>)}
+              </div>
+            </div>
+          ) : history.length === 0 ? (
+            <div className="bg-white/[0.06] rounded-xl p-6 text-center">
+              <p className="text-slate-300 text-sm">Пока нет генераций</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              {history.map((item) => (
+                <div key={item.id} className="relative group">
+                  <img
+                    src={item.resultUrl}
+                    alt={item.prompt || 'Генерация'}
+                    className="w-full aspect-square object-cover rounded-xl border border-white/[0.10]"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent rounded-xl opacity-0 group-active:opacity-100 transition-opacity flex flex-col justify-end p-2">
+                    <p className="text-white text-[10px] font-medium line-clamp-2">{item.prompt}</p>
+                    <p className="text-slate-300 text-[9px] mt-0.5">{new Date(item.createdAt).toLocaleDateString('ru')}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
+        )}
+      </div>
 
     </div>
   );

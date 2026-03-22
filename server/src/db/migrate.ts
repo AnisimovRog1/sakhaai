@@ -100,6 +100,36 @@ export async function migrate() {
     );
 
     CREATE INDEX IF NOT EXISTS generations_user_idx ON generations (user_id, created_at DESC);
+
+    -- Часовой пояс юзера (минуты от UTC, 540 = UTC+9 Якутск)
+    DO $$ BEGIN
+      ALTER TABLE users ADD COLUMN timezone_offset INTEGER DEFAULT 540;
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$;
+
+    -- Шаблоны пушей
+    CREATE TABLE IF NOT EXISTS push_templates (
+      id            SERIAL PRIMARY KEY,
+      name          TEXT NOT NULL,
+      text          TEXT NOT NULL,
+      media_type    TEXT,                             -- 'photo' | 'video' | NULL
+      media_file_id TEXT,                             -- Telegram file_id
+      schedule_type TEXT NOT NULL DEFAULT 'manual',   -- 'manual' | 'daily' | 'welcome'
+      send_time     TEXT,                             -- 'HH:MM' для daily
+      is_active     BOOLEAN NOT NULL DEFAULT true,
+      created_by    BIGINT,
+      created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    -- Лог рассылок
+    CREATE TABLE IF NOT EXISTS push_log (
+      id            SERIAL PRIMARY KEY,
+      template_id   INTEGER REFERENCES push_templates(id),
+      sent_count    INTEGER NOT NULL DEFAULT 0,
+      failed_count  INTEGER NOT NULL DEFAULT 0,
+      started_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      finished_at   TIMESTAMPTZ
+    );
   `);
 
   console.log('✅ Миграции применены');

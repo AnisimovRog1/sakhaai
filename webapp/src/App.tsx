@@ -8,6 +8,8 @@ import { ImageGen } from './screens/ImageGen';
 import { VideoGen } from './screens/VideoGen';
 import { Friends } from './screens/Friends';
 import { BottomNav } from './components/BottomNav';
+import { LangProvider } from './LangContext';
+import type { Lang } from './i18n';
 
 function getInitData(): string {
   return window.Telegram?.WebApp?.initData ?? '';
@@ -105,6 +107,7 @@ export function App() {
   const [screen, setScreen] = useState<Screen>({ name: 'home' });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [lang] = useState<Lang>('ru');
 
   // Синхронизируем CSS-переменную с реальной высотой viewport Telegram
   useEffect(() => {
@@ -147,7 +150,8 @@ export function App() {
       return;
     }
 
-    api.auth(initData, referralCode)
+    const timezoneOffset = -(new Date().getTimezoneOffset()); // минуты от UTC (положительное = восток)
+    api.auth(initData, referralCode, timezoneOffset)
       .then(({ token, user }) => {
         setToken(token);
         setUser(user);
@@ -208,10 +212,11 @@ export function App() {
   const currentOverlay = OVERLAYS[screen.name] ?? OVERLAYS.home;
 
   return (
+    <LangProvider initialLang={lang}>
     <div className="flex flex-col min-h-screen text-slate-100 relative">
 
       {/* ─── Фиксированный фон: все картинки рендерятся сразу, переключаем opacity ─── */}
-      <div className="fixed inset-0 -z-10 max-w-full mx-auto overflow-hidden">
+      <div className="fixed inset-0 -z-10 overflow-hidden">
         {/* Все фоновые картинки — предзагружены, мгновенный crossfade */}
         {Object.entries(BG).map(([key, src]) => (
           <img
@@ -220,7 +225,7 @@ export function App() {
             alt=""
             className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${
               (BG[screen.name] ?? BG.home) === src ? 'opacity-100' : 'opacity-0'
-            } ${key === 'friends' ? 'object-top' : ''}`}
+            }`}
           />
         ))}
         {/* Градиентный оверлей — разный для каждого экрана */}
@@ -250,6 +255,7 @@ export function App() {
         <BottomNav current={screen.name} onNavigate={setScreen} />
       )}
     </div>
+    </LangProvider>
   );
 }
 

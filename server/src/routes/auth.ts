@@ -29,7 +29,7 @@ function getIp(req: Request): string {
 
 // POST /auth
 authRouter.post('/', async (req: Request, res: Response) => {
-  const { initData, referralCode } = req.body;
+  const { initData, referralCode, timezoneOffset } = req.body;
   // referralCode — передаётся webapp'ом, если URL был ?start=ref_123
 
   if (!initData) {
@@ -75,6 +75,11 @@ authRouter.post('/', async (req: Request, res: Response) => {
   if (user.is_banned) {
     res.status(403).json({ error: 'Аккаунт заблокирован' });
     return;
+  }
+
+  // 3.5. Сохраняем часовой пояс (если передан)
+  if (typeof timezoneOffset === 'number') {
+    pool.query('UPDATE users SET timezone_offset = $1 WHERE id = $2', [timezoneOffset, tgUser.id]).catch(console.error);
   }
 
   // 4. Сохраняем IP (асинхронно, не блокируем ответ)

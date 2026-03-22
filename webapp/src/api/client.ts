@@ -32,10 +32,10 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 // ── Auth ──────────────────────────────
 export const api = {
-  auth: (initData: string, referralCode?: string) =>
+  auth: (initData: string, referralCode?: string, timezoneOffset?: number) =>
     request<{ token: string; user: import('../types').User }>('/auth', {
       method: 'POST',
-      body: JSON.stringify({ initData, referralCode }),
+      body: JSON.stringify({ initData, referralCode, timezoneOffset }),
     }),
 
   // ── Чаты ────────────────────────────

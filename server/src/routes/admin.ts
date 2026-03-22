@@ -244,3 +244,84 @@ adminRouter.get('/user/:id', async (req: Request, res: Response) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// ═══════════════════════════════════════════════════════
+// PUSH TEMPLATES
+// ═══════════════════════════════════════════════════════
+
+adminRouter.get('/push/templates', async (req: Request, res: Response) => {
+  try {
+    let query = 'SELECT * FROM push_templates WHERE 1=1';
+    const params: any[] = [];
+    if (req.query.type) { params.push(req.query.type); query += ` AND schedule_type = $${params.length}`; }
+    if (req.query.active === 'true') { query += ' AND is_active = true'; }
+    query += ' ORDER BY created_at DESC';
+    res.json((await pool.query(query, params)).rows);
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+adminRouter.post('/push/templates', async (req: Request, res: Response) => {
+  try {
+    const { name, text, mediaType, mediaFileId, scheduleType, sendTime, createdBy } = req.body;
+    const r = await pool.query(
+      `INSERT INTO push_templates (name, text, media_type, media_file_id, schedule_type, send_time, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      [name, text, mediaType || null, mediaFileId || null, scheduleType || 'manual', sendTime || null, createdBy || null]
+    );
+    res.json(r.rows[0]);
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+adminRouter.delete('/push/templates/:id', async (req: Request, res: Response) => {
+  try {
+    await pool.query('DELETE FROM push_templates WHERE id = $1', [req.params.id]);
+    res.json({ success: true });
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+adminRouter.put('/push/templates/:id/toggle', async (req: Request, res: Response) => {
+  try {
+    const r = await pool.query('UPDATE push_templates SET is_active = NOT is_active WHERE id = $1 RETURNING is_active', [req.params.id]);
+    res.json({ success: true, isActive: r.rows[0]?.is_active });
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+adminRouter.get('/push/users-by-tz', async (req: Request, res: Response) => {
+  try {
+    const targetHour = Number(req.query.hour);
+    if (isNaN(targetHour)) { res.status(400).json({ error: 'hour обязателен' }); return; }
+    const r = await pool.query(`
+      SELECT id FROM users WHERE is_banned = false
+      AND MOD(CAST(EXTRACT(HOUR FROM NOW() AT TIME ZONE 'UTC') AS INTEGER) + CAST(COALESCE(timezone_offset,540) / 60 AS INTEGER) + 24, 24) = $1
+    `, [targetHour]);
+    res.json(r.rows);
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+adminRouter.post('/push/send/:id', async (req: Request, res: Response) => {
+  try {
+    const tmpl = await pool.query('SELECT * FROM push_templates WHERE id = $1', [req.params.id]);
+    if (tmpl.rowCount === 0) { res.status(404).json({ error: 'Шаблон не найден' }); return; }
+    const users = await pool.query('SELECT id FROM users WHERE is_banned = false');
+    res.json({ template: tmpl.rows[0], users: users.rows });
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+adminRouter.post('/push/log', async (req: Request, res: Response) => {
+  try {
+    const { templateId, sentCount, failedCount } = req.body;
+    await pool.query(`INSERT INTO push_log (template_id, sent_count, failed_count, finished_at) VALUES ($1, $2, $3, NOW())`, [templateId, sentCount, failedCount]);
+    res.json({ success: true });
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+adminRouter.get('/push/log', async (_req: Request, res: Response) => {
+  try {
+    const r = await pool.query(`
+      SELECT l.*, t.name as template_name, t.schedule_type
+      FROM push_log l LEFT JOIN push_templates t ON l.template_id = t.id
+      ORDER BY l.started_at DESC LIMIT 20
+    `);
+    res.json(r.rows);
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});

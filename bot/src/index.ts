@@ -79,6 +79,25 @@ bot.command('start', async (ctx) => {
     `Я UraanxAI — твой ИИ-ассистент.\n\nНажми кнопку ниже, чтобы начать:`,
     { reply_markup: keyboard }
   );
+
+  // Приветственный пуш (если настроен)
+  if (ctx.from) {
+    setTimeout(async () => {
+      try {
+        const tmpls = await httpGet(`${SERVER_URL}/admin/push/templates?type=welcome&active=true`);
+        if (Array.isArray(tmpls) && tmpls.length > 0) {
+          const t = tmpls[0];
+          if (t.media_type === 'photo' && t.media_file_id) {
+            await bot.api.sendPhoto(ctx.from!.id, t.media_file_id, { caption: t.text });
+          } else if (t.media_type === 'video' && t.media_file_id) {
+            await bot.api.sendVideo(ctx.from!.id, t.media_file_id, { caption: t.text });
+          } else if (t.text) {
+            await bot.api.sendMessage(ctx.from!.id, t.text);
+          }
+        }
+      } catch {}
+    }, 3000);
+  }
 });
 
 bot.command('help', async (ctx) => {
@@ -123,21 +142,19 @@ bot.command('admin', async (ctx) => {
     .text('💳 Пополнения', 'deposits')
     .text('❌ Ошибки API', 'errors')
     .row()
-    .text('🏆 Топ-10 активных', 'top_users');
+    .text('🏆 Топ-10 активных', 'top_users')
+    .row()
+    .text('📢 Пуши', 'goto_push');
 
   await ctx.reply(
     `🔐 Админ-панель SakhaAI\n━━━━━━━━━━━━━━━━━━━\n\n` +
-    `Выберите действие или используйте команды:\n\n` +
     `📊 /stats · /stats 7d · /stats month\n` +
     `📋 /year · /users · /user <id>\n` +
     `💎 /addcredits <id> <кол-во>\n` +
     `↩️ /refund <id> <кол-во>\n` +
     `🚫 /ban <id> · /unban <id>\n` +
-    `📨 /broadcast <текст>\n\n` +
-    `📢 Пуши:\n` +
-    `• Отправь фото/видео → кнопка "Разослать"\n` +
-    `• /setdaily <текст> — ежедневный пуш 10:00\n` +
-    `• /stopdaily — отключить`,
+    `📨 /broadcast <текст>\n` +
+    `📢 /push — управление пушами`,
     { reply_markup: keyboard }
   );
 });
@@ -237,6 +254,17 @@ async function sendStatsMessage(ctx: any, s: any) {
 
   await ctx.reply(text, { reply_markup: keyboard });
 }
+
+bot.callbackQuery('goto_push', async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const keyboard = new InlineKeyboard()
+    .text('📝 Создать пуш', 'push_create')
+    .text('📋 Шаблоны', 'push_templates')
+    .row()
+    .text('👋 Приветствие', 'push_welcome')
+    .text('📊 Лог рассылок', 'push_log');
+  await ctx.reply('📢 Управление пушами\n━━━━━━━━━━━━━━━━━━━', { reply_markup: keyboard });
+});
 
 bot.callbackQuery('cmd_menu', async (ctx) => {
   await ctx.answerCallbackQuery();
@@ -516,89 +544,318 @@ bot.callbackQuery('errors', async (ctx) => {
 });
 
 // ═══════════════════════════════════════════════════════
-// ПУШИ — фото/видео/текст рассылка
+// ПУШИ — конструктор шаблонов
 // ═══════════════════════════════════════════════════════
 
-// Хранилище для ежедневного пуша
-let dailyPushText: string | null = null;
+interface PushDraft {
+  step: 'type' | 'media' | 'wait_media' | 'text' | 'time' | 'name' | 'confirm';
+  scheduleType?: 'manual' | 'daily' | 'welcome';
+  mediaType?: 'photo' | 'video';
+  mediaFileId?: string;
+  text?: string;
+  sendTime?: string;
+  name?: string;
+}
+const pushDrafts = new Map<number, PushDraft>();
 
-// /setdaily <текст> — задать ежедневный пуш (10:00)
-bot.command('setdaily', async (ctx) => {
+// /push — главное меню пушей
+bot.command('push', async (ctx) => {
   if (!isAdmin(ctx.chat.id)) return;
-  const text = ctx.match.trim();
-  if (!text) {
-    if (dailyPushText) {
-      await ctx.reply(`📅 Текущий ежедневный пуш:\n\n${dailyPushText}\n\nОтключить: /stopdaily`);
+  const keyboard = new InlineKeyboard()
+    .text('📝 Создать пуш', 'push_create')
+    .text('📋 Мои шаблоны', 'push_templates')
+    .row()
+    .text('👋 Приветствие', 'push_welcome')
+    .text('📊 Лог рассылок', 'push_log');
+  await ctx.reply('📢 Управление пушами\n━━━━━━━━━━━━━━━━━━━', { reply_markup: keyboard });
+});
+
+// Создать пуш — шаг 1: тип
+bot.callbackQuery('push_create', async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const keyboard = new InlineKeyboard()
+    .text('📨 Разовый', 'push_type_manual')
+    .text('📅 Ежедневный', 'push_type_daily')
+    .text('👋 Приветствие', 'push_type_welcome');
+  await ctx.reply('Шаг 1/5 — Тип пуша:', { reply_markup: keyboard });
+});
+
+bot.callbackQuery(/^push_type_(manual|daily|welcome)$/, async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const type = ctx.callbackQuery.data.replace('push_type_', '') as PushDraft['scheduleType'];
+  pushDrafts.set(ctx.chat!.id, { step: 'media', scheduleType: type });
+  const keyboard = new InlineKeyboard()
+    .text('📸 Фото', 'push_media_photo')
+    .text('🎬 Видео', 'push_media_video')
+    .text('📝 Только текст', 'push_media_none');
+  await ctx.reply('Шаг 2/5 — Медиа:', { reply_markup: keyboard });
+});
+
+// Шаг 2: медиа
+bot.callbackQuery(/^push_media_(photo|video|none)$/, async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const media = ctx.callbackQuery.data.replace('push_media_', '');
+  const draft = pushDrafts.get(ctx.chat!.id);
+  if (!draft) return;
+
+  if (media === 'none') {
+    draft.step = 'text';
+    draft.mediaType = undefined;
+    await ctx.reply('Шаг 3/5 — Отправьте текст сообщения:');
+  } else {
+    draft.step = 'wait_media';
+    draft.mediaType = media as 'photo' | 'video';
+    await ctx.reply(`Шаг 2/5 — Отправьте ${media === 'photo' ? 'фото' : 'видео'}:`);
+  }
+});
+
+// Получение медиа от админа
+bot.on('message:photo', async (ctx) => {
+  if (!isAdmin(ctx.chat.id)) return;
+  const draft = pushDrafts.get(ctx.chat.id);
+  if (draft?.step === 'wait_media') {
+    draft.mediaFileId = ctx.message.photo[ctx.message.photo.length - 1].file_id;
+    draft.mediaType = 'photo';
+    draft.text = ctx.message.caption || undefined;
+    if (draft.text) {
+      // Если есть caption — пропускаем шаг текста
+      if (draft.scheduleType === 'daily') {
+        draft.step = 'time';
+        const kb = new InlineKeyboard()
+          .text('08:00', 'push_time_08:00').text('10:00', 'push_time_10:00').text('12:00', 'push_time_12:00')
+          .row()
+          .text('14:00', 'push_time_14:00').text('18:00', 'push_time_18:00').text('20:00', 'push_time_20:00');
+        await ctx.reply('Шаг 4/5 — Время отправки (по местному времени юзера):', { reply_markup: kb });
+      } else {
+        draft.step = 'name';
+        await ctx.reply('Шаг 5/5 — Название шаблона (для себя):');
+      }
     } else {
-      await ctx.reply('Формат: /setdaily <текст сообщения>\nБудет отправляться всем юзерам каждый день в 10:00');
+      draft.step = 'text';
+      await ctx.reply('✅ Фото получено!\n\nШаг 3/5 — Отправьте текст сообщения:');
     }
     return;
   }
-  dailyPushText = text;
-  await ctx.reply(`✅ Ежедневный пуш установлен (10:00):\n\n${text}`);
-});
-
-bot.command('stopdaily', async (ctx) => {
-  if (!isAdmin(ctx.chat.id)) return;
-  dailyPushText = null;
-  await ctx.reply('🔕 Ежедневный пуш отключён');
-});
-
-// Админ отправляет фото/видео — бот предлагает разослать
-bot.on('message:photo', async (ctx) => {
-  if (!isAdmin(ctx.chat.id)) return;
+  // Быстрая рассылка — если нет draft
   const caption = ctx.message.caption || '';
   const keyboard = new InlineKeyboard()
-    .text('📨 Разослать всем', `push_photo_${ctx.message.message_id}`)
+    .text('📨 Разослать сейчас', `quick_push_${ctx.message.message_id}`)
     .text('❌ Отмена', 'push_cancel');
-  await ctx.reply(`📸 Фото получено${caption ? ': ' + caption : ''}\n\nРазослать всем юзерам?`, { reply_markup: keyboard });
+  await ctx.reply(`📸 Фото${caption ? ': ' + caption : ''}\n\nРазослать всем?`, { reply_markup: keyboard });
 });
 
 bot.on('message:video', async (ctx) => {
   if (!isAdmin(ctx.chat.id)) return;
+  const draft = pushDrafts.get(ctx.chat.id);
+  if (draft?.step === 'wait_media') {
+    draft.mediaFileId = ctx.message.video.file_id;
+    draft.mediaType = 'video';
+    draft.text = ctx.message.caption || undefined;
+    if (draft.text) {
+      if (draft.scheduleType === 'daily') {
+        draft.step = 'time';
+        const kb = new InlineKeyboard()
+          .text('08:00', 'push_time_08:00').text('10:00', 'push_time_10:00').text('12:00', 'push_time_12:00')
+          .row()
+          .text('14:00', 'push_time_14:00').text('18:00', 'push_time_18:00').text('20:00', 'push_time_20:00');
+        await ctx.reply('Шаг 4/5 — Время отправки:', { reply_markup: kb });
+      } else {
+        draft.step = 'name';
+        await ctx.reply('Шаг 5/5 — Название шаблона:');
+      }
+    } else {
+      draft.step = 'text';
+      await ctx.reply('✅ Видео получено!\n\nШаг 3/5 — Отправьте текст:');
+    }
+    return;
+  }
   const caption = ctx.message.caption || '';
   const keyboard = new InlineKeyboard()
-    .text('📨 Разослать всем', `push_video_${ctx.message.message_id}`)
+    .text('📨 Разослать сейчас', `quick_push_${ctx.message.message_id}`)
     .text('❌ Отмена', 'push_cancel');
-  await ctx.reply(`🎬 Видео получено${caption ? ': ' + caption : ''}\n\nРазослать всем юзерам?`, { reply_markup: keyboard });
+  await ctx.reply(`🎬 Видео${caption ? ': ' + caption : ''}\n\nРазослать всем?`, { reply_markup: keyboard });
 });
 
-bot.callbackQuery('push_cancel', async (ctx) => {
-  await ctx.answerCallbackQuery({ text: 'Отменено' });
-  await ctx.deleteMessage();
+// Текст от админа (шаг 3 или шаг 5-name)
+bot.on('message:text', async (ctx, next) => {
+  if (!isAdmin(ctx.chat.id)) { await next(); return; }
+  const draft = pushDrafts.get(ctx.chat.id);
+  if (!draft) { await next(); return; }
+
+  if (draft.step === 'text') {
+    draft.text = ctx.message.text;
+    if (draft.scheduleType === 'daily') {
+      draft.step = 'time';
+      const kb = new InlineKeyboard()
+        .text('08:00', 'push_time_08:00').text('10:00', 'push_time_10:00').text('12:00', 'push_time_12:00')
+        .row()
+        .text('14:00', 'push_time_14:00').text('18:00', 'push_time_18:00').text('20:00', 'push_time_20:00');
+      await ctx.reply('Шаг 4/5 — Время отправки (по местному времени юзера):', { reply_markup: kb });
+    } else {
+      draft.step = 'name';
+      await ctx.reply('Шаг 5/5 — Название шаблона (для себя):');
+    }
+    return;
+  }
+
+  if (draft.step === 'name') {
+    draft.name = ctx.message.text;
+    // Подтверждение
+    const typeLabel = draft.scheduleType === 'daily' ? `📅 Ежедневный (${draft.sendTime})` :
+                      draft.scheduleType === 'welcome' ? '👋 Приветственный' : '📨 Разовый';
+    const mediaLabel = draft.mediaType === 'photo' ? '📸 Фото' : draft.mediaType === 'video' ? '🎬 Видео' : '📝 Текст';
+
+    const kb = new InlineKeyboard()
+      .text('✅ Сохранить', 'push_save')
+      .text('📨 Сохранить и отправить', 'push_save_send')
+      .row()
+      .text('❌ Отмена', 'push_cancel');
+
+    await ctx.reply(
+      `📢 Новый пуш\n━━━━━━━━━━━━━━━\n\n` +
+      `📌 Название: ${draft.name}\n` +
+      `📋 Тип: ${typeLabel}\n` +
+      `🖼 Медиа: ${mediaLabel}\n` +
+      `📝 Текст: ${draft.text?.slice(0, 100)}${(draft.text?.length ?? 0) > 100 ? '...' : ''}`,
+      { reply_markup: kb }
+    );
+    return;
+  }
+
+  await next();
 });
 
-// Обработка рассылки фото/видео
-bot.callbackQuery(/^push_(photo|video)_(\d+)$/, async (ctx) => {
-  await ctx.answerCallbackQuery({ text: 'Рассылка запущена...' });
-  const match = ctx.callbackQuery.data.match(/^push_(photo|video)_(\d+)$/);
-  if (!match) return;
+// Шаг 4: время
+bot.callbackQuery(/^push_time_(\d{2}:\d{2})$/, async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const time = ctx.callbackQuery.data.replace('push_time_', '');
+  const draft = pushDrafts.get(ctx.chat!.id);
+  if (!draft) return;
+  draft.sendTime = time;
+  draft.step = 'name';
+  await ctx.reply('Шаг 5/5 — Название шаблона (для себя):');
+});
 
-  const type = match[1]; // photo or video
-  const msgId = Number(match[2]);
+// Сохранение шаблона
+bot.callbackQuery(/^push_save(_send)?$/, async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const sendNow = ctx.callbackQuery.data === 'push_save_send';
+  const draft = pushDrafts.get(ctx.chat!.id);
+  if (!draft || !draft.text || !draft.name) { await ctx.reply('Ошибка: данные потеряны'); return; }
 
   try {
-    const users = await httpGet(`${SERVER_URL}/admin/users`);
-    if (!Array.isArray(users)) { await ctx.reply('Ошибка'); return; }
+    const tmpl = await httpPost(`${SERVER_URL}/admin/push/templates`, {
+      name: draft.name,
+      text: draft.text,
+      mediaType: draft.mediaType || null,
+      mediaFileId: draft.mediaFileId || null,
+      scheduleType: draft.scheduleType,
+      sendTime: draft.sendTime || null,
+      createdBy: ctx.chat!.id,
+    });
 
-    // Получаем оригинальное сообщение с медиа через reply
-    const chatId = ctx.chat?.id;
-    if (!chatId) return;
+    pushDrafts.delete(ctx.chat!.id);
+    await ctx.reply(`✅ Шаблон "${draft.name}" сохранён!` + (draft.scheduleType === 'daily' ? `\n📅 Будет отправляться в ${draft.sendTime} по местному времени` : ''));
 
-    let sent = 0, failed = 0;
-    for (const user of users) {
-      try {
-        await bot.api.copyMessage(Number(user.id), chatId, msgId);
-        sent++;
-      } catch { failed++; }
-      if (sent % 25 === 0) await new Promise(r => setTimeout(r, 1000));
+    if (sendNow && tmpl.id) {
+      await broadcastTemplate(tmpl, ctx);
     }
-
-    await ctx.reply(`📨 Рассылка завершена\n✅ Отправлено: ${sent}\n❌ Ошибок: ${failed}`);
   } catch (err) {
     await ctx.reply(`Ошибка: ${err}`);
   }
 });
+
+// Быстрая рассылка (без шаблона)
+bot.callbackQuery(/^quick_push_(\d+)$/, async (ctx) => {
+  await ctx.answerCallbackQuery({ text: 'Рассылка запущена...' });
+  const msgId = Number(ctx.callbackQuery.data.replace('quick_push_', ''));
+  const chatId = ctx.chat?.id;
+  if (!chatId) return;
+  try {
+    const users = await httpGet(`${SERVER_URL}/admin/users`);
+    if (!Array.isArray(users)) return;
+    let sent = 0, failed = 0;
+    for (const user of users) {
+      try { await bot.api.copyMessage(Number(user.id), chatId, msgId); sent++; } catch { failed++; }
+      if (sent % 25 === 0) await new Promise(r => setTimeout(r, 1000));
+    }
+    await ctx.reply(`📨 Рассылка: ✅ ${sent} | ❌ ${failed}`);
+  } catch (err) { await ctx.reply(`Ошибка: ${err}`); }
+});
+
+bot.callbackQuery('push_cancel', async (ctx) => {
+  pushDrafts.delete(ctx.chat!.id);
+  await ctx.answerCallbackQuery({ text: 'Отменено' });
+  await ctx.deleteMessage();
+});
+
+// Список шаблонов
+bot.callbackQuery('push_templates', async (ctx) => {
+  await ctx.answerCallbackQuery();
+  try {
+    const tmpls = await httpGet(`${SERVER_URL}/admin/push/templates`);
+    if (!Array.isArray(tmpls) || tmpls.length === 0) { await ctx.reply('Шаблонов пока нет'); return; }
+    const list = tmpls.map((t: any) => {
+      const icon = t.schedule_type === 'daily' ? '📅' : t.schedule_type === 'welcome' ? '👋' : '📨';
+      const active = t.is_active ? '✅' : '⏸';
+      return `${active} ${icon} ${t.name}${t.send_time ? ' (' + t.send_time + ')' : ''}`;
+    }).join('\n');
+    await ctx.reply(`📋 Шаблоны:\n━━━━━━━━━━━━━━━\n${list}`);
+  } catch (err) { await ctx.reply(`Ошибка: ${err}`); }
+});
+
+// Приветственный шаблон
+bot.callbackQuery('push_welcome', async (ctx) => {
+  await ctx.answerCallbackQuery();
+  try {
+    const tmpls = await httpGet(`${SERVER_URL}/admin/push/templates?type=welcome&active=true`);
+    if (Array.isArray(tmpls) && tmpls.length > 0) {
+      const t = tmpls[0];
+      await ctx.reply(`👋 Текущий приветственный пуш:\n\n${t.text}\n\nМедиа: ${t.media_type || 'нет'}`);
+    } else {
+      await ctx.reply('👋 Приветственный пуш не задан.\n\nСоздайте через «Создать пуш» → тип «Приветствие»');
+    }
+  } catch (err) { await ctx.reply(`Ошибка: ${err}`); }
+});
+
+// Лог рассылок
+bot.callbackQuery('push_log', async (ctx) => {
+  await ctx.answerCallbackQuery();
+  try {
+    const logs = await httpGet(`${SERVER_URL}/admin/push/log`);
+    if (!Array.isArray(logs) || logs.length === 0) { await ctx.reply('📊 Рассылок пока не было'); return; }
+    const list = logs.slice(0, 10).map((l: any) =>
+      `${l.template_name || '?'} — ${new Date(l.started_at).toLocaleDateString('ru')} — ✅${l.sent_count} ❌${l.failed_count}`
+    ).join('\n');
+    await ctx.reply(`📊 Последние рассылки:\n━━━━━━━━━━━━━━━\n${list}`);
+  } catch (err) { await ctx.reply(`Ошибка: ${err}`); }
+});
+
+// Функция рассылки шаблона
+async function broadcastTemplate(tmpl: any, ctx: any) {
+  try {
+    const users = await httpGet(`${SERVER_URL}/admin/users`);
+    if (!Array.isArray(users)) return;
+    let sent = 0, failed = 0;
+    for (const user of users) {
+      try {
+        if (tmpl.media_type === 'photo' && tmpl.media_file_id) {
+          await bot.api.sendPhoto(Number(user.id), tmpl.media_file_id, { caption: tmpl.text });
+        } else if (tmpl.media_type === 'video' && tmpl.media_file_id) {
+          await bot.api.sendVideo(Number(user.id), tmpl.media_file_id, { caption: tmpl.text });
+        } else {
+          await bot.api.sendMessage(Number(user.id), tmpl.text);
+        }
+        sent++;
+      } catch { failed++; }
+      if (sent % 25 === 0) await new Promise(r => setTimeout(r, 1000));
+    }
+    await httpPost(`${SERVER_URL}/admin/push/log`, { templateId: tmpl.id, sentCount: sent, failedCount: failed });
+    await ctx.reply(`📨 Рассылка "${tmpl.name}": ✅ ${sent} | ❌ ${failed}`);
+  } catch (err) {
+    await ctx.reply(`Ошибка рассылки: ${err}`);
+  }
+}
 
 // ═══════════════════════════════════════════════════════
 // АВТО-ОТЧЁТЫ
@@ -627,43 +884,59 @@ async function sendAutoReport(type: 'morning' | 'evening' | 'weekly') {
   }
 }
 
-// Ежедневный пуш юзерам
-async function sendDailyPush() {
-  if (!dailyPushText) return;
+// Таймзон-aware ежедневные пуши
+async function processDailyPushes() {
   try {
-    const users = await httpGet(`${SERVER_URL}/admin/users`);
-    if (!Array.isArray(users)) return;
-    let sent = 0;
-    for (const user of users) {
-      try { await bot.api.sendMessage(Number(user.id), dailyPushText); sent++; } catch {}
-      if (sent % 25 === 0) await new Promise(r => setTimeout(r, 1000));
-    }
-    // Уведомляем админов
-    for (const adminId of ADMIN_IDS) {
-      await bot.api.sendMessage(adminId, `📅 Ежедневный пуш отправлен: ${sent} юзерам`).catch(() => {});
+    const templates = await httpGet(`${SERVER_URL}/admin/push/templates?type=daily&active=true`);
+    if (!Array.isArray(templates)) return;
+
+    for (const tmpl of templates) {
+      if (!tmpl.send_time) continue;
+      const [targetH] = tmpl.send_time.split(':').map(Number);
+
+      // Получаем юзеров у которых сейчас нужный час
+      const users = await httpGet(`${SERVER_URL}/admin/push/users-by-tz?hour=${targetH}`);
+      if (!Array.isArray(users) || users.length === 0) continue;
+
+      let sent = 0, failed = 0;
+      for (const user of users) {
+        try {
+          if (tmpl.media_type === 'photo' && tmpl.media_file_id) {
+            await bot.api.sendPhoto(Number(user.id), tmpl.media_file_id, { caption: tmpl.text });
+          } else if (tmpl.media_type === 'video' && tmpl.media_file_id) {
+            await bot.api.sendVideo(Number(user.id), tmpl.media_file_id, { caption: tmpl.text });
+          } else {
+            await bot.api.sendMessage(Number(user.id), tmpl.text);
+          }
+          sent++;
+        } catch { failed++; }
+        if (sent % 25 === 0) await new Promise(r => setTimeout(r, 1000));
+      }
+
+      if (sent > 0) {
+        await httpPost(`${SERVER_URL}/admin/push/log`, { templateId: tmpl.id, sentCount: sent, failedCount: failed });
+      }
     }
   } catch (err) {
     console.error('Daily push error:', err);
   }
 }
 
-// Планировщик авто-отчётов
+// Планировщик
 function scheduleReports() {
-  setInterval(() => {
+  setInterval(async () => {
     const now = new Date();
-    const h = now.getHours();
-    const m = now.getMinutes();
-    const day = now.getDay(); // 0=вс, 1=пн
+    const utcH = now.getUTCHours();
+    const utcM = now.getUTCMinutes();
 
-    // Каждый день в 08:00 — утренний отчёт (админам)
-    if (h === 8 && m === 0) sendAutoReport('morning');
-    // Каждый день в 20:00 — вечерний срез (админам)
-    if (h === 20 && m === 0) sendAutoReport('evening');
-    // Понедельник в 09:00 — недельный отчёт (админам)
-    if (day === 1 && h === 9 && m === 0) sendAutoReport('weekly');
-    // Каждый день в 10:00 — ежедневный пуш юзерам
-    if (h === 10 && m === 0 && dailyPushText) sendDailyPush();
-  }, 60000); // проверяем каждую минуту
+    // Админ-отчёты (UTC+9 Якутск: 08:00 = 23:00 UTC, 20:00 = 11:00 UTC)
+    if (utcH === 23 && utcM === 0) sendAutoReport('morning');
+    if (utcH === 11 && utcM === 0) sendAutoReport('evening');
+    if (now.getUTCDay() === 1 && utcH === 0 && utcM === 0) sendAutoReport('weekly');
+
+    // Таймзон-aware daily пуши — каждую минуту в :00
+    if (utcM === 0) processDailyPushes();
+  }, 60000);
 }
 
 // ═══════════════════════════════════════════════════════

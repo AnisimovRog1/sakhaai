@@ -9,8 +9,8 @@ export const REFERRAL_REWARDS: Record<string, number> = {
   max:    4000,
 };
 
-// Максимум рефералов в месяц на одного реферера
-const MONTHLY_LIMIT = 30;
+// Без лимита — чем больше приглашает, тем лучше для масштабирования
+const MONTHLY_LIMIT = 999999;
 
 // Холд 24 часа в миллисекундах
 const HOLD_MS = 24 * 60 * 60 * 1000;

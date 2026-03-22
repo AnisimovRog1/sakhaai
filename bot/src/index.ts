@@ -80,10 +80,19 @@ bot.command('start', async (ctx) => {
     { reply_markup: keyboard }
   );
 
-  // Приветственный пуш (если настроен)
-  if (ctx.from) {
+  // Приветственный пуш — только для новых юзеров
+  if (ctx.from && !payload?.startsWith('ref_')) {
     setTimeout(async () => {
       try {
+        // Проверяем — новый ли юзер (created_at сегодня)
+        const userInfo = await httpGet(`${SERVER_URL}/admin/user/${ctx.from!.id}`);
+        if (!userInfo || userInfo.error) return;
+        const createdAt = new Date(userInfo.created_at);
+        const now = new Date();
+        const diffMs = now.getTime() - createdAt.getTime();
+        // Если зарегался менее 60 секунд назад — новый юзер
+        if (diffMs > 60000) return;
+
         const tmpls = await httpGet(`${SERVER_URL}/admin/push/templates?type=welcome&active=true`);
         if (Array.isArray(tmpls) && tmpls.length > 0) {
           const t = tmpls[0];

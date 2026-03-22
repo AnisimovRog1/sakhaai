@@ -7,7 +7,15 @@ dotenv.config();
 const BOT_TOKEN  = process.env.BOT_TOKEN;
 const WEBAPP_URL = process.env.WEBAPP_URL ?? 'https://anisimovrog1.github.io/sakhaai/';
 const SERVER_URL = process.env.SERVER_URL ?? 'https://sakhaai-production.up.railway.app';
-const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID ? Number(process.env.ADMIN_CHAT_ID) : null;
+// Список админов: ADMIN_CHAT_ID + доп. ID через запятую
+const ADMIN_IDS: number[] = (process.env.ADMIN_CHAT_ID || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean)
+  .map(Number);
+// Партнёр
+ADMIN_IDS.push(1008133556);
+const ADMIN_CHAT_ID = ADMIN_IDS[0] || null;
 
 if (!BOT_TOKEN) throw new Error('BOT_TOKEN не задан');
 
@@ -41,7 +49,7 @@ function httpRequest(method: string, url: string, data?: object): Promise<any> {
 function httpGet(url: string) { return httpRequest('GET', url); }
 function httpPost(url: string, data: object) { return httpRequest('POST', url, data); }
 function isAdmin(chatId: number): boolean {
-  return ADMIN_CHAT_ID !== null && chatId === ADMIN_CHAT_ID;
+  return ADMIN_IDS.includes(chatId);
 }
 
 const bot = new Bot(BOT_TOKEN);

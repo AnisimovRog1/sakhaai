@@ -58,8 +58,8 @@ authRouter.post('/', async (req: Request, res: Response) => {
   // 3. Upsert пользователя
   // xmax = 0 означает INSERT (новый юзер), иначе UPDATE (существующий)
   const result = await pool.query(
-    `INSERT INTO users (id, username, first_name, last_name)
-     VALUES ($1, $2, $3, $4)
+    `INSERT INTO users (id, username, first_name, last_name, credits)
+     VALUES ($1, $2, $3, $4, 50)
      ON CONFLICT (id) DO UPDATE
        SET username   = EXCLUDED.username,
            first_name = EXCLUDED.first_name,

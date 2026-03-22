@@ -128,12 +128,16 @@ bot.command('admin', async (ctx) => {
   await ctx.reply(
     `🔐 Админ-панель SakhaAI\n━━━━━━━━━━━━━━━━━━━\n\n` +
     `Выберите действие или используйте команды:\n\n` +
-    `/stats · /stats 7d · /stats month\n` +
-    `/year · /users · /user <id>\n` +
-    `/addcredits <id> <кол-во>\n` +
-    `/refund <id> <кол-во>\n` +
-    `/ban <id> · /unban <id>\n` +
-    `/broadcast <текст>`,
+    `📊 /stats · /stats 7d · /stats month\n` +
+    `📋 /year · /users · /user <id>\n` +
+    `💎 /addcredits <id> <кол-во>\n` +
+    `↩️ /refund <id> <кол-во>\n` +
+    `🚫 /ban <id> · /unban <id>\n` +
+    `📨 /broadcast <текст>\n\n` +
+    `📢 Пуши:\n` +
+    `• Отправь фото/видео → кнопка "Разослать"\n` +
+    `• /setdaily <текст> — ежедневный пуш 10:00\n` +
+    `• /stopdaily — отключить`,
     { reply_markup: keyboard }
   );
 });
@@ -512,6 +516,91 @@ bot.callbackQuery('errors', async (ctx) => {
 });
 
 // ═══════════════════════════════════════════════════════
+// ПУШИ — фото/видео/текст рассылка
+// ═══════════════════════════════════════════════════════
+
+// Хранилище для ежедневного пуша
+let dailyPushText: string | null = null;
+
+// /setdaily <текст> — задать ежедневный пуш (10:00)
+bot.command('setdaily', async (ctx) => {
+  if (!isAdmin(ctx.chat.id)) return;
+  const text = ctx.match.trim();
+  if (!text) {
+    if (dailyPushText) {
+      await ctx.reply(`📅 Текущий ежедневный пуш:\n\n${dailyPushText}\n\nОтключить: /stopdaily`);
+    } else {
+      await ctx.reply('Формат: /setdaily <текст сообщения>\nБудет отправляться всем юзерам каждый день в 10:00');
+    }
+    return;
+  }
+  dailyPushText = text;
+  await ctx.reply(`✅ Ежедневный пуш установлен (10:00):\n\n${text}`);
+});
+
+bot.command('stopdaily', async (ctx) => {
+  if (!isAdmin(ctx.chat.id)) return;
+  dailyPushText = null;
+  await ctx.reply('🔕 Ежедневный пуш отключён');
+});
+
+// Админ отправляет фото/видео — бот предлагает разослать
+bot.on('message:photo', async (ctx) => {
+  if (!isAdmin(ctx.chat.id)) return;
+  const caption = ctx.message.caption || '';
+  const keyboard = new InlineKeyboard()
+    .text('📨 Разослать всем', `push_photo_${ctx.message.message_id}`)
+    .text('❌ Отмена', 'push_cancel');
+  await ctx.reply(`📸 Фото получено${caption ? ': ' + caption : ''}\n\nРазослать всем юзерам?`, { reply_markup: keyboard });
+});
+
+bot.on('message:video', async (ctx) => {
+  if (!isAdmin(ctx.chat.id)) return;
+  const caption = ctx.message.caption || '';
+  const keyboard = new InlineKeyboard()
+    .text('📨 Разослать всем', `push_video_${ctx.message.message_id}`)
+    .text('❌ Отмена', 'push_cancel');
+  await ctx.reply(`🎬 Видео получено${caption ? ': ' + caption : ''}\n\nРазослать всем юзерам?`, { reply_markup: keyboard });
+});
+
+bot.callbackQuery('push_cancel', async (ctx) => {
+  await ctx.answerCallbackQuery({ text: 'Отменено' });
+  await ctx.deleteMessage();
+});
+
+// Обработка рассылки фото/видео
+bot.callbackQuery(/^push_(photo|video)_(\d+)$/, async (ctx) => {
+  await ctx.answerCallbackQuery({ text: 'Рассылка запущена...' });
+  const match = ctx.callbackQuery.data.match(/^push_(photo|video)_(\d+)$/);
+  if (!match) return;
+
+  const type = match[1]; // photo or video
+  const msgId = Number(match[2]);
+
+  try {
+    const users = await httpGet(`${SERVER_URL}/admin/users`);
+    if (!Array.isArray(users)) { await ctx.reply('Ошибка'); return; }
+
+    // Получаем оригинальное сообщение с медиа через reply
+    const chatId = ctx.chat?.id;
+    if (!chatId) return;
+
+    let sent = 0, failed = 0;
+    for (const user of users) {
+      try {
+        await bot.api.copyMessage(Number(user.id), chatId, msgId);
+        sent++;
+      } catch { failed++; }
+      if (sent % 25 === 0) await new Promise(r => setTimeout(r, 1000));
+    }
+
+    await ctx.reply(`📨 Рассылка завершена\n✅ Отправлено: ${sent}\n❌ Ошибок: ${failed}`);
+  } catch (err) {
+    await ctx.reply(`Ошибка: ${err}`);
+  }
+});
+
+// ═══════════════════════════════════════════════════════
 // АВТО-ОТЧЁТЫ
 // ═══════════════════════════════════════════════════════
 
@@ -538,6 +627,26 @@ async function sendAutoReport(type: 'morning' | 'evening' | 'weekly') {
   }
 }
 
+// Ежедневный пуш юзерам
+async function sendDailyPush() {
+  if (!dailyPushText) return;
+  try {
+    const users = await httpGet(`${SERVER_URL}/admin/users`);
+    if (!Array.isArray(users)) return;
+    let sent = 0;
+    for (const user of users) {
+      try { await bot.api.sendMessage(Number(user.id), dailyPushText); sent++; } catch {}
+      if (sent % 25 === 0) await new Promise(r => setTimeout(r, 1000));
+    }
+    // Уведомляем админов
+    for (const adminId of ADMIN_IDS) {
+      await bot.api.sendMessage(adminId, `📅 Ежедневный пуш отправлен: ${sent} юзерам`).catch(() => {});
+    }
+  } catch (err) {
+    console.error('Daily push error:', err);
+  }
+}
+
 // Планировщик авто-отчётов
 function scheduleReports() {
   setInterval(() => {
@@ -546,12 +655,14 @@ function scheduleReports() {
     const m = now.getMinutes();
     const day = now.getDay(); // 0=вс, 1=пн
 
-    // Каждый день в 08:00 — утренний отчёт
+    // Каждый день в 08:00 — утренний отчёт (админам)
     if (h === 8 && m === 0) sendAutoReport('morning');
-    // Каждый день в 20:00 — вечерний срез
+    // Каждый день в 20:00 — вечерний срез (админам)
     if (h === 20 && m === 0) sendAutoReport('evening');
-    // Понедельник в 09:00 — недельный отчёт
+    // Понедельник в 09:00 — недельный отчёт (админам)
     if (day === 1 && h === 9 && m === 0) sendAutoReport('weekly');
+    // Каждый день в 10:00 — ежедневный пуш юзерам
+    if (h === 10 && m === 0 && dailyPushText) sendDailyPush();
   }, 60000); // проверяем каждую минуту
 }
 

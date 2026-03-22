@@ -96,7 +96,155 @@ bot.command('help', async (ctx) => {
 });
 
 // ═══════════════════════════════════════════════════════
-// АДМИН: СТАТИСТИКА
+// АДМИН: ГЛАВНОЕ МЕНЮ
+// ═══════════════════════════════════════════════════════
+
+bot.command('admin', async (ctx) => {
+  if (!isAdmin(ctx.chat.id)) return;
+
+  const keyboard = new InlineKeyboard()
+    .text('📊 Отчёт сегодня', 'cmd_stats_today')
+    .text('📅 За 7 дней', 'cmd_stats_7d')
+    .row()
+    .text('📆 За месяц', 'cmd_stats_month')
+    .text('📋 По месяцам', 'cmd_year')
+    .row()
+    .text('👥 Юзеры', 'cmd_users')
+    .text('🤝 Рефералы', 'cmd_referrals')
+    .row()
+    .text('💳 Пополнения', 'deposits')
+    .text('❌ Ошибки API', 'errors')
+    .row()
+    .text('🏆 Топ-10 активных', 'top_users');
+
+  await ctx.reply(
+    `🔐 Админ-панель SakhaAI\n━━━━━━━━━━━━━━━━━━━\n\n` +
+    `Выберите действие или используйте команды:\n\n` +
+    `/stats · /stats 7d · /stats month\n` +
+    `/year · /users · /user <id>\n` +
+    `/addcredits <id> <кол-во>\n` +
+    `/refund <id> <кол-во>\n` +
+    `/ban <id> · /unban <id>\n` +
+    `/broadcast <текст>`,
+    { reply_markup: keyboard }
+  );
+});
+
+// Обработчики кнопок меню
+bot.callbackQuery('cmd_stats_today', async (ctx) => {
+  await ctx.answerCallbackQuery();
+  try {
+    const s = await httpGet(`${SERVER_URL}/admin/stats?period=today`);
+    await sendStatsMessage(ctx, s);
+  } catch (err) { await ctx.reply(`Ошибка: ${err}`); }
+});
+
+bot.callbackQuery('cmd_stats_7d', async (ctx) => {
+  await ctx.answerCallbackQuery();
+  try {
+    const s = await httpGet(`${SERVER_URL}/admin/stats?period=7d`);
+    await sendStatsMessage(ctx, s);
+  } catch (err) { await ctx.reply(`Ошибка: ${err}`); }
+});
+
+bot.callbackQuery('cmd_stats_month', async (ctx) => {
+  await ctx.answerCallbackQuery();
+  try {
+    const s = await httpGet(`${SERVER_URL}/admin/stats?period=month`);
+    await sendStatsMessage(ctx, s);
+  } catch (err) { await ctx.reply(`Ошибка: ${err}`); }
+});
+
+bot.callbackQuery('cmd_year', async (ctx) => {
+  await ctx.answerCallbackQuery();
+  try {
+    const months = await httpGet(`${SERVER_URL}/admin/year`);
+    if (!Array.isArray(months) || months.length === 0) {
+      await ctx.reply('Данных за этот год нет');
+      return;
+    }
+    const rows = months.map((m: any) =>
+      `${m.month} | ${String(m.users).padStart(4)} юз | ${String(m.transactions).padStart(5)} тр | ${String(m.spent).padStart(6)} кр`
+    ).join('\n');
+    await ctx.reply(`📋 Год по месяцам:\n━━━━━━━━━━━━━━━━━━━\n${rows}`);
+  } catch (err) { await ctx.reply(`Ошибка: ${err}`); }
+});
+
+bot.callbackQuery('cmd_users', async (ctx) => {
+  await ctx.answerCallbackQuery();
+  try {
+    const users = await httpGet(`${SERVER_URL}/admin/users`);
+    if (!Array.isArray(users) || users.length === 0) { await ctx.reply('Юзеров нет'); return; }
+    const list = users.slice(0, 20).map((u: any, i: number) =>
+      `${i + 1}. ${u.username ? '@' + u.username : u.first_name} | ${u.credits} кр | ${u.is_banned ? '🚫' : '✅'}`
+    ).join('\n');
+    await ctx.reply(`👥 Юзеры (${users.length}):\n\n${list}`);
+  } catch (err) { await ctx.reply(`Ошибка: ${err}`); }
+});
+
+bot.callbackQuery('cmd_referrals', async (ctx) => {
+  await ctx.answerCallbackQuery();
+  try {
+    const refs = await httpGet(`${SERVER_URL}/admin/referrals`);
+    if (!Array.isArray(refs) || refs.length === 0) { await ctx.reply('🤝 Рефералов за неделю нет'); return; }
+    const list = refs.map((r: any, i: number) =>
+      `${i + 1}. ${r.username ? '@' + r.username : r.first_name} — ${r.total_refs} реф. (${r.total_earned} кр.)`
+    ).join('\n');
+    await ctx.reply(`🤝 Топ рефереров за неделю:\n\n${list}`);
+  } catch (err) { await ctx.reply(`Ошибка: ${err}`); }
+});
+
+// Общая функция для отправки отчёта
+async function sendStatsMessage(ctx: any, s: any) {
+  const topList = (s.topActive || []).slice(0, 5)
+    .map((u: any, i: number) => `  ${i + 1}. ${u.username ? '@' + u.username : u.first_name} — ${u.requests} запр.`)
+    .join('\n');
+
+  const text =
+    `📊 Отчёт ${s.label}\n━━━━━━━━━━━━━━━━━━━\n\n` +
+    `💰 Выручка: ${s.revenue.toLocaleString('ru')} ₽\n` +
+    `📉 Себест.: ${s.costEstimate.toLocaleString('ru')} ₽\n` +
+    `📈 Прибыль: ${s.profit.toLocaleString('ru')} ₽\n` +
+    `📊 Маржа: ${s.margin}%\n\n` +
+    `👥 DAU: ${s.dau} юз\n` +
+    `🆕 Новых: +${s.newUsers}\n` +
+    `📝 Запросов: ${s.transactions}\n` +
+    `🤝 Рефералов: +${s.referrals}\n\n` +
+    `💬 Чатов: ${s.chats} | Сообщений: ${s.messages}\n` +
+    `🎨 Генераций: ${s.generations}\n` +
+    `💎 Всего кредитов: ${s.totalCredits.toLocaleString('ru')}\n` +
+    `🚫 Забанено: ${s.banned}\n\n` +
+    `🏆 Топ активных:\n${topList || '  Пусто'}`;
+
+  const keyboard = new InlineKeyboard()
+    .text('🔙 Меню', 'cmd_menu')
+    .text('🏆 Топ-10', 'top_users')
+    .row()
+    .text('💳 Пополнения', 'deposits')
+    .text('❌ Ошибки', 'errors');
+
+  await ctx.reply(text, { reply_markup: keyboard });
+}
+
+bot.callbackQuery('cmd_menu', async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const keyboard = new InlineKeyboard()
+    .text('📊 Сегодня', 'cmd_stats_today')
+    .text('📅 7 дней', 'cmd_stats_7d')
+    .row()
+    .text('📆 Месяц', 'cmd_stats_month')
+    .text('📋 По месяцам', 'cmd_year')
+    .row()
+    .text('👥 Юзеры', 'cmd_users')
+    .text('🤝 Рефералы', 'cmd_referrals')
+    .row()
+    .text('💳 Пополнения', 'deposits')
+    .text('❌ Ошибки', 'errors');
+  await ctx.reply('🔐 Админ-панель:', { reply_markup: keyboard });
+});
+
+// ═══════════════════════════════════════════════════════
+// АДМИН: СТАТИСТИКА (текстовые команды)
 // ═══════════════════════════════════════════════════════
 
 bot.command('stats', async (ctx) => {

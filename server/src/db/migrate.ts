@@ -101,6 +101,13 @@ export async function migrate() {
 
     CREATE INDEX IF NOT EXISTS generations_user_idx ON generations (user_id, created_at DESC);
 
+    -- Фикс foreign key: разрешить каскадное удаление пушей
+    DO $$ BEGIN
+      ALTER TABLE push_log DROP CONSTRAINT IF EXISTS push_log_template_id_fkey;
+      ALTER TABLE push_log ADD CONSTRAINT push_log_template_id_fkey FOREIGN KEY (template_id) REFERENCES push_templates(id) ON DELETE CASCADE;
+    EXCEPTION WHEN OTHERS THEN NULL;
+    END $$;
+
     -- Часовой пояс юзера (минуты от UTC, 540 = UTC+9 Якутск)
     DO $$ BEGIN
       ALTER TABLE users ADD COLUMN timezone_offset INTEGER DEFAULT 540;
@@ -124,7 +131,7 @@ export async function migrate() {
     -- Лог рассылок
     CREATE TABLE IF NOT EXISTS push_log (
       id            SERIAL PRIMARY KEY,
-      template_id   INTEGER REFERENCES push_templates(id),
+      template_id   INTEGER REFERENCES push_templates(id) ON DELETE CASCADE,
       sent_count    INTEGER NOT NULL DEFAULT 0,
       failed_count  INTEGER NOT NULL DEFAULT 0,
       started_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),

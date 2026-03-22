@@ -11,6 +11,7 @@ import { balanceRouter } from './routes/balance';
 import { referralRouter } from './routes/referral';
 import { paymentRouter } from './routes/payment';
 import { generationsRouter } from './routes/generations';
+import { adminRouter } from './routes/admin';
 import { processHeldReferrals } from './services/referral';
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
@@ -44,6 +45,7 @@ app.use('/balance',  balanceRouter);
 app.use('/referral', referralRouter);
 app.use('/payment', paymentRouter);
 app.use('/generations', generationsRouter);
+app.use('/admin', adminRouter);
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'sakhaai-server' });

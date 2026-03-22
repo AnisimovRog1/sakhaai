@@ -163,7 +163,9 @@ async function login() {
   const pass = document.getElementById('passInput').value;
   try {
     const r = await fetch(API + '/panel/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password:pass}) });
-    const d = await r.json();
+    const text = await r.text();
+    let d;
+    try { d = JSON.parse(text); } catch { alert('Ответ сервера: ' + text); return; }
     if (d.success) {
       TOKEN = d.token;
       localStorage.setItem('admin_token', TOKEN);

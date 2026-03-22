@@ -789,18 +789,59 @@ bot.callbackQuery('push_cancel', async (ctx) => {
   await ctx.deleteMessage();
 });
 
-// Список шаблонов
+// Список шаблонов с кнопками удаления
 bot.callbackQuery('push_templates', async (ctx) => {
   await ctx.answerCallbackQuery();
   try {
     const tmpls = await httpGet(`${SERVER_URL}/admin/push/templates`);
     if (!Array.isArray(tmpls) || tmpls.length === 0) { await ctx.reply('Шаблонов пока нет'); return; }
-    const list = tmpls.map((t: any) => {
+
+    for (const t of tmpls) {
       const icon = t.schedule_type === 'daily' ? '📅' : t.schedule_type === 'welcome' ? '👋' : '📨';
       const active = t.is_active ? '✅' : '⏸';
-      return `${active} ${icon} ${t.name}${t.send_time ? ' (' + t.send_time + ')' : ''}`;
-    }).join('\n');
-    await ctx.reply(`📋 Шаблоны:\n━━━━━━━━━━━━━━━\n${list}`);
+      const media = t.media_type === 'photo' ? '📸' : t.media_type === 'video' ? '🎬' : '📝';
+      const kb = new InlineKeyboard()
+        .text('🗑 Удалить', `push_del_${t.id}`)
+        .text(t.is_active ? '⏸ Выкл' : '✅ Вкл', `push_toggle_${t.id}`)
+        .text('📨 Отправить', `push_send_${t.id}`);
+      await ctx.reply(
+        `${active} ${icon} ${media} ${t.name}\n` +
+        `${t.text?.slice(0, 80)}${(t.text?.length ?? 0) > 80 ? '...' : ''}\n` +
+        (t.send_time ? `⏰ ${t.send_time}\n` : ''),
+        { reply_markup: kb }
+      );
+    }
+  } catch (err) { await ctx.reply(`Ошибка: ${err}`); }
+});
+
+// Удалить шаблон
+bot.callbackQuery(/^push_del_(\d+)$/, async (ctx) => {
+  const id = ctx.callbackQuery.data.replace('push_del_', '');
+  try {
+    await httpRequest('DELETE', `${SERVER_URL}/admin/push/templates/${id}`);
+    await ctx.answerCallbackQuery({ text: 'Удалено' });
+    await ctx.deleteMessage();
+  } catch { await ctx.answerCallbackQuery({ text: 'Ошибка' }); }
+});
+
+// Вкл/выкл шаблон
+bot.callbackQuery(/^push_toggle_(\d+)$/, async (ctx) => {
+  const id = ctx.callbackQuery.data.replace('push_toggle_', '');
+  try {
+    const r = await httpRequest('PUT', `${SERVER_URL}/admin/push/templates/${id}/toggle`);
+    await ctx.answerCallbackQuery({ text: r.isActive ? 'Включён ✅' : 'Выключен ⏸' });
+    await ctx.deleteMessage();
+  } catch { await ctx.answerCallbackQuery({ text: 'Ошибка' }); }
+});
+
+// Отправить шаблон вручную
+bot.callbackQuery(/^push_send_(\d+)$/, async (ctx) => {
+  const id = ctx.callbackQuery.data.replace('push_send_', '');
+  await ctx.answerCallbackQuery({ text: 'Рассылка запущена...' });
+  try {
+    const data = await httpPost(`${SERVER_URL}/admin/push/send/${id}`, {});
+    if (!data.template || !data.users) { await ctx.reply('Ошибка'); return; }
+    await broadcastTemplate(data.template, ctx);
   } catch (err) { await ctx.reply(`Ошибка: ${err}`); }
 });
 

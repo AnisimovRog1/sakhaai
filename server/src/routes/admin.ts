@@ -6,7 +6,9 @@ export const adminRouter = Router();
 
 function requireBotAuth(req: Request, res: Response, next: () => void) {
   const auth = req.headers.authorization;
-  if (!auth || auth !== `Bearer ${process.env.BOT_TOKEN}`) {
+  const adminPass = process.env.ADMIN_PASSWORD || 'sakhaai2026';
+  // Принимаем и BOT_TOKEN (от бота) и ADMIN_PASSWORD (от веб-панели)
+  if (!auth || (auth !== `Bearer ${process.env.BOT_TOKEN}` && auth !== `Bearer ${adminPass}`)) {
     res.status(403).json({ error: 'Доступ запрещён' });
     return;
   }

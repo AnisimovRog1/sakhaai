@@ -24,6 +24,12 @@ logs/
 .vscode/
 .idea/
 
+# Claude settings (содержит секреты)
+.claude/settings.json
+
+# MCP config
+.mcp.json
+
 # Local Netlify folder
 .netlify
 

@@ -1,10 +1,12 @@
 import { Router, Request, Response } from 'express';
 
 export const adminPanelRouter = Router();
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'sakhaai2026';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+if (!ADMIN_PASSWORD) console.warn('⚠️ ADMIN_PASSWORD не задан — админ-панель отключена');
 
 adminPanelRouter.post('/login', (req: Request, res: Response) => {
   const { password } = req.body;
+  if (!ADMIN_PASSWORD) { res.status(503).json({ error: 'Панель не настроена' }); return; }
   if (password === ADMIN_PASSWORD) res.json({ success: true, token: ADMIN_PASSWORD });
   else res.status(401).json({ error: 'Неверный пароль' });
 });

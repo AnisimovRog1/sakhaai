@@ -28,7 +28,8 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
 app.use(cors({
   origin: (origin, callback) => {
     // origin = undefined у server-to-server запросов и curl — пропускаем
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    // Также пропускаем свой же домен (для admin panel)
+    if (!origin || allowedOrigins.includes(origin) || origin?.includes('railway.app')) return callback(null, true);
     callback(new Error(`CORS: origin ${origin} не разрешён`));
   },
 }));

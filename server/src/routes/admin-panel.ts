@@ -179,14 +179,22 @@ input:focus,textarea:focus{border-color:rgba(139,92,246,.5);box-shadow:0 0 20px 
             <input id="pushName" placeholder="📌 Название шаблона">
             <textarea id="pushText" placeholder="✏️ Текст сообщения" rows="4"></textarea>
             <div>
-              <label class="text-xs text-slate-500 mb-1 block">🖼 Медиа (URL фото или видео)</label>
-              <input id="pushMediaUrl" placeholder="https://example.com/image.jpg">
+              <label class="text-xs text-slate-500 mb-1 block">🖼 Медиа</label>
+              <div id="dropZone" style="border:2px dashed rgba(139,92,246,.3);border-radius:12px;padding:20px;text-align:center;cursor:pointer;transition:all .3s" onclick="document.getElementById('fileInput').click()" ondragover="event.preventDefault();this.style.borderColor='rgba(6,182,212,.6)';this.style.background='rgba(6,182,212,.05)'" ondragleave="this.style.borderColor='rgba(139,92,246,.3)';this.style.background='transparent'" ondrop="event.preventDefault();handleFileDrop(event);this.style.borderColor='rgba(139,92,246,.3)';this.style.background='transparent'">
+                <div id="dropZoneContent">
+                  <div class="text-2xl mb-2 anim-bounce">📁</div>
+                  <p class="text-slate-400 text-sm">Перетащите фото/видео сюда</p>
+                  <p class="text-slate-600 text-xs mt-1">или нажмите для выбора</p>
+                </div>
+                <div id="mediaPreview" class="hidden">
+                  <img id="mediaImg" class="max-h-32 mx-auto rounded-lg" style="display:none">
+                  <video id="mediaVid" class="max-h-32 mx-auto rounded-lg" style="display:none" muted></video>
+                  <p id="mediaName" class="text-cyan-400 text-sm mt-2 font-medium"></p>
+                  <button class="btn btn-danger mt-2" style="padding:4px 12px;font-size:11px" onclick="event.stopPropagation();clearMedia()">✕ Убрать</button>
+                </div>
+              </div>
+              <input type="file" id="fileInput" accept="image/*,video/*" class="hidden" onchange="handleFileSelect(event)">
             </div>
-            <select id="pushMediaType">
-              <option value="">📝 Без медиа</option>
-              <option value="photo">📸 Фото</option>
-              <option value="video">🎬 Видео</option>
-            </select>
           </div>
           <div class="space-y-3">
             <select id="pushType" onchange="document.getElementById('pushTimeRow').classList.toggle('hidden',this.value!=='daily')">
@@ -336,17 +344,46 @@ async function showUser(id){
   document.getElementById('userModal').classList.remove('hidden');
 }
 
-// PUSHES
+// PUSHES — file handling
+let uploadedMedia={type:null,data:null,name:null};
+
+function handleFileDrop(e){const f=e.dataTransfer.files[0];if(f)processFile(f)}
+function handleFileSelect(e){const f=e.target.files[0];if(f)processFile(f)}
+function processFile(f){
+  const isVideo=f.type.startsWith('video/');
+  const isImage=f.type.startsWith('image/');
+  if(!isVideo&&!isImage){alert('Поддерживаются только фото и видео');return}
+  uploadedMedia.type=isVideo?'video':'photo';
+  uploadedMedia.name=f.name;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    uploadedMedia.data=e.target.result;
+    document.getElementById('dropZoneContent').classList.add('hidden');
+    document.getElementById('mediaPreview').classList.remove('hidden');
+    document.getElementById('mediaName').textContent=(isVideo?'🎬 ':'📸 ')+f.name;
+    if(isImage){document.getElementById('mediaImg').src=e.target.result;document.getElementById('mediaImg').style.display='block';document.getElementById('mediaVid').style.display='none'}
+    else{document.getElementById('mediaVid').src=e.target.result;document.getElementById('mediaVid').style.display='block';document.getElementById('mediaImg').style.display='none'}
+  };reader.readAsDataURL(f)
+}
+function clearMedia(){
+  uploadedMedia={type:null,data:null,name:null};
+  document.getElementById('dropZoneContent').classList.remove('hidden');
+  document.getElementById('mediaPreview').classList.add('hidden');
+  document.getElementById('mediaImg').style.display='none';
+  document.getElementById('mediaVid').style.display='none';
+  document.getElementById('fileInput').value='';
+}
+
 async function createPush(send){
   const name=document.getElementById('pushName').value,text=document.getElementById('pushText').value;
   const type=document.getElementById('pushType').value,time=type==='daily'?document.getElementById('pushTime').value:null;
-  const mediaType=document.getElementById('pushMediaType').value||null;
-  const mediaUrl=document.getElementById('pushMediaUrl').value||null;
+  const mediaType=uploadedMedia.type||null;
+  const mediaUrl=uploadedMedia.data||null;
   if(!name||!text){alert('Заполните название и текст');return}
   const r=await P('/admin/push/templates',{name,text,scheduleType:type,sendTime:time,mediaType:mediaType,mediaFileId:mediaUrl});
   if(r.id){
     document.getElementById('pushName').value='';document.getElementById('pushText').value='';
-    document.getElementById('pushMediaUrl').value='';document.getElementById('pushMediaType').value='';
+    clearMedia();
     loadPushTemplates();alert('✅ Шаблон сохранён!')
   } else alert('❌ '+(r.error||'Ошибка'))}
 

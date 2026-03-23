@@ -14,6 +14,7 @@ import { generationsRouter } from './routes/generations';
 import { adminRouter } from './routes/admin';
 import { adminPanelRouter } from './routes/admin-panel';
 import { processHeldReferrals } from './services/referral';
+import { LANDING_HTML } from './landing';
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
@@ -54,9 +55,9 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'sakhaai-server' });
 });
 
-// Главная страница с мета-тэгом UnitPay
+// Лендинг + мета-тэг UnitPay
 app.get('/', (_req, res) => {
-  res.type('text/html').send(`<!DOCTYPE html><html><head><meta name="verification" content="16693ad0a9f05ceba9ce1b6a59b655" /><title>SakhaAI</title></head><body>SakhaAI Server</body></html>`);
+  res.type('text/html').send(LANDING_HTML);
 });
 
 // Запуск

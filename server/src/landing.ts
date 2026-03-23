@@ -132,7 +132,7 @@ export const LANDING_HTML = `<!DOCTYPE html>
       Умный чат на русском и якутском, генерация картинок и видео — всё в одном Telegram-боте
     </p>
     <a href="https://t.me/UraanxAI_bot" class="btn-hero">
-      <span>🚀</span> Попробовать бесплатно
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"><animate attributeName="points" values="5 3 19 12 5 21 5 3;6 4 20 12 6 20 6 4;5 3 19 12 5 21 5 3" dur="2s" repeatCount="indefinite"/></polygon></svg> Попробовать бесплатно
     </a>
     <p class="text-slate-500 text-sm mt-5">50 бесплатных кредитов • Без карты • Мгновенный старт</p>
 
@@ -152,17 +152,17 @@ export const LANDING_HTML = `<!DOCTYPE html>
   </div>
   <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
     <div class="glass p-8 reveal" style="transition-delay:.1s">
-      <div class="feat-icon" style="background:linear-gradient(135deg,rgba(139,92,246,.2),rgba(139,92,246,.05))">💬</div>
+      <div class="feat-icon" style="background:linear-gradient(135deg,rgba(139,92,246,.2),rgba(139,92,246,.05))"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="filter:drop-shadow(0 0 8px rgba(139,92,246,.6))"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/><circle cx="9" cy="10" r="1" fill="#a78bfa"><animate attributeName="opacity" values=".3;1;.3" dur="2s" repeatCount="indefinite"/></circle><circle cx="13" cy="10" r="1" fill="#a78bfa"><animate attributeName="opacity" values=".3;1;.3" dur="2s" begin=".4s" repeatCount="indefinite"/></circle><circle cx="17" cy="10" r="1" fill="#a78bfa"><animate attributeName="opacity" values=".3;1;.3" dur="2s" begin=".8s" repeatCount="indefinite"/></circle></svg></div>
       <h3 class="font-bold text-lg text-white text-center mb-3">AI-чат</h3>
       <p class="text-slate-400 text-sm text-center leading-relaxed">Умный ассистент с поддержкой русского и якутского (саха тыла). Знает культуру и историю Саха.</p>
     </div>
     <div class="glass p-8 reveal" style="transition-delay:.2s">
-      <div class="feat-icon" style="background:linear-gradient(135deg,rgba(6,182,212,.2),rgba(6,182,212,.05))">🎨</div>
+      <div class="feat-icon" style="background:linear-gradient(135deg,rgba(6,182,212,.2),rgba(6,182,212,.05))"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="filter:drop-shadow(0 0 8px rgba(6,182,212,.6))"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5" fill="none" stroke="#22d3ee"><animate attributeName="r" values="1.2;2;1.2" dur="3s" repeatCount="indefinite"/></circle><path d="M21 15l-5-5L5 21"/></svg></div>
       <h3 class="font-bold text-lg text-white text-center mb-3">Генерация картинок</h3>
       <p class="text-slate-400 text-sm text-center leading-relaxed">Создавайте изображения по описанию, редактируйте существующие фото. Поддержка разных стилей и форматов.</p>
     </div>
     <div class="glass p-8 reveal" style="transition-delay:.3s">
-      <div class="feat-icon" style="background:linear-gradient(135deg,rgba(59,130,246,.2),rgba(59,130,246,.05))">🎬</div>
+      <div class="feat-icon" style="background:linear-gradient(135deg,rgba(99,102,241,.2),rgba(99,102,241,.05))"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="filter:drop-shadow(0 0 8px rgba(99,102,241,.6))"><rect x="2" y="5" width="15" height="14" rx="2.5"/><path d="M17 9.5l5-3v11l-5-3v-5z"/><polygon points="8,8.5 8,15.5 13.5,12" fill="#818cf8" opacity=".4"><animate attributeName="opacity" values=".2;.6;.2" dur="2s" repeatCount="indefinite"/></polygon></svg></div>
       <h3 class="font-bold text-lg text-white text-center mb-3">Генерация видео</h3>
       <p class="text-slate-400 text-sm text-center leading-relaxed">Текст в видео, анимация картинок, говорящие аватары. Кинематографическое качество.</p>
     </div>

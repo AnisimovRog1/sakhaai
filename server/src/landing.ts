@@ -148,11 +148,12 @@ export const LANDING_HTML = `<!DOCTYPE html>
       </div>
       <div>
         <h3 class="font-bold text-white text-base mb-3">3. Условия и порядок возврата</h3>
-        <p><strong>3.1.</strong> Возврат неиспользованных кредитов возможен в течение 14 (четырнадцати) календарных дней с момента покупки при условии, что кредиты не были использованы (полностью или частично).</p>
-        <p class="mt-2"><strong>3.2.</strong> Для оформления возврата необходимо обратиться в службу поддержки по email: kuzmin.art993@gmail.com с указанием Telegram ID и причины возврата.</p>
-        <p class="mt-2"><strong>3.3.</strong> Возврат осуществляется тем же способом, которым была произведена оплата, в течение 10 рабочих дней с момента одобрения заявки.</p>
-        <p class="mt-2"><strong>3.4.</strong> Использованные кредиты (полностью или частично) возврату не подлежат, так как услуга считается оказанной в момент генерации AI-контента.</p>
-        <p class="mt-2"><strong>3.5.</strong> Бесплатные кредиты (приветственные, реферальные) возврату не подлежат.</p>
+        <p><strong>3.1.</strong> Возврат неиспользованных кредитов возможен в течение 14 (четырнадцати) календарных дней с момента покупки при условии, что кредиты не были использованы.</p>
+        <p class="mt-2"><strong>3.2.</strong> Если кредиты были частично использованы, возврат производится пропорционально — за вычетом стоимости использованных кредитов.</p>
+        <p class="mt-2"><strong>3.3.</strong> Для оформления возврата обратитесь в службу поддержки: <a href="https://t.me/UraanxAI_support" class="text-violet-400">@UraanxAI_support</a> в Telegram или на email kuzmin.art993@gmail.com с указанием Telegram ID и причины возврата.</p>
+        <p class="mt-2"><strong>3.4.</strong> Возврат осуществляется тем же способом, которым была произведена оплата, в течение 10 рабочих дней с момента одобрения заявки.</p>
+        <p class="mt-2"><strong>3.5.</strong> Полностью использованные кредиты возврату не подлежат, так как услуга считается оказанной в момент генерации AI-контента.</p>
+        <p class="mt-2"><strong>3.6.</strong> Бесплатные кредиты (приветственные, реферальные) возврату и обмену на денежные средства не подлежат.</p>
       </div>
       <div>
         <h3 class="font-bold text-white text-base mb-3">4. Подробное описание платных услуг</h3>
@@ -181,9 +182,10 @@ export const LANDING_HTML = `<!DOCTYPE html>
   <section class="max-w-5xl mx-auto px-6 py-16" id="contacts">
     <h2 class="text-2xl font-bold text-center mb-10">Контакты</h2>
     <div class="glass p-8 text-center space-y-4">
-      <p class="text-slate-300"><strong>Telegram:</strong> <a href="https://t.me/UraanxAI_bot" class="text-violet-400 hover:underline">@UraanxAI_bot</a></p>
+      <p class="text-slate-300"><strong>Бот:</strong> <a href="https://t.me/UraanxAI_bot" class="text-violet-400 hover:underline">@UraanxAI_bot</a></p>
+      <p class="text-slate-300"><strong>Поддержка:</strong> <a href="https://t.me/UraanxAI_support" class="text-violet-400 hover:underline">@UraanxAI_support</a></p>
       <p class="text-slate-300"><strong>Email:</strong> <a href="mailto:kuzmin.art993@gmail.com" class="text-violet-400 hover:underline">kuzmin.art993@gmail.com</a></p>
-      <p class="text-slate-300"><strong>Разработчик:</strong> ИП Анисимов (Республика Саха, Якутия)</p>
+      <p class="text-slate-300"><strong>Разработчик:</strong> ИП Кузьмин (Республика Саха, Якутия)</p>
     </div>
   </section>
 

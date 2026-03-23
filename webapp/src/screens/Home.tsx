@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { User } from '../types';
+import { useLang } from '../LangContext';
 
 type Props = {
   user: User;
@@ -55,6 +56,7 @@ export function Home({ user }: Props) {
   const [selectedPkg, setSelectedPkg] = useState<typeof PACKAGES[0] | null>(null);
   const [showPayment, setShowPayment] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
+  const { lang, setLang, t } = useLang();
   const { level, next } = getLevel(user.credits);
   const progress = Math.min((user.credits / next) * 100, 100);
 
@@ -77,9 +79,35 @@ export function Home({ user }: Props) {
       <div className="space-y-6">
 
         {/* Header */}
-        <div className="flex items-center justify-between pt-8">
+        {/* Переключатель языка */}
+        <div className="flex justify-center pt-6 pb-2">
+          <div className="flex bg-white/[0.08] border border-white/[0.12] rounded-xl p-1 gap-1">
+            <button
+              onClick={() => setLang('ru')}
+              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                lang === 'ru'
+                  ? 'bg-gradient-to-r from-violet-600 to-cyan-500 text-white shadow-md'
+                  : 'text-slate-400'
+              }`}
+            >
+              Русский
+            </button>
+            <button
+              onClick={() => setLang('sah')}
+              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                lang === 'sah'
+                  ? 'bg-gradient-to-r from-violet-600 to-cyan-500 text-white shadow-md'
+                  : 'text-slate-400'
+              }`}
+            >
+              Сахалыы
+            </button>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between pt-2">
           <div>
-            <p className="text-blue-200/70 text-sm font-medium tracking-wide">Добро пожаловать</p>
+            <p className="text-blue-200/70 text-sm font-medium tracking-wide">{t('home.welcome')}</p>
             <p className="text-xl font-bold text-white mt-1">{displayName}</p>
           </div>
           {user.photoUrl ? (
@@ -101,14 +129,14 @@ export function Home({ user }: Props) {
             <div className="flex-1 bg-gradient-to-r from-green-500 to-green-400" />
           </div>
           <div className="relative space-y-3">
-            <p className="text-blue-100/90 text-[10px] font-semibold uppercase tracking-[0.15em]">Баланс кредитов</p>
+            <p className="text-blue-100/90 text-[10px] font-semibold uppercase tracking-[0.15em]">{t('home.balance')}</p>
             <div className="flex items-baseline gap-2">
               <p className="text-4xl font-extrabold text-white drop-shadow-lg">{user.credits.toLocaleString('ru')}</p>
               <span className="text-base font-medium text-blue-100/80">кр.</span>
             </div>
             <div className="space-y-2">
               <div className="flex justify-between text-xs">
-                <span className="text-blue-100/80">Уровень: <span className="text-white font-bold">{level}</span></span>
+                <span className="text-blue-100/80">{t('home.level')}: <span className="text-white font-bold">{level}</span></span>
                 <span className="text-blue-100/80">{user.credits.toLocaleString('ru')} / {next.toLocaleString('ru')}</span>
               </div>
               <div className="h-2.5 bg-white/[0.15] rounded-full overflow-hidden shadow-inner">
@@ -126,7 +154,7 @@ export function Home({ user }: Props) {
 
         {/* Packages */}
         <div className="space-y-3 mt-2">
-          <p className="text-white text-base font-bold text-center">Купить AI-кредиты</p>
+          <p className="text-white text-base font-bold text-center">{t('home.buy')}</p>
           <div className="grid grid-cols-2 gap-3">
             {PACKAGES.map((pkg) => {
               const sel = selectedPkg?.key === pkg.key;
@@ -159,7 +187,7 @@ export function Home({ user }: Props) {
       </div>
 
       {/* ─── Payment Button ─── */}
-      <div className="pt-5 pb-3">
+      <div className="pt-5 pb-1">
         <button
           onClick={handlePay}
           disabled={!selectedPkg}
@@ -169,7 +197,20 @@ export function Home({ user }: Props) {
               : 'bg-white/[0.05] border border-white/[0.08] text-slate-500 cursor-not-allowed'
           }`}
         >
-          {selectedPkg ? `Оплатить ${selectedPkg.price}` : 'Выберите пакет'}
+          {selectedPkg ? `${t('home.pay')} ${selectedPkg.price}` : t('home.selectPackage')}
+        </button>
+      </div>
+
+      {/* ─── Support Button ─── */}
+      <div className="pb-3">
+        <button
+          onClick={() => window.Telegram?.WebApp?.openTelegramLink?.('https://t.me/UraanxAI_support')}
+          className="w-full py-3 rounded-2xl text-sm font-semibold text-slate-400 bg-white/[0.04] border border-white/[0.08] active:bg-white/[0.08] transition-all flex items-center justify-center gap-2"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          Поддержка
         </button>
       </div>
 
@@ -186,7 +227,7 @@ export function Home({ user }: Props) {
           >
             {/* Handle */}
             <div className="flex items-center justify-between">
-              <h2 className="text-white text-lg font-bold uppercase tracking-wide">Выбрать тип оплаты</h2>
+              <h2 className="text-white text-lg font-bold uppercase tracking-wide">{t('home.paymentTitle')}</h2>
               <button onClick={() => setShowPayment(false)} className="w-8 h-8 rounded-full bg-white/[0.08] flex items-center justify-center">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round">
                   <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -228,7 +269,7 @@ export function Home({ user }: Props) {
               onClick={handleConfirmPay}
               className="w-full py-4 rounded-2xl font-bold text-base text-white bg-gradient-to-r from-violet-600 to-cyan-500 shadow-lg shadow-violet-500/25 active:scale-[0.98] transition-all"
             >
-              Далее
+              {t('home.next')}
             </button>
           </div>
         </div>

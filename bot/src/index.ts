@@ -980,9 +980,10 @@ function scheduleReports() {
     const utcM = now.getUTCMinutes();
 
     // Админ-отчёты (UTC+9 Якутск: 08:00 = 23:00 UTC, 20:00 = 11:00 UTC)
-    if (utcH === 23 && utcM === 0) sendAutoReport('morning');
-    if (utcH === 11 && utcM === 0) sendAutoReport('evening');
-    if (now.getUTCDay() === 1 && utcH === 0 && utcM === 0) sendAutoReport('weekly');
+    // Авто-отчёты по МСК (UTC+3)
+    if (utcH === 5 && utcM === 0) sendAutoReport('morning');   // 08:00 МСК
+    if (utcH === 17 && utcM === 0) sendAutoReport('evening');  // 20:00 МСК
+    if (now.getUTCDay() === 1 && utcH === 6 && utcM === 0) sendAutoReport('weekly'); // Пн 09:00 МСК
 
     // Таймзон-aware daily пуши — каждую минуту в :00
     if (utcM === 0) processDailyPushes();

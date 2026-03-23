@@ -171,33 +171,69 @@ input:focus,textarea:focus{border-color:rgba(139,92,246,.5);box-shadow:0 0 20px 
 
     <!-- PUSHES -->
     <div id="tab-pushes" class="hidden">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
-        <div class="glass-neon p-5">
-          <h3 class="text-sm font-bold mb-4"><span class="anim-bounce">📝</span> Создать пуш</h3>
+      <!-- Создание пуша -->
+      <div class="glass-neon p-6 mb-5 glow-border">
+        <h3 class="text-base font-bold mb-5 flex items-center gap-2"><span class="anim-bounce">📝</span> Создать пуш</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="space-y-3">
-            <input id="pushName" placeholder="Название шаблона">
-            <textarea id="pushText" placeholder="Текст сообщения" rows="3"></textarea>
+            <input id="pushName" placeholder="📌 Название шаблона">
+            <textarea id="pushText" placeholder="✏️ Текст сообщения" rows="4"></textarea>
+            <div>
+              <label class="text-xs text-slate-500 mb-1 block">🖼 Медиа (URL фото или видео)</label>
+              <input id="pushMediaUrl" placeholder="https://example.com/image.jpg">
+            </div>
+            <select id="pushMediaType">
+              <option value="">📝 Без медиа</option>
+              <option value="photo">📸 Фото</option>
+              <option value="video">🎬 Видео</option>
+            </select>
+          </div>
+          <div class="space-y-3">
             <select id="pushType" onchange="document.getElementById('pushTimeRow').classList.toggle('hidden',this.value!=='daily')">
               <option value="manual">📨 Разовый</option>
               <option value="daily">📅 Ежедневный</option>
               <option value="welcome">👋 Приветственный</option>
             </select>
             <div id="pushTimeRow" class="hidden">
-              <select id="pushTime"><option value="08:00">08:00</option><option value="10:00" selected>10:00</option><option value="12:00">12:00</option><option value="14:00">14:00</option><option value="18:00">18:00</option><option value="20:00">20:00</option></select>
+              <label class="text-xs text-slate-500 mb-1 block">⏰ Время (по местному времени юзера)</label>
+              <select id="pushTime">
+                <option value="08:00">08:00</option>
+                <option value="09:00">09:00</option>
+                <option value="10:00" selected>10:00</option>
+                <option value="11:00">11:00</option>
+                <option value="12:00">12:00</option>
+                <option value="13:00">13:00</option>
+                <option value="14:00">14:00</option>
+                <option value="16:00">16:00</option>
+                <option value="18:00">18:00</option>
+                <option value="20:00">20:00</option>
+                <option value="21:00">21:00</option>
+              </select>
             </div>
-            <div class="flex gap-2">
-              <button class="btn btn-primary flex-1" onclick="createPush(false)">💾 Сохранить</button>
-              <button class="btn btn-success flex-1" onclick="createPush(true)">📨 Отправить</button>
+            <div class="flex gap-2 pt-2">
+              <button class="btn btn-primary flex-1 py-3" onclick="createPush(false)">💾 Сохранить</button>
+              <button class="btn btn-success flex-1 py-3" onclick="createPush(true)">📨 Сохранить и отправить</button>
             </div>
           </div>
         </div>
-        <div class="glass-cyan p-5">
-          <h3 class="text-sm font-bold mb-4"><span class="anim-spin">📊</span> Лог рассылок</h3>
-          <div id="pushLogList"></div>
-        </div>
       </div>
-      <h3 class="text-sm font-bold mb-3"><span class="anim-pulse">📋</span> Шаблоны</h3>
-      <div id="pushTemplates"></div>
+
+      <!-- Таблица шаблонов -->
+      <h3 class="text-base font-bold mb-4 flex items-center gap-2"><span class="anim-pulse">📋</span> Активные пуши</h3>
+      <div class="glass-strong overflow-x-auto mb-5">
+        <table>
+          <thead><tr>
+            <th>Статус</th><th>Тип</th><th>Название</th><th>Медиа</th><th>Время</th><th>Текст</th><th>Действия</th>
+          </tr></thead>
+          <tbody id="pushTable"></tbody>
+        </table>
+      </div>
+
+      <!-- Лог рассылок -->
+      <div class="glass-cyan p-5">
+        <h3 class="text-sm font-bold mb-4 flex items-center gap-2"><span class="anim-spin">📊</span> Лог рассылок</h3>
+        <div id="pushLogList"></div>
+      </div>
     </div>
 
   </div>
@@ -304,18 +340,39 @@ async function showUser(id){
 async function createPush(send){
   const name=document.getElementById('pushName').value,text=document.getElementById('pushText').value;
   const type=document.getElementById('pushType').value,time=type==='daily'?document.getElementById('pushTime').value:null;
+  const mediaType=document.getElementById('pushMediaType').value||null;
+  const mediaUrl=document.getElementById('pushMediaUrl').value||null;
   if(!name||!text){alert('Заполните название и текст');return}
-  const r=await P('/admin/push/templates',{name,text,scheduleType:type,sendTime:time});
-  if(r.id){document.getElementById('pushName').value='';document.getElementById('pushText').value='';loadPushTemplates();alert('✅ Шаблон сохранён!'+(send?' Для рассылки с медиа используйте /push в боте':''))}
-  else alert('❌ '+(r.error||'Ошибка'))}
+  const r=await P('/admin/push/templates',{name,text,scheduleType:type,sendTime:time,mediaType:mediaType,mediaFileId:mediaUrl});
+  if(r.id){
+    document.getElementById('pushName').value='';document.getElementById('pushText').value='';
+    document.getElementById('pushMediaUrl').value='';document.getElementById('pushMediaType').value='';
+    loadPushTemplates();alert('✅ Шаблон сохранён!')
+  } else alert('❌ '+(r.error||'Ошибка'))}
 
 async function loadPushTemplates(){
-  const t=await G('/admin/push/templates');const el=document.getElementById('pushTemplates');
-  if(!Array.isArray(t)||!t.length){el.innerHTML='<div class="glass-strong p-8 text-center text-slate-500">Шаблонов нет</div>';return}
-  el.innerHTML=t.map(p=>{const i=p.schedule_type==='daily'?'📅':p.schedule_type==='welcome'?'👋':'📨';const a=p.is_active?'✅':'⏸';
-  return '<div class="glass-strong p-4 mb-3 flex items-center justify-between glow-border"><div class="flex-1 min-w-0"><div class="flex items-center gap-2 mb-1"><span class="text-lg anim-pulse">'+a+' '+i+'</span><span class="font-bold text-sm">'+p.name+'</span>'+(p.send_time?' <span class="text-cyan-400 text-xs">⏰ '+p.send_time+'</span>':'')+'</div><p class="text-slate-400 text-xs truncate">'+(p.text||'').slice(0,120)+'</p></div><button class="btn btn-danger ml-3" onclick="delPush('+p.id+')">🗑 Удалить</button></div>'}).join('')}
+  const t=await G('/admin/push/templates');const el=document.getElementById('pushTable');
+  if(!Array.isArray(t)||!t.length){el.innerHTML='<tr><td colspan="7" class="text-center text-slate-500 py-8">Пушей нет — создайте первый</td></tr>';return}
+  el.innerHTML=t.map(p=>{
+    const typeIcon=p.schedule_type==='daily'?'<span class="text-cyan-400">📅 Ежедневный</span>':p.schedule_type==='welcome'?'<span class="text-amber-400">👋 Приветствие</span>':'<span class="text-violet-400">📨 Разовый</span>';
+    const status=p.is_active?'<span class="text-green-400 font-bold">✅ Вкл</span>':'<span class="text-slate-500">⏸ Выкл</span>';
+    const media=p.media_type==='photo'?'📸 Фото':p.media_type==='video'?'🎬 Видео':'📝 Текст';
+    const time=p.send_time?'<span class="font-mono text-cyan-300 bg-cyan-500/10 px-2 py-0.5 rounded">'+p.send_time+'</span>':'<span class="text-slate-600">—</span>';
+    return '<tr>'+
+      '<td>'+status+'</td>'+
+      '<td>'+typeIcon+'</td>'+
+      '<td class="font-semibold text-white">'+p.name+'</td>'+
+      '<td>'+media+'</td>'+
+      '<td>'+time+'</td>'+
+      '<td class="text-slate-400 text-xs max-w-[200px] truncate">'+(p.text||'').slice(0,60)+'</td>'+
+      '<td><div class="flex gap-1">'+
+        '<button class="btn btn-ghost" style="padding:4px 8px;font-size:11px" onclick="togglePush('+p.id+')">'+(p.is_active?'⏸':'▶️')+'</button>'+
+        '<button class="btn btn-danger" style="padding:4px 8px;font-size:11px" onclick="delPush('+p.id+')">🗑</button>'+
+      '</div></td></tr>'
+  }).join('')}
 
-async function delPush(id){if(!confirm('Удалить?'))return;await D('/admin/push/templates/'+id);loadPushTemplates()}
+async function delPush(id){if(!confirm('Удалить пуш?'))return;await D('/admin/push/templates/'+id);loadPushTemplates()}
+async function togglePush(id){await apiFetch('/admin/push/templates/'+id+'/toggle',{method:'PUT'});loadPushTemplates()}
 
 async function loadPushLog(){
   const l=await G('/admin/push/log');const el=document.getElementById('pushLogList');

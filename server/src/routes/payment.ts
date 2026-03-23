@@ -7,9 +7,9 @@ import { addCredits } from '../services/balance';
 export const paymentRouter = Router();
 
 // UnitPay настройки
-const UNITPAY_SECRET = process.env.UNITPAY_SECRET || 'e0c0cae5a534ef08048e8a987a6562d9';
-const UNITPAY_PROJECT_ID = process.env.UNITPAY_PROJECT_ID || '445145';
-const UNITPAY_PUBLIC_KEY = process.env.UNITPAY_PUBLIC_KEY || '445145-176dc';
+const UNITPAY_SECRET = process.env.UNITPAY_SECRET || '';
+const UNITPAY_PROJECT_ID = process.env.UNITPAY_PROJECT_ID || '';
+const UNITPAY_PUBLIC_KEY = process.env.UNITPAY_PUBLIC_KEY || '';
 
 const PACKAGES: Record<string, { label: string; amountRub: number; credits: number }> = {
   start: { label: 'Старт',   amountRub: 99,   credits: 1100  },

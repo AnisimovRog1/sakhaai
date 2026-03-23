@@ -243,7 +243,7 @@ export function App() {
         />
       ) : (
         <div className="flex-1 overflow-y-auto pb-20 pt-14">
-          {screen.name === 'home' && <Home user={user} />}
+          {screen.name === 'home' && <Home user={user} onCreditsUpdate={(c) => setUser({ ...user, credits: c })} />}
           {screen.name === 'chatList' && <ChatList user={user} onNavigate={setScreen} />}
           {screen.name === 'imageGen' && <ImageGen user={user} onCreditsUpdate={(c) => setUser({ ...user, credits: c })} />}
           {screen.name === 'videoGen' && <VideoGen user={user} onCreditsUpdate={(c) => setUser({ ...user, credits: c })} />}

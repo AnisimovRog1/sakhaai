@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { api } from '../api/client';
 import type { User } from '../types';
 import { useLang } from '../LangContext';
 
 type Props = {
   user: User;
+  onCreditsUpdate?: (credits: number) => void;
 };
 
 type PaymentMethod = 'card' | 'sbp' | 'crypto';
@@ -52,11 +54,18 @@ function getLevel(credits: number) {
   return                      { level: 'Макс',    next: 28000 };
 }
 
-export function Home({ user }: Props) {
+export function Home({ user, onCreditsUpdate }: Props) {
   const [selectedPkg, setSelectedPkg] = useState<typeof PACKAGES[0] | null>(null);
   const [showPayment, setShowPayment] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
   const { lang, setLang, t } = useLang();
+
+  // Обновляем баланс при входе на главный экран
+  useEffect(() => {
+    api.getBalance().then(({ credits }) => {
+      if (onCreditsUpdate && credits !== user.credits) onCreditsUpdate(credits);
+    }).catch(() => {});
+  }, []);
   const { level, next } = getLevel(user.credits);
   const progress = Math.min((user.credits / next) * 100, 100);
 

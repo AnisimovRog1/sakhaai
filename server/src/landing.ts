@@ -151,21 +151,21 @@ export const LANDING_HTML = `<!DOCTYPE html>
     <h2 class="text-3xl md:text-4xl font-extrabold text-white">Всё что нужно для <span class="gt">AI-творчества</span></h2>
   </div>
   <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-    <div class="glass p-8 reveal" style="transition-delay:.1s">
+    <a href="https://t.me/UraanxAI_bot" class="glass p-8 reveal block cursor-pointer" style="transition-delay:.1s">
       <div class="feat-icon" style="background:linear-gradient(135deg,rgba(139,92,246,.2),rgba(139,92,246,.05))"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="filter:drop-shadow(0 0 8px rgba(139,92,246,.6))"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/><circle cx="9" cy="10" r="1" fill="#a78bfa"><animate attributeName="opacity" values=".3;1;.3" dur="2s" repeatCount="indefinite"/></circle><circle cx="13" cy="10" r="1" fill="#a78bfa"><animate attributeName="opacity" values=".3;1;.3" dur="2s" begin=".4s" repeatCount="indefinite"/></circle><circle cx="17" cy="10" r="1" fill="#a78bfa"><animate attributeName="opacity" values=".3;1;.3" dur="2s" begin=".8s" repeatCount="indefinite"/></circle></svg></div>
       <h3 class="font-bold text-lg text-white text-center mb-3">AI-чат</h3>
       <p class="text-slate-400 text-sm text-center leading-relaxed">Умный ассистент с поддержкой русского и якутского (саха тыла). Знает культуру и историю Саха.</p>
-    </div>
-    <div class="glass p-8 reveal" style="transition-delay:.2s">
+    </a>
+    <a href="https://t.me/UraanxAI_bot" class="glass p-8 reveal block cursor-pointer" style="transition-delay:.2s">
       <div class="feat-icon" style="background:linear-gradient(135deg,rgba(6,182,212,.2),rgba(6,182,212,.05))"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="filter:drop-shadow(0 0 8px rgba(6,182,212,.6))"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5" fill="none" stroke="#22d3ee"><animate attributeName="r" values="1.2;2;1.2" dur="3s" repeatCount="indefinite"/></circle><path d="M21 15l-5-5L5 21"/></svg></div>
       <h3 class="font-bold text-lg text-white text-center mb-3">Генерация картинок</h3>
       <p class="text-slate-400 text-sm text-center leading-relaxed">Создавайте изображения по описанию, редактируйте существующие фото. Поддержка разных стилей и форматов.</p>
-    </div>
-    <div class="glass p-8 reveal" style="transition-delay:.3s">
+    </a>
+    <a href="https://t.me/UraanxAI_bot" class="glass p-8 reveal block cursor-pointer" style="transition-delay:.3s">
       <div class="feat-icon" style="background:linear-gradient(135deg,rgba(99,102,241,.2),rgba(99,102,241,.05))"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="filter:drop-shadow(0 0 8px rgba(99,102,241,.6))"><rect x="2" y="5" width="15" height="14" rx="2.5"/><path d="M17 9.5l5-3v11l-5-3v-5z"/><polygon points="8,8.5 8,15.5 13.5,12" fill="#818cf8" opacity=".4"><animate attributeName="opacity" values=".2;.6;.2" dur="2s" repeatCount="indefinite"/></polygon></svg></div>
       <h3 class="font-bold text-lg text-white text-center mb-3">Генерация видео</h3>
       <p class="text-slate-400 text-sm text-center leading-relaxed">Текст в видео, анимация картинок, говорящие аватары. Кинематографическое качество.</p>
-    </div>
+    </a>
   </div>
 </section>
 
@@ -201,31 +201,31 @@ export const LANDING_HTML = `<!DOCTYPE html>
     <h2 class="text-3xl md:text-4xl font-extrabold text-white">Пакеты <span class="gt">AI-кредитов</span></h2>
   </div>
   <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-    <div class="glass price-card reveal" style="transition-delay:.1s">
+    <a href="https://t.me/UraanxAI_bot" class="glass price-card reveal block cursor-pointer" style="transition-delay:.1s">
       <p class="text-3xl font-black text-white">99 ₽</p>
       <p class="font-bold text-violet-300 mt-2">Старт</p>
       <p class="text-slate-500 text-sm mt-1">1 100 кредитов</p>
       <div class="mt-4 text-xs text-slate-600">≈ 0.09 ₽/кредит</div>
-    </div>
-    <div class="glass price-card reveal" style="transition-delay:.2s">
+    </a>
+    <a href="https://t.me/UraanxAI_bot" class="glass price-card reveal block cursor-pointer" style="transition-delay:.2s">
       <p class="text-3xl font-black text-white">299 ₽</p>
       <p class="font-bold text-violet-300 mt-2">Базовый</p>
       <p class="text-slate-500 text-sm mt-1">3 500 кредитов</p>
       <div class="mt-4 text-xs text-slate-600">≈ 0.085 ₽/кредит</div>
-    </div>
-    <div class="glass-neon price-card price-popular reveal" style="transition-delay:.3s">
+    </a>
+    <a href="https://t.me/UraanxAI_bot" class="glass-neon price-card price-popular reveal block cursor-pointer" style="transition-delay:.3s">
       <span class="absolute top-3 right-3 text-[10px] font-bold bg-gradient-to-r from-violet-600 to-cyan-500 text-white px-3 py-1 rounded-full">Хит</span>
       <p class="text-3xl font-black text-white">799 ₽</p>
       <p class="font-bold gt mt-2">Про</p>
       <p class="text-slate-400 text-sm mt-1">10 000 кредитов</p>
       <div class="mt-4 text-xs text-violet-400">≈ 0.08 ₽/кредит</div>
-    </div>
-    <div class="glass price-card reveal" style="transition-delay:.4s">
+    </a>
+    <a href="https://t.me/UraanxAI_bot" class="glass price-card reveal block cursor-pointer" style="transition-delay:.4s">
       <p class="text-3xl font-black text-white">1 990 ₽</p>
       <p class="font-bold text-cyan-300 mt-2">Макс</p>
       <p class="text-slate-500 text-sm mt-1">28 000 кредитов</p>
       <div class="mt-4 text-xs text-slate-600">≈ 0.07 ₽/кредит</div>
-    </div>
+    </a>
   </div>
   <div class="glass p-5 mt-8 reveal">
     <div class="grid grid-cols-2 md:grid-cols-6 gap-4 text-center text-sm">

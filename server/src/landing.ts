@@ -154,7 +154,7 @@ export const LANDING_HTML = `<!DOCTYPE html>
     <div class="glass p-8 reveal" style="transition-delay:.1s">
       <div class="feat-icon" style="background:linear-gradient(135deg,rgba(139,92,246,.2),rgba(139,92,246,.05))">💬</div>
       <h3 class="font-bold text-lg text-white text-center mb-3">AI-чат</h3>
-      <p class="text-slate-400 text-sm text-center leading-relaxed">Умный ассистент на базе Gemini. Понимает русский и якутский (саха тыла), знает культуру и историю Саха.</p>
+      <p class="text-slate-400 text-sm text-center leading-relaxed">Умный ассистент с поддержкой русского и якутского (саха тыла). Знает культуру и историю Саха.</p>
     </div>
     <div class="glass p-8 reveal" style="transition-delay:.2s">
       <div class="feat-icon" style="background:linear-gradient(135deg,rgba(6,182,212,.2),rgba(6,182,212,.05))">🎨</div>
@@ -164,7 +164,7 @@ export const LANDING_HTML = `<!DOCTYPE html>
     <div class="glass p-8 reveal" style="transition-delay:.3s">
       <div class="feat-icon" style="background:linear-gradient(135deg,rgba(59,130,246,.2),rgba(59,130,246,.05))">🎬</div>
       <h3 class="font-bold text-lg text-white text-center mb-3">Генерация видео</h3>
-      <p class="text-slate-400 text-sm text-center leading-relaxed">Текст в видео, анимация картинок, говорящие аватары. Технология Kling AI — кинематографическое качество.</p>
+      <p class="text-slate-400 text-sm text-center leading-relaxed">Текст в видео, анимация картинок, говорящие аватары. Кинематографическое качество.</p>
     </div>
   </div>
 </section>

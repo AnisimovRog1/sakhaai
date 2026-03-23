@@ -17,13 +17,14 @@ function getInitData(): string {
 
 // Фоновые фото для каждого экрана
 const base = import.meta.env.BASE_URL;
+const isDesktop = window.innerWidth >= 1024;
 const BG: Record<string, string> = {
-  home:     `${base}newhome.jpg`,
-  chatList: `${base}bg-chatlist.jpg`,
-  chat:     `${base}bg-chat.jpg`,
-  imageGen: `${base}bg-chat.jpg`,
-  videoGen: `${base}bg-video.jpg`,
-  friends:  `${base}bg-frends.jpg`,
+  home:     `${base}${isDesktop ? 'bg-home-desktop.jpg' : 'newhome.jpg'}`,
+  chatList: `${base}${isDesktop ? 'bg-chatlist-desktop.jpg' : 'bg-chatlist.jpg'}`,
+  chat:     `${base}${isDesktop ? 'bg-chat-desktop.jpg' : 'bg-chat.jpg'}`,
+  imageGen: `${base}${isDesktop ? 'bg-chat-desktop.jpg' : 'bg-chat.jpg'}`,
+  videoGen: `${base}${isDesktop ? 'bg-video-desktop.jpg' : 'bg-video.jpg'}`,
+  friends:  `${base}${isDesktop ? 'bg-frends-desktop.jpg' : 'bg-frends.jpg'}`,
 };
 
 // Разные оверлеи для каждого экрана — подчёркивают уникальность каждого фото

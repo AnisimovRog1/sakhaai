@@ -268,7 +268,7 @@ export const LANDING_HTML = `<!DOCTYPE html>
       <h3 class="font-bold text-white text-lg mb-3 flex items-center gap-2"><span class="text-violet-400">§3</span> Условия возврата</h3>
       <p>Возврат неиспользованных кредитов — в течение 14 дней с момента покупки.</p>
       <p class="mt-2">При частичном использовании — пропорциональный возврат за вычетом потраченных кредитов.</p>
-      <p class="mt-2">Обращение: <a href="https://t.me/UraanxAI_support" class="text-violet-400 hover:underline">@UraanxAI_support</a> или kuzmin.art993@gmail.com.</p>
+      <p class="mt-2">Обращение: <a href="https://t.me/UraanxAI_support" class="text-violet-400 hover:underline">@UraanxAI_support</a> или uraanx.ai.project@gmail.com.</p>
       <p class="mt-2">Возврат — тем же способом оплаты, в течение 10 рабочих дней.</p>
       <p class="mt-2">Полностью использованные и бесплатные кредиты возврату не подлежат.</p>
     </div>
@@ -295,7 +295,7 @@ export const LANDING_HTML = `<!DOCTYPE html>
       <div class="space-y-4">
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center text-lg">📧</div>
-          <div><p class="text-xs text-slate-500">Email</p><a href="mailto:kuzmin.art993@gmail.com" class="text-violet-400 font-medium hover:underline">kuzmin.art993@gmail.com</a></div>
+          <div><p class="text-xs text-slate-500">Email</p><a href="mailto:uraanx.ai.project@gmail.com" class="text-violet-400 font-medium hover:underline">uraanx.ai.project@gmail.com</a></div>
         </div>
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-lg">📍</div>

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { api } from '../api/client';
 import type { User } from '../types';
+import { useLang } from '../LangContext';
 
 type HistoryItem = { id: number; type: string; prompt: string | null; resultUrl: string; cost: number; createdAt: string };
 
@@ -24,14 +25,14 @@ const VIDEO_MODELS: { id: VideoModel; name: string; desc: string; badge?: string
 
 const VOICES = ['Давид', 'Диана', 'Бетти', 'Мария', 'Михаил', 'Эрик', 'Амир', 'Эмма'];
 
-const EMOTIONS: { id: Emotion; label: string }[] = [
-  { id: 'neutral', label: 'Нейтральная' },
-  { id: 'happy', label: 'Радость' },
-  { id: 'angry', label: 'Злость' },
-  { id: 'sad', label: 'Грусть' },
-  { id: 'fearful', label: 'Страх' },
-  { id: 'disgusted', label: 'Отвращение' },
-  { id: 'surprised', label: 'Удивление' },
+const EMOTION_KEYS: { id: Emotion; key: 'video.emotion.neutral' | 'video.emotion.happy' | 'video.emotion.angry' | 'video.emotion.sad' | 'video.emotion.fearful' | 'video.emotion.disgusted' | 'video.emotion.surprised' }[] = [
+  { id: 'neutral', key: 'video.emotion.neutral' },
+  { id: 'happy', key: 'video.emotion.happy' },
+  { id: 'angry', key: 'video.emotion.angry' },
+  { id: 'sad', key: 'video.emotion.sad' },
+  { id: 'fearful', key: 'video.emotion.fearful' },
+  { id: 'disgusted', key: 'video.emotion.disgusted' },
+  { id: 'surprised', key: 'video.emotion.surprised' },
 ];
 
 const COSTS: Record<Tab, number> = {
@@ -146,6 +147,7 @@ function PillSelector<T extends string>({ options, value, onChange, columns }: {
 
 // ─── Main component ──────────────────────────────────────
 export function VideoGen({ user, onCreditsUpdate }: Props) {
+  const { t } = useLang();
   // Tab
   const [tab, setTab] = useState<Tab>('video');
 
@@ -254,9 +256,9 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
       {/* ─── Tabs ─── */}
       <div className="flex gap-1 bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md p-1">
         {([
-          { id: 'video' as Tab, label: 'Видео', icon: <IconVideo size={14} /> },
-          { id: 'motion' as Tab, label: 'Motion', icon: <IconMotion size={14} /> },
-          { id: 'avatar' as Tab, label: 'Аватар', icon: <IconUser size={14} /> },
+          { id: 'video' as Tab, label: t('video.tab.video'), icon: <IconVideo size={14} /> },
+          { id: 'motion' as Tab, label: t('video.tab.motion'), icon: <IconMotion size={14} /> },
+          { id: 'avatar' as Tab, label: t('video.tab.avatar'), icon: <IconUser size={14} /> },
         ]).map((t) => (
           <button
             key={t.id}
@@ -276,7 +278,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
       {/* ─── Model selector (Video & Motion) ─── */}
       {(tab === 'video' || tab === 'motion') && (
         <div className="space-y-2">
-          <label className="text-white text-sm font-semibold">Модель</label>
+          <label className="text-white text-sm font-semibold">{t('video.model')}</label>
           <button
             onClick={() => setShowModelPicker(!showModelPicker)}
             className="w-full flex items-center justify-between bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md px-4 py-3"
@@ -334,7 +336,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
         <>
           {/* Start frame upload */}
           <div className="space-y-2">
-            <label className="text-white text-sm font-semibold">Начальный кадр <span className="text-white font-normal">(необязательно)</span></label>
+            <label className="text-white text-sm font-semibold">{t('video.startFrame')} <span className="text-white font-normal">{t('video.optional')}</span></label>
             <UploadCard
               label="Загрузить изображение"
               preview={startFrame}
@@ -345,7 +347,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
 
           {/* Prompt */}
           <div className="space-y-2">
-            <label className="text-white text-sm font-semibold">Описание видео</label>
+            <label className="text-white text-sm font-semibold">{t('video.description')}</label>
             <div className="relative">
               <textarea
                 value={prompt}
@@ -432,7 +434,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
             <div className={`w-10 h-6 rounded-full transition-colors flex items-center px-0.5 ${nativeAudio ? 'bg-violet-600' : 'bg-white/[0.10]'}`}>
               <div className={`w-5 h-5 rounded-full bg-white shadow-md transition-transform ${nativeAudio ? 'translate-x-4' : ''}`} />
             </div>
-            <span className="text-sm text-white font-medium">Нативное аудио</span>
+            <span className="text-sm text-white font-medium">{t('video.nativeAudio')}</span>
           </button>
         </>
       )}
@@ -442,7 +444,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
         <>
           {/* Two upload areas side by side */}
           <div className="space-y-2">
-            <label className="text-white text-sm font-semibold">Загрузите материалы</label>
+            <label className="text-white text-sm font-semibold">{t('video.uploadMaterials')}</label>
             <div className="flex gap-3">
               <UploadCard
                 label="Видео с движениями персонажа"
@@ -462,7 +464,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
 
           {/* Character Orientation */}
           <div className="space-y-2">
-            <label className="text-white text-sm font-semibold">Ориентация персонажа</label>
+            <label className="text-white text-sm font-semibold">{t('video.orientation')}</label>
             <div className="flex gap-2">
               {([
                 { id: 'video' as const, label: 'По видео' },
@@ -510,7 +512,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
         <>
           {/* Face image upload */}
           <div className="space-y-2">
-            <label className="text-white text-sm font-semibold">Фото лица персонажа</label>
+            <label className="text-white text-sm font-semibold">{t('video.facePhoto')}</label>
             <UploadCard
               label="Загрузить изображение лица"
               preview={avatarImage}
@@ -521,7 +523,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
 
           {/* Speech text */}
           <div className="space-y-2">
-            <label className="text-white text-sm font-semibold">Речь</label>
+            <label className="text-white text-sm font-semibold">{t('video.speech')}</label>
             <textarea
               value={speechText}
               onChange={(e) => setSpeechText(e.target.value)}
@@ -533,7 +535,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
 
           {/* Voice selection */}
           <div className="space-y-2">
-            <label className="text-white text-sm font-semibold">Голос</label>
+            <label className="text-white text-sm font-semibold">{t('video.voice')}</label>
             <button
               onClick={() => setShowVoicePicker(!showVoicePicker)}
               className="w-full flex items-center justify-between bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md px-4 py-3 text-sm text-white font-medium"
@@ -577,7 +579,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
           {/* Speech Rate */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-white text-sm font-semibold">Скорость речи</label>
+              <label className="text-white text-sm font-semibold">{t('video.speechRate')}</label>
               <span className="text-sm text-violet-400 font-bold">{speechRate}x</span>
             </div>
             <div className="flex items-center gap-3">
@@ -611,9 +613,9 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
 
           {/* Emotion */}
           <div className="space-y-2">
-            <label className="text-white text-sm font-semibold">Эмоция</label>
+            <label className="text-white text-sm font-semibold">{t('video.emotion')}</label>
             <div className="flex flex-wrap gap-1.5">
-              {EMOTIONS.map((em) => (
+              {EMOTION_KEYS.map((em) => (
                 <button
                   key={em.id}
                   onClick={() => setEmotion(em.id)}
@@ -623,7 +625,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
                       : 'bg-white/[0.08] border border-white/[0.12] text-white'
                   }`}
                 >
-                  {em.label}
+                  {t(em.key)}
                 </button>
               ))}
             </div>
@@ -650,7 +652,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
           <path d="M12 6v6l4 2"/>
         </svg>
         <span className="text-white font-medium">
-          Требуются кредиты: <span className="text-white font-bold">{cost}</span>
+          {t('video.creditsRequired')}: <span className="text-white font-bold">{cost}</span>
         </span>
       </div>
 
@@ -666,14 +668,14 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
               <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" opacity="0.3"/>
               <path d="M12 3a9 9 0 019 9"/>
             </svg>
-            Создаю...
+            {t('video.creating')}
           </span>
         ) : !hasCredits ? (
-          'Недостаточно кредитов'
+          t('image.notEnough')
         ) : (
           <span className="flex items-center justify-center gap-2">
             <IconVideo size={18} />
-            Создать
+            {t('video.create')}
           </span>
         )}
       </button>
@@ -693,8 +695,8 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
               <rect x="2" y="6" width="14" height="12" rx="2"/><path d="M16 10l6-4v12l-6-4V10z"/>
             </svg>
           </div>
-          <p className="text-white text-sm font-semibold">Генерирую видео...</p>
-          <p className="text-slate-200 text-xs font-medium">Обычно 1–3 минуты</p>
+          <p className="text-white text-sm font-semibold">{t('video.generating')}</p>
+          <p className="text-slate-200 text-xs font-medium">{t('video.generatingTime')}</p>
         </div>
       )}
 
@@ -720,7 +722,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
                 <polyline points="7 10 12 15 17 10"/>
                 <line x1="12" y1="15" x2="12" y2="3"/>
               </svg>
-              Скачать
+              {t('video.download')}
             </a>
             <button
               onClick={reset}
@@ -730,7 +732,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
                 <polyline points="1 4 1 10 7 10"/>
                 <path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
               </svg>
-              Новое
+              {t('video.new')}
             </button>
           </div>
         </div>
@@ -742,7 +744,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
           onClick={() => setShowHistory(!showHistory)}
           className="w-full flex items-center justify-between text-white text-sm font-bold"
         >
-          <span>Мои генерации</span>
+          <span>{t('video.history')}</span>
           <div className="flex items-center gap-2">
             {history.length > 0 && (
               <span className="text-xs text-violet-400 font-semibold">{history.length}</span>
@@ -762,7 +764,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
             </div>
           ) : history.length === 0 ? (
             <div className="bg-white/[0.06] rounded-xl p-6 text-center">
-              <p className="text-slate-300 text-sm">Пока нет генераций</p>
+              <p className="text-slate-300 text-sm">{t('video.noHistory')}</p>
             </div>
           ) : (
             <div className="space-y-2">

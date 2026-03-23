@@ -149,7 +149,7 @@ export const LANDING_HTML = `<!DOCTYPE html>
       <div>
         <h3 class="font-bold text-white text-base mb-3">3. Условия и порядок возврата</h3>
         <p><strong>3.1.</strong> Возврат неиспользованных кредитов возможен в течение 14 (четырнадцати) календарных дней с момента покупки при условии, что кредиты не были использованы (полностью или частично).</p>
-        <p class="mt-2"><strong>3.2.</strong> Для оформления возврата необходимо обратиться в службу поддержки по email: anisimovnrb99@gmail.com с указанием Telegram ID и причины возврата.</p>
+        <p class="mt-2"><strong>3.2.</strong> Для оформления возврата необходимо обратиться в службу поддержки по email: kuzmin.art993@gmail.com с указанием Telegram ID и причины возврата.</p>
         <p class="mt-2"><strong>3.3.</strong> Возврат осуществляется тем же способом, которым была произведена оплата, в течение 10 рабочих дней с момента одобрения заявки.</p>
         <p class="mt-2"><strong>3.4.</strong> Использованные кредиты (полностью или частично) возврату не подлежат, так как услуга считается оказанной в момент генерации AI-контента.</p>
         <p class="mt-2"><strong>3.5.</strong> Бесплатные кредиты (приветственные, реферальные) возврату не подлежат.</p>
@@ -182,7 +182,7 @@ export const LANDING_HTML = `<!DOCTYPE html>
     <h2 class="text-2xl font-bold text-center mb-10">Контакты</h2>
     <div class="glass p-8 text-center space-y-4">
       <p class="text-slate-300"><strong>Telegram:</strong> <a href="https://t.me/UraanxAI_bot" class="text-violet-400 hover:underline">@UraanxAI_bot</a></p>
-      <p class="text-slate-300"><strong>Email:</strong> <a href="mailto:anisimovnrb99@gmail.com" class="text-violet-400 hover:underline">anisimovnrb99@gmail.com</a></p>
+      <p class="text-slate-300"><strong>Email:</strong> <a href="mailto:kuzmin.art993@gmail.com" class="text-violet-400 hover:underline">kuzmin.art993@gmail.com</a></p>
       <p class="text-slate-300"><strong>Разработчик:</strong> ИП Анисимов (Республика Саха, Якутия)</p>
     </div>
   </section>

@@ -30,7 +30,7 @@ export function ChatList({ user, onNavigate }: Props) {
     if (creatingChat) return;
     setCreatingChat(true);
     try {
-      const chat = await api.createChat('Новый чат');
+      const chat = await api.createChat(t('chat.newChat'));
       onNavigate({ name: 'chat', chatId: chat.id, chatTitle: chat.title });
     } catch (e) {
       console.error(e);
@@ -82,7 +82,7 @@ export function ChatList({ user, onNavigate }: Props) {
     <div className="flex flex-col pb-24" style={{ minHeight: 'calc(var(--tg-viewport-height, 100vh) - 130px)' }}>
 
       {/* ─── Header ─── */}
-      <div className="flex items-center justify-between px-5 pb-4 pt-6">
+      <div className="flex items-center justify-between px-5 pb-4 pt-12">
         <h1 className="text-xl font-bold text-white">UraanxAI</h1>
         <div className="flex items-center gap-2">
           {/* Поиск */}

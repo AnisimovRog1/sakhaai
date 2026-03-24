@@ -36,16 +36,16 @@ const translations = {
   'chatList.startChat': { ru: 'Начните общение', sah: 'Кэпсэтиини саҕалааҥ' },
   'chatList.startDesc': { ru: 'Задайте вопрос, попросите помочь с текстом или переведите на якутский', sah: 'Ыйытыы биэриҥ, тэкиһинэн көмөлөһүҥ эбэтэр сахалыы тылбаастааҥ' },
   'chatList.today': { ru: 'Сегодня', sah: 'Бүгүн' },
-  'chatList.yesterday': { ru: 'Вчера', sah: 'Бэҕэһ' },
+  'chatList.yesterday': { ru: 'Вчера', sah: 'Бэҕэһээ' },
   'chatList.week': { ru: 'Последние 7 дней', sah: 'Соңку 7 күн' },
   'chatList.month': { ru: 'Последние 30 дней', sah: 'Соңку 30 күн' },
   'chatList.earlier': { ru: 'Ранее', sah: 'Урдук' },
-  'chatList.delete': { ru: 'Удалить', sah: 'Сот' },
+  'chatList.delete': { ru: 'Удалить', sah: 'Сотуй' },
   'chatList.cancel': { ru: 'Нет', sah: 'Суох' },
 
   // ─── Chat ───
   'chat.placeholder': { ru: 'Написать сообщение...', sah: 'Суруйуҥ...' },
-  'chat.newChat': { ru: 'Новый чат', sah: 'Саҥа чаат' },
+  'chat.newChat': { ru: 'Новый чат', sah: 'Саңа чат' },
 
   // ─── ImageGen ───
   'image.title': { ru: 'UraanxAI', sah: 'UraanxAI' },

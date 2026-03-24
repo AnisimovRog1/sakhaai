@@ -116,18 +116,18 @@ export function App() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-black">
-        <div className="relative flex flex-col items-center gap-5">
+        <div className="relative flex flex-col items-center gap-8">
           <img
             src={`${base}logo-mammoth.png`}
             alt="UraanxAI"
-            className="w-40 h-40 object-contain drop-shadow-[0_0_30px_rgba(100,180,255,0.4)]"
+            className="w-64 h-64 object-contain drop-shadow-[0_0_40px_rgba(100,180,255,0.5)]"
           />
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             {[0, 1, 2].map((i) => (
               <div
                 key={i}
-                className="w-2 h-2 rounded-full bg-cyan-400 animate-bounce"
-                style={{ animationDelay: `${i * 0.15}s` }}
+                className="w-2.5 h-2.5 bg-cyan-400 animate-bounce"
+                style={{ animationDelay: `${i * 0.2}s`, transform: 'rotate(45deg)', borderRadius: '2px' }}
               />
             ))}
           </div>

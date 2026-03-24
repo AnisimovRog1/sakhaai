@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { api } from '../api/client';
 import type { User } from '../types';
+import { useLang } from '../LangContext';
 
 type HistoryItem = { id: number; type: string; prompt: string | null; resultUrl: string; cost: number; createdAt: string };
 
@@ -25,6 +26,7 @@ const RESOLUTIONS: Resolution[] = ['1K', '2K', '4K'];
 const BASE_COST = 60;
 
 export function ImageGen({ user, onCreditsUpdate }: Props) {
+  const { t } = useLang();
   const [tab, setTab] = useState<Tab>('txt2img');
   const [model, setModel] = useState<Model>('nano-banana-2');
   const [prompt, setPrompt] = useState('');
@@ -95,7 +97,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
     <div className="p-5 space-y-5 pb-6">
 
       {/* ─── Header ─── */}
-      <h1 className="text-xl font-bold text-white pt-1">UraanxAI</h1>
+      <h1 className="text-xl font-bold text-white pt-10">UraanxAI</h1>
 
       {/* ─── Tabs ─── */}
       <div className="flex gap-1 bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md p-1">
@@ -107,7 +109,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
               : 'text-slate-200'
           }`}
         >
-          Редактирование
+          {t('image.edit')}
         </button>
         <button
           onClick={() => setTab('txt2img')}
@@ -117,13 +119,13 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
               : 'text-slate-200'
           }`}
         >
-          Текст в изображение
+          {t('image.textToImage')}
         </button>
       </div>
 
       {/* ─── Model picker ─── */}
       <div className="space-y-2">
-        <label className="text-white text-sm font-semibold">Модель</label>
+        <label className="text-white text-sm font-semibold">{t('image.model')}</label>
         <button
           onClick={() => setShowModelPicker(!showModelPicker)}
           className="w-full flex items-center justify-between bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md px-4 py-3 text-sm text-white font-medium"
@@ -173,7 +175,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
       {tab === 'img2img' && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <label className="text-white text-sm font-semibold">Загрузить изображение (референс)</label>
+            <label className="text-white text-sm font-semibold">{t('image.uploadRef')}</label>
             {refImage && (
               <span className="text-slate-200 text-xs">1/10</span>
             )}
@@ -212,12 +214,12 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
 
       {/* ─── Prompt ─── */}
       <div className="space-y-2">
-        <label className="text-white text-sm font-semibold">Запрос (обязательно)</label>
+        <label className="text-white text-sm font-semibold">{t('image.prompt')}</label>
         <div className="relative">
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Что вы хотите создать?"
+            placeholder={t('image.promptPlaceholder')}
             maxLength={20000}
             rows={4}
             className="w-full bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md p-4 pb-8 text-sm font-medium resize-none outline-none placeholder-slate-400 text-white focus:border-violet-500/50 transition-colors"
@@ -228,7 +230,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
 
       {/* ─── Count ─── */}
       <div className="space-y-2">
-        <label className="text-white text-sm font-semibold">Количество результатов</label>
+        <label className="text-white text-sm font-semibold">{t('image.count')}</label>
         <div className="flex gap-2">
           {[1, 2, 3, 4].map((n) => (
             <button
@@ -248,7 +250,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
 
       {/* ─── Aspect ratio ─── */}
       <div className="space-y-2">
-        <label className="text-white text-sm font-semibold">Соотношение сторон</label>
+        <label className="text-white text-sm font-semibold">{t('image.aspectRatio')}</label>
         <button
           onClick={() => setShowAspectPicker(!showAspectPicker)}
           className="w-full flex items-center justify-between bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md px-4 py-3 text-sm text-white font-medium"
@@ -280,7 +282,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
 
       {/* ─── Resolution ─── */}
       <div className="space-y-2">
-        <label className="text-white text-sm font-semibold">Разрешение</label>
+        <label className="text-white text-sm font-semibold">{t('image.resolution')}</label>
         <div className="flex gap-2">
           {RESOLUTIONS.map((r) => (
             <button
@@ -305,7 +307,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
           <path d="M12 6v6l4 2"/>
         </svg>
         <span className="text-white font-medium">
-          Требуются кредиты: <span className="text-white font-bold">{cost}</span>
+          {t('image.creditsRequired')}: <span className="text-white font-bold">{cost}</span>
         </span>
       </div>
 
@@ -321,16 +323,16 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
               <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" opacity="0.3"/>
               <path d="M12 3a9 9 0 019 9"/>
             </svg>
-            Создаю...
+            {t('image.creating')}
           </span>
         ) : user.credits < cost ? (
-          'Недостаточно кредитов'
+          t('image.notEnough')
         ) : (
           <span className="flex items-center justify-center gap-2">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
             </svg>
-            Создать
+            {t('image.create')}
           </span>
         )}
       </button>
@@ -380,7 +382,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
                 <polyline points="7 10 12 15 17 10"/>
                 <line x1="12" y1="15" x2="12" y2="3"/>
               </svg>
-              Скачать
+              {t('image.download')}
             </a>
             <button
               onClick={() => { setImageUrl(null); setPrompt(''); }}
@@ -390,7 +392,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
                 <polyline points="1 4 1 10 7 10"/>
                 <path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
               </svg>
-              Новое
+              {t('image.new')}
             </button>
           </div>
         </div>
@@ -402,7 +404,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
           onClick={() => setShowHistory(!showHistory)}
           className="w-full flex items-center justify-between text-white text-sm font-bold"
         >
-          <span>Мои генерации</span>
+          <span>{t('image.history')}</span>
           <div className="flex items-center gap-2">
             {history.length > 0 && (
               <span className="text-xs text-violet-400 font-semibold">{history.length}</span>
@@ -422,7 +424,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
             </div>
           ) : history.length === 0 ? (
             <div className="bg-white/[0.06] rounded-xl p-6 text-center">
-              <p className="text-slate-300 text-sm">Пока нет генераций</p>
+              <p className="text-slate-300 text-sm">{t('image.noHistory')}</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-2">

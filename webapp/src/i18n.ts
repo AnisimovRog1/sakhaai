@@ -5,9 +5,9 @@ export type Lang = 'ru' | 'sah';
 
 const translations = {
   // ─── BottomNav ───
-  'nav.home': { ru: 'Главная', sah: 'Сүрүн' },
+  'nav.home': { ru: 'Главная', sah: 'Сурун' },
   'nav.chats': { ru: 'Чаты', sah: 'Чаттар' },
-  'nav.images': { ru: 'Картинки', sah: 'Оҥоһуктар' },
+  'nav.images': { ru: 'Картинки', sah: 'Ойуулар' },
   'nav.video': { ru: 'Видео', sah: 'Видео' },
   'nav.friends': { ru: 'Друзья', sah: 'Доҕоттор' },
 
@@ -16,19 +16,20 @@ const translations = {
   'home.balance': { ru: 'БАЛАНС КРЕДИТОВ', sah: 'КРЕДИТЫН БАЛААНСАТА' },
   'home.credits': { ru: 'кр.', sah: 'кр.' },
   'home.level': { ru: 'Уровень', sah: 'Таһым' },
-  'home.buy': { ru: 'Купить AI-кредиты', sah: 'AI-кредиттары атыылас' },
-  'home.start': { ru: 'Старт', sah: 'Саҕалаан' },
-  'home.basic': { ru: 'Базовый', sah: 'Түмүк' },
+  'home.buy': { ru: 'Купить AI-кредиты', sah: 'AI-кредиттэ атыылас' },
+  'home.start': { ru: 'Старт', sah: 'Саҕалааһын' },
+  'home.basic': { ru: 'Базовый', sah: 'Төрүт' },
   'home.pro': { ru: 'Про', sah: 'Про' },
-  'home.max': { ru: 'Макс', sah: 'Макс' },
-  'home.popular': { ru: 'Популярный', sah: 'Сэргэммит' },
-  'home.selectPackage': { ru: 'Выберите пакет', sah: 'Пакеты тал' },
+  'home.max': { ru: 'Макс', sah: 'Муҥутуур' },
+  'home.popular': { ru: 'Популярный', sah: 'Киэнник тарҕаммыт' },
+  'home.selectPackage': { ru: 'Выберите пакет', sah: 'Пакетта тал' },
   'home.pay': { ru: 'Оплатить', sah: 'Төлөө' },
   'home.paymentTitle': { ru: 'ВЫБРАТЬ ТИП ОПЛАТЫ', sah: 'Төлөбүр көрүҥүн тал' },
   'home.card': { ru: 'Банковская карта', sah: 'Баан каартата' },
   'home.sbp': { ru: 'СБП', sah: 'СБП' },
   'home.crypto': { ru: 'Криптовалютой', sah: 'Криптовалюта' },
   'home.next': { ru: 'Далее', sah: 'Салгыы' },
+  'home.support': { ru: 'Поддержка', sah: 'Көмө' },
 
   // ─── ChatList ───
   'chatList.title': { ru: 'UraanxAI', sah: 'UraanxAI' },

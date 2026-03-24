@@ -11,16 +11,16 @@ type Props = {
 type PaymentMethod = 'card' | 'sbp' | 'crypto';
 
 const PACKAGES = [
-  { key: 'start', label: 'Старт',   price: '99₽',   credits: 1100,  popular: false },
-  { key: 'basic', label: 'Базовый', price: '299₽',  credits: 3500,  popular: false },
-  { key: 'pro',   label: 'Про',     price: '799₽',  credits: 10000, popular: true  },
-  { key: 'max',   label: 'Макс',    price: '1990₽', credits: 28000, popular: false },
+  { key: 'start', labelKey: 'home.start' as const, price: '99₽',   credits: 1100,  popular: false },
+  { key: 'basic', labelKey: 'home.basic' as const, price: '299₽',  credits: 3500,  popular: false },
+  { key: 'pro',   labelKey: 'home.pro' as const,   price: '799₽',  credits: 10000, popular: true  },
+  { key: 'max',   labelKey: 'home.max' as const,   price: '1990₽', credits: 28000, popular: false },
 ];
 
-const PAYMENT_METHODS: { id: PaymentMethod; label: string; icon: React.ReactNode }[] = [
+const PAYMENT_METHODS: { id: PaymentMethod; labelKey: 'home.card' | 'home.sbp' | 'home.crypto'; icon: React.ReactNode }[] = [
   {
     id: 'card',
-    label: 'Банковская карта',
+    labelKey: 'home.card',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <rect x="1" y="4" width="22" height="16" rx="3"/><line x1="1" y1="10" x2="23" y2="10"/>
@@ -29,7 +29,7 @@ const PAYMENT_METHODS: { id: PaymentMethod; label: string; icon: React.ReactNode
   },
   {
     id: 'sbp',
-    label: 'СБП',
+    labelKey: 'home.sbp',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
@@ -38,7 +38,7 @@ const PAYMENT_METHODS: { id: PaymentMethod; label: string; icon: React.ReactNode
   },
   {
     id: 'crypto',
-    label: 'Криптовалютой',
+    labelKey: 'home.crypto',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="10"/><path d="M9.5 8h5a2.5 2.5 0 010 5H9.5V8z"/><path d="M9.5 13h5.5a2.5 2.5 0 010 5H9.5v-5z"/><line x1="12" y1="6" x2="12" y2="8"/><line x1="12" y1="18" x2="12" y2="20"/>
@@ -48,10 +48,10 @@ const PAYMENT_METHODS: { id: PaymentMethod; label: string; icon: React.ReactNode
 ];
 
 function getLevel(credits: number) {
-  if (credits < 1100)  return { level: 'Старт',   next: 1100  };
-  if (credits < 3500)  return { level: 'Базовый', next: 3500  };
-  if (credits < 10000) return { level: 'Про',     next: 10000 };
-  return                      { level: 'Макс',    next: 28000 };
+  if (credits < 1100)  return { levelKey: 'home.start' as const,   next: 1100  };
+  if (credits < 3500)  return { levelKey: 'home.basic' as const, next: 3500  };
+  if (credits < 10000) return { levelKey: 'home.pro' as const,     next: 10000 };
+  return                      { levelKey: 'home.max' as const,    next: 28000 };
 }
 
 export function Home({ user, onCreditsUpdate }: Props) {
@@ -66,7 +66,7 @@ export function Home({ user, onCreditsUpdate }: Props) {
       if (onCreditsUpdate && credits !== user.credits) onCreditsUpdate(credits);
     }).catch(() => {});
   }, []);
-  const { level, next } = getLevel(user.credits);
+  const { levelKey, next } = getLevel(user.credits);
   const progress = Math.min((user.credits / next) * 100, 100);
 
   const displayName = user.username ? `@${user.username}` : user.firstName;
@@ -145,7 +145,7 @@ export function Home({ user, onCreditsUpdate }: Props) {
             </div>
             <div className="space-y-2">
               <div className="flex justify-between text-xs">
-                <span className="text-blue-100/80">{t('home.level')}: <span className="text-white font-bold">{level}</span></span>
+                <span className="text-blue-100/80">{t('home.level')}: <span className="text-white font-bold">{t(levelKey)}</span></span>
                 <span className="text-blue-100/80">{user.credits.toLocaleString('ru')} / {next.toLocaleString('ru')}</span>
               </div>
               <div className="h-2.5 bg-white/[0.15] rounded-full overflow-hidden shadow-inner">
@@ -178,7 +178,7 @@ export function Home({ user, onCreditsUpdate }: Props) {
                   }`}
                 >
                   {pkg.popular && (
-                    <span className="absolute -top-2.5 left-3 bg-gradient-to-r from-red-500 to-red-400 text-white text-[9px] font-bold px-2.5 py-0.5 rounded-full">Популярный</span>
+                    <span className="absolute -top-2.5 left-3 bg-gradient-to-r from-red-500 to-red-400 text-white text-[9px] font-bold px-2.5 py-0.5 rounded-full">{t('home.popular')}</span>
                   )}
                   {sel && (
                     <div className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
@@ -186,7 +186,7 @@ export function Home({ user, onCreditsUpdate }: Props) {
                     </div>
                   )}
                   <p className="text-2xl font-extrabold text-white">{pkg.price}</p>
-                  <p className="text-slate-200 text-sm font-semibold mt-1">{pkg.label}</p>
+                  <p className="text-slate-200 text-sm font-semibold mt-1">{t(pkg.labelKey)}</p>
                   <p className="text-blue-300/80 text-xs mt-0.5 font-medium">{pkg.credits.toLocaleString('ru')} кр.</p>
                 </button>
               );
@@ -219,7 +219,7 @@ export function Home({ user, onCreditsUpdate }: Props) {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
           </svg>
-          Поддержка
+          {t('home.support')}
         </button>
       </div>
 
@@ -260,7 +260,7 @@ export function Home({ user, onCreditsUpdate }: Props) {
                   >
                     <div className="flex items-center gap-3">
                       <span className={selected ? 'text-violet-400' : 'text-slate-400'}>{m.icon}</span>
-                      <span className={`text-base font-semibold ${selected ? 'text-white' : 'text-slate-300'}`}>{m.label}</span>
+                      <span className={`text-base font-semibold ${selected ? 'text-white' : 'text-slate-300'}`}>{t(m.labelKey)}</span>
                     </div>
                     {/* Radio */}
                     <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${

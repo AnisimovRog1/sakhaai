@@ -50,6 +50,9 @@ export type VideoPromptTemplate = {
 const MX = (id: number, res = 360) => `https://assets.mixkit.co/videos/${id}/${id}-${res}.mp4`;
 const MX_POSTER = (id: number) => `https://assets.mixkit.co/videos/${id}/${id}-thumb-360-0.jpg`;
 
+// Higgsfield / Contentful CDN: видео примеры Motion Control и Kling
+const HF = (path: string) => `https://videos.ctfassets.net/91663d1w6kgm/${path}`;
+
 // ═══════════════════════════════════════════════════
 // VIDEO TAB — Text-to-Video
 // ═══════════════════════════════════════════════════
@@ -167,30 +170,30 @@ export const VIDEO_TEMPLATES: VideoPromptTemplate[] = [
 // MOTION TAB — Image-to-Video / анимация картинки
 // ═══════════════════════════════════════════════════
 export const MOTION_TEMPLATES: VideoPromptTemplate[] = [
-  // ─── Портрет ───
+  // ─── Портрет (Higgsfield Motion Control примеры) ───
   {
     id: 'm-port-01', tab: 'motion', category: 'portrait', isVideo: true,
     prompt: 'The person slowly smiles and turns their head slightly to the left. A warm light fades in from that side. Hair moves gently as if caught by a soft breeze. Natural, subtle facial animation, photorealistic skin texture',
-    previewUrl: MX(33431, 360), posterUrl: MX_POSTER(33431),
+    previewUrl: HF('6X0aqeldUwttUXMsL94tU4/1aa284449e8560cd9bf7ce019f53c253/fgjhkal.mp4'),
     label: { ru: 'Поворот с улыбкой', sah: 'Күлүмсүрүү' },
   },
   {
     id: 'm-port-02', tab: 'motion', category: 'portrait', isVideo: true,
     prompt: 'The woman closes her eyes, takes a deep breath, then opens them and looks directly at camera with a serene smile. Subtle wind moves her hair. Natural sunlight, realistic fabric movement, gentle breathing animation',
-    previewUrl: MX(1535, 360), posterUrl: MX_POSTER(1535),
+    previewUrl: HF('2RDvCbHEbmmaTdCaPMP3TG/e19ba51ae0ec91779d0a15d524e3bb08/1__4_.mp4'),
     label: { ru: 'Вдох и взгляд', sah: 'Тыыныы уонна көрүү' },
   },
   {
     id: 'm-port-03', tab: 'motion', category: 'portrait', isVideo: true,
     prompt: 'The man raises his eyebrows slightly, then gives a confident nod and subtle smirk. Camera slowly pushes in. Professional lighting, sharp focus on eyes, natural micro-expressions, smooth animation',
-    previewUrl: MX(4756, 360), posterUrl: MX_POSTER(4756),
+    previewUrl: HF('7ELpnwHlyvoDKYjTBQhb5m/216ecc1a9905cb89890ecbc73472c5c6/tutor__2_.mp4'),
     label: { ru: 'Уверенный кивок', sah: 'Итиэхтээх кивок' },
   },
   {
     id: 'm-port-04', tab: 'motion', category: 'portrait', isVideo: true,
-    prompt: 'The child looks up with wide curious eyes, then breaks into a bright laugh. Head tilts back slightly. Soft window light catches the face. Warm pastel tones, innocent joyful expression, realistic child animation',
-    previewUrl: MX(4825, 360), posterUrl: MX_POSTER(4825),
-    label: { ru: 'Детский смех', sah: 'Оҕо күлүүтэ' },
+    prompt: 'Character performs precise dance movements matching the reference video. AI applies motion, expression and pacing from video to static character while maintaining identity. Kling Motion Control 3.0 style',
+    previewUrl: HF('360VnlhrrK1JfXC0NtIpWy/91690f05ee56c7e9bae8c84bfd91fd04/1.mp4'),
+    label: { ru: 'Танец персонажа', sah: 'Киһи тэгэлтэтэ' },
   },
 
   // ─── Пейзаж ───
@@ -226,25 +229,31 @@ export const MOTION_TEMPLATES: VideoPromptTemplate[] = [
     previewUrl: MX(50421, 360), posterUrl: MX_POSTER(50421),
     label: { ru: 'Чашка с паром', sah: 'Буруолаах чааскы' },
   },
-  {
-    id: 'm-obj-03', tab: 'motion', category: 'object', isVideo: true,
-    prompt: 'The luxury watch rotates slowly on display stand. Light glints off crystal face and metal bracelet. Reflections dance on dark surface below. 360-degree smooth orbit, high-end product commercial',
-    previewUrl: MX(50423, 360), posterUrl: MX_POSTER(50423),
-    label: { ru: 'Вращение продукта', sah: 'Продукт эргиллиитэ' },
-  },
 
   // ─── Арт ───
   {
     id: 'm-art-01', tab: 'motion', category: 'art', isVideo: true,
-    prompt: 'The painting comes alive: brushstrokes ripple outward like water. Colors blend and shift between warm and cool tones. Figures begin subtle breathing movements. Oil paint texture preserved, museum lighting, magical realism',
-    previewUrl: MX(4036, 360), posterUrl: MX_POSTER(4036),
-    label: { ru: 'Ожившая картина', sah: 'Тыыннаах ойуу' },
+    prompt: 'Animated infographics with smooth transitions between data visualizations. Elements slide, fade and transform. Clean white background, professional motion graphics, corporate presentation style',
+    previewUrl: HF('6rTU0vdmqM8wrrKXKob7CI/d1b9938f40e93204dc02c4e49f7de144/infographics_white_bg__1_.mp4'),
+    label: { ru: 'Инфографика в движении', sah: 'Хамсаныылаах инфографика' },
   },
   {
     id: 'm-art-02', tab: 'motion', category: 'art', isVideo: true,
-    prompt: 'The anime character blinks, then gives a determined look. Wind blows through stylized hair. Speed lines appear briefly. Cel-shaded animation style preserved, dynamic anime energy, original art maintained',
-    previewUrl: MX(14555, 360), posterUrl: MX_POSTER(14555),
-    label: { ru: 'Ожившее аниме', sah: 'Тыыннаах аниме' },
+    prompt: 'Cinematic logo animation with smooth 3D reveal. Brand identity comes to life with professional motion design. Clean typography, elegant transitions, corporate intro style',
+    previewUrl: HF('7xE1T48Ca4rKdjcb9nDLGP/80ecc82ae6d2b057300869333b08ddec/AnthropicStyleIntro__1_.mp4'),
+    label: { ru: 'Анимация логотипа', sah: 'Логотип анимацията' },
+  },
+  {
+    id: 'm-art-03', tab: 'motion', category: 'art', isVideo: true,
+    prompt: 'Character motion transfer: AI applies movement and expressions from reference video to a new character. Precise body tracking, natural motion preservation, identity consistency. Kling Motion Control',
+    previewUrl: HF('ZNBuVEJVn5MAH3UM8if95/9f5ea9b56ea4308908f2a794b439021c/2.mp4'),
+    label: { ru: 'Перенос движений', sah: 'Хамсаныы көһөрүүтэ' },
+  },
+  {
+    id: 'm-art-04', tab: 'motion', category: 'art', isVideo: true,
+    prompt: 'Advanced motion control with multiple scene elements. Character performs complex actions while camera follows. Smooth transitions between poses, realistic physics, cinematic quality output',
+    previewUrl: HF('3yAZDLSsJheh3ZESW8pplb/8b930c9385a34cbe0fcecf20e04fd55e/3.mp4'),
+    label: { ru: 'Сложная анимация', sah: 'Нарын анимация' },
   },
 ];
 

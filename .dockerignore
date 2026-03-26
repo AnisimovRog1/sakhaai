@@ -1,0 +1,9 @@
+node_modules
+**/node_modules
+webapp/dist
+server/dist
+.git
+.env
+*.md
+bot/
+docker-compose.yml

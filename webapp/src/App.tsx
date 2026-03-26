@@ -116,7 +116,7 @@ export function App() {
     return (
       <div
         className="min-h-screen bg-black bg-contain bg-center bg-no-repeat flex flex-col items-center justify-end pb-24"
-        style={{ backgroundImage: `url(${base}logo-mammoth.png)` }}
+        style={{ backgroundImage: `url(${base}logo-mammoth-sm.png)` }}
       >
         <div className="flex gap-3">
           {[0, 1, 2].map((i) => (

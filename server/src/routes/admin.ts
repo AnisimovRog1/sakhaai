@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { pool } from '../db/pool';
 import { addCredits, deduct } from '../services/balance';
 import { getAllSequences, upsertSequence, deleteSequence, toggleSequence, findPendingPushes, markPushSent } from '../services/push-sequences';
+import { seedPushSequences } from '../services/push-seed';
 
 export const adminRouter = Router();
 
@@ -366,6 +367,15 @@ adminRouter.get('/push/sequences/pending', async (_req: Request, res: Response) 
   try {
     const pending = await findPendingPushes();
     res.json(pending);
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+// Заполнить пуш-последовательности из seed (force=true перезаписывает)
+adminRouter.post('/push/sequences/seed', async (req: Request, res: Response) => {
+  try {
+    const force = req.body?.force === true;
+    const count = await seedPushSequences(force);
+    res.json({ ok: true, count });
   } catch (err: any) { res.status(500).json({ error: err.message }); }
 });
 

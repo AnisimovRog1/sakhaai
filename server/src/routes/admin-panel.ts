@@ -259,8 +259,12 @@ input:focus,textarea:focus{border-color:rgba(139,92,246,.5);box-shadow:0 0 20px 
 
         <div id="seqList" class="space-y-3"></div>
 
-        <!-- Добавить новый -->
-        <button class="btn btn-primary mt-4 w-full py-3" onclick="addNewSeq()">➕ Добавить новый автопуш</button>
+        <!-- Действия -->
+        <div class="flex gap-2 mt-4">
+          <button class="btn btn-primary flex-1 py-3" onclick="addNewSeq()">➕ Добавить новый</button>
+          <button class="btn btn-success flex-1 py-3" onclick="seedSeqs(false)">📥 Загрузить шаблоны</button>
+          <button class="btn btn-danger py-3 px-4" onclick="seedSeqs(true)" title="Удалит все и загрузит заново">🔄 Сбросить</button>
+        </div>
       </div>
     </div>
 
@@ -514,6 +518,13 @@ async function saveSeq(id){
 
 async function toggleSeq(id){await apiFetch('/admin/push/sequences/'+id+'/toggle',{method:'PUT'});loadSeqs()}
 async function delSeq(id){if(!confirm('Удалить автопуш?'))return;await D('/admin/push/sequences/'+id);loadSeqs()}
+
+async function seedSeqs(force){
+  if(force&&!confirm('Это удалит ВСЕ автопуши и загрузит стандартные шаблоны. Продолжить?'))return;
+  const r=await P('/admin/push/sequences/seed',{force});
+  if(r.ok){alert('✅ Загружено '+r.count+' шаблонов');loadSeqs()}
+  else alert('❌ '+(r.error||'Ошибка'))
+}
 
 function addNewSeq(){
   const label=prompt('Название нового автопуша:');

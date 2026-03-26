@@ -11,9 +11,9 @@ type Props = {
   onSelectTemplate: (prompt: string, videoUrl?: string) => void;
 };
 
-// Lazy video — autoplay только когда видно, звук при нажатии
-function LazyVideo({ src, poster, className, unmuted }: {
-  src: string; poster?: string; className: string; unmuted?: boolean;
+// Lazy video — autoplay при видимости, preload=metadata для первых 4
+function LazyVideo({ src, poster, className, eager }: {
+  src: string; poster?: string; className: string; eager?: boolean;
 }) {
   const ref = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -32,94 +32,104 @@ function LazyVideo({ src, poster, className, unmuted }: {
           video.pause();
         }
       },
-      { threshold: 0.3 }
+      { threshold: 0.2 }
     );
     observer.observe(el);
     return () => observer.disconnect();
   }, [src]);
 
-  // Управление звуком
-  useEffect(() => {
-    const video = ref.current;
-    if (!video) return;
-    video.muted = !unmuted;
-  }, [unmuted]);
-
   return (
     <div ref={containerRef} className={className}>
       <video
         ref={ref}
+        src={eager ? src : undefined}
         poster={poster}
         muted
         loop
         playsInline
-        preload="none"
+        preload={eager ? 'metadata' : 'none'}
         className="w-full h-full object-cover"
       />
     </div>
   );
 }
 
-function TemplateCard({ tpl, lang, isExpanded, onTap, onUse, useLabel }: {
+// Полноэкранный просмотр видео с bottom sheet
+function FullscreenViewer({ tpl, lang, onClose, onUse, useLabel }: {
   tpl: VideoPromptTemplate;
   lang: string;
-  isExpanded: boolean;
-  onTap: () => void;
+  onClose: () => void;
   onUse: () => void;
   useLabel: string;
 }) {
-  return (
-    <div
-      className="relative group rounded-xl overflow-hidden border border-white/[0.10] bg-white/[0.05]"
-      onClick={onTap}
-    >
-      {tpl.isVideo ? (
-        <LazyVideo
-          src={tpl.previewUrl}
-          poster={tpl.posterUrl}
-          className="w-full aspect-[3/4]"
-          unmuted={isExpanded}
-        />
-      ) : (
-        <img
-          src={tpl.previewUrl}
-          alt={lang === 'sah' ? tpl.label.sah : tpl.label.ru}
-          loading="lazy"
-          className="w-full aspect-[3/4] object-cover"
-        />
-      )}
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
-      {/* Label overlay */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-2.5 pt-8">
-        <p className="text-white text-xs font-bold leading-tight">
-          {lang === 'sah' ? tpl.label.sah : tpl.label.ru}
-        </p>
+  useEffect(() => {
+    // Автоматически показываем sheet через 300ms
+    const timer = setTimeout(() => setSheetOpen(true), 300);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (video) {
+      video.muted = false;
+      video.play().catch(() => {
+        // Если не удалось со звуком — пробуем без
+        video.muted = true;
+        video.play().catch(() => {});
+      });
+    }
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black flex flex-col" onClick={onClose}>
+      {/* Кнопка закрытия */}
+      <button
+        className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center"
+        onClick={onClose}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+
+      {/* Видео на весь экран */}
+      <div className="flex-1 flex items-center justify-center">
+        <video
+          ref={videoRef}
+          src={tpl.previewUrl}
+          loop
+          playsInline
+          className="w-full h-full object-contain"
+        />
       </div>
 
-      {/* Sound indicator when expanded */}
-      {isExpanded && tpl.isVideo && (
-        <div className="absolute top-2 right-2 w-7 h-7 rounded-full bg-violet-500/80 backdrop-blur-sm flex items-center justify-center">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="white" stroke="none">
-            <path d="M11 5L6 9H2v6h4l5 4V5z"/>
-            <path d="M15.54 8.46a5 5 0 010 7.07" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-          </svg>
-        </div>
-      )}
+      {/* Bottom sheet с промптом */}
+      <div
+        className={`transition-transform duration-300 ease-out ${sheetOpen ? 'translate-y-0' : 'translate-y-full'}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="bg-gradient-to-t from-black via-black/95 to-transparent px-4 pb-6 pt-8 space-y-3">
+          {/* Drag handle */}
+          <div className="w-10 h-1 rounded-full bg-white/30 mx-auto -mt-4 mb-2" />
 
-      {/* Expanded overlay */}
-      {isExpanded && (
-        <div className="absolute inset-0 bg-black/85 backdrop-blur-sm flex flex-col justify-between p-3 animate-fade-in">
-          <p className="text-white/90 text-[11px] leading-snug line-clamp-6 font-medium">
+          <p className="text-white text-xs font-bold">
+            {lang === 'sah' ? tpl.label.sah : tpl.label.ru}
+          </p>
+          <p className="text-white/80 text-[11px] leading-snug line-clamp-3">
             {tpl.prompt}
           </p>
+
           <button
-            onClick={(e) => { e.stopPropagation(); onUse(); }}
-            className="mt-2 w-full py-2.5 rounded-lg bg-gradient-to-r from-violet-600 to-cyan-500 text-white text-xs font-bold shadow-lg shadow-violet-500/25 active:scale-[0.97] transition-transform"
+            onClick={onUse}
+            className="w-full py-3 rounded-xl bg-gradient-to-r from-violet-600 to-cyan-500 text-white text-sm font-bold shadow-lg shadow-violet-500/25 active:scale-[0.97] transition-transform"
           >
             {useLabel}
           </button>
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -127,7 +137,7 @@ function TemplateCard({ tpl, lang, isExpanded, onTap, onUse, useLabel }: {
 export function VideoPromptGallery({ tab, onSelectTemplate }: Props) {
   const { lang, t } = useLang();
   const [activeCategory, setActiveCategory] = useState<AnyCategory>('all');
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [selectedTpl, setSelectedTpl] = useState<VideoPromptTemplate | null>(null);
 
   const templates = tab === 'video' ? VIDEO_TEMPLATES
     : tab === 'motion' ? MOTION_TEMPLATES
@@ -142,6 +152,7 @@ export function VideoPromptGallery({ tab, onSelectTemplate }: Props) {
     : templates.filter(tpl => tpl.category === activeCategory);
 
   const handleUse = useCallback((tpl: VideoPromptTemplate) => {
+    setSelectedTpl(null);
     onSelectTemplate(tpl.prompt, tpl.previewUrl);
   }, [onSelectTemplate]);
 
@@ -165,19 +176,50 @@ export function VideoPromptGallery({ tab, onSelectTemplate }: Props) {
         </div>
       )}
 
+      {/* Сетка шаблонов */}
       <div className="grid grid-cols-2 gap-2.5">
-        {filtered.map((tpl) => (
-          <TemplateCard
+        {filtered.map((tpl, i) => (
+          <div
             key={tpl.id}
-            tpl={tpl}
-            lang={lang}
-            isExpanded={expandedId === tpl.id}
-            onTap={() => setExpandedId(expandedId === tpl.id ? null : tpl.id)}
-            onUse={() => handleUse(tpl)}
-            useLabel={t('video.useTemplate')}
-          />
+            className="relative rounded-xl overflow-hidden border border-white/[0.10] bg-white/[0.05] active:scale-[0.97] transition-transform"
+            onClick={() => setSelectedTpl(tpl)}
+          >
+            {tpl.isVideo ? (
+              <LazyVideo
+                src={tpl.previewUrl}
+                poster={tpl.posterUrl}
+                className="w-full aspect-[3/4]"
+                eager={i < 4}
+              />
+            ) : (
+              <img
+                src={tpl.previewUrl}
+                alt={lang === 'sah' ? tpl.label.sah : tpl.label.ru}
+                loading={i < 4 ? 'eager' : 'lazy'}
+                className="w-full aspect-[3/4] object-cover"
+              />
+            )}
+
+            {/* Label */}
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent p-2.5 pt-6">
+              <p className="text-white text-xs font-bold leading-tight">
+                {lang === 'sah' ? tpl.label.sah : tpl.label.ru}
+              </p>
+            </div>
+          </div>
         ))}
       </div>
+
+      {/* Полноэкранный просмотр с bottom sheet */}
+      {selectedTpl && (
+        <FullscreenViewer
+          tpl={selectedTpl}
+          lang={lang}
+          onClose={() => setSelectedTpl(null)}
+          onUse={() => handleUse(selectedTpl)}
+          useLabel={t('video.useTemplate')}
+        />
+      )}
     </div>
   );
 }

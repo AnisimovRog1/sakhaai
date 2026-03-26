@@ -24,7 +24,17 @@ const VIDEO_MODELS: { id: VideoModel; name: string; desc: string; badge?: string
   { id: 'video-2.5-turbo', name: 'VIDEO 2.5 Turbo', desc: 'Максимум креатива с лучшим качеством', badge: undefined },
 ];
 
-const VOICES = ['Давид', 'Диана', 'Бетти', 'Мария', 'Михаил', 'Эрик', 'Амир', 'Эмма'];
+// Голоса с уникальными параметрами (pitch + rate) для Web Speech API
+const VOICES: { name: string; pitch: number; rate: number; gender: 'male' | 'female' }[] = [
+  { name: 'Давид',  pitch: 0.9,  rate: 1.0, gender: 'male' },
+  { name: 'Диана',  pitch: 1.3,  rate: 1.05, gender: 'female' },
+  { name: 'Бетти',  pitch: 1.5,  rate: 0.95, gender: 'female' },
+  { name: 'Мария',  pitch: 1.1,  rate: 0.9, gender: 'female' },
+  { name: 'Михаил', pitch: 0.7,  rate: 0.95, gender: 'male' },
+  { name: 'Эрик',   pitch: 0.8,  rate: 1.1, gender: 'male' },
+  { name: 'Амир',   pitch: 1.0,  rate: 1.0, gender: 'male' },
+  { name: 'Эмма',   pitch: 1.4,  rate: 1.0, gender: 'female' },
+];
 
 const EMOTION_KEYS: { id: Emotion; key: 'video.emotion.neutral' | 'video.emotion.happy' | 'video.emotion.angry' | 'video.emotion.sad' | 'video.emotion.fearful' | 'video.emotion.disgusted' | 'video.emotion.surprised' }[] = [
   { id: 'neutral', key: 'video.emotion.neutral' },
@@ -300,15 +310,26 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
   }
 
   // Проиграть пример голоса через Web Speech API
-  function playVoicePreview(_voiceName: string) {
+  function playVoicePreview(voiceName: string) {
     if (!('speechSynthesis' in window)) return;
     speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance('Привет! Это пример моего голоса.');
+    const voiceConfig = VOICES.find(v => v.name === voiceName);
+    if (!voiceConfig) return;
+    const utterance = new SpeechSynthesisUtterance(`Привет! Меня зовут ${voiceName}. Я могу озвучить ваш контент.`);
     utterance.lang = 'ru-RU';
-    utterance.rate = speechRate;
-    const voices = speechSynthesis.getVoices();
-    const match = voices.find(v => v.lang.startsWith('ru'));
-    if (match) utterance.voice = match;
+    utterance.pitch = voiceConfig.pitch;
+    utterance.rate = voiceConfig.rate * speechRate;
+    // Подбираем голос по полу
+    const allVoices = speechSynthesis.getVoices();
+    const ruVoices = allVoices.filter(v => v.lang.startsWith('ru'));
+    if (ruVoices.length > 0) {
+      // Пробуем найти голос нужного пола
+      const genderMatch = ruVoices.find(v =>
+        voiceConfig.gender === 'female' ? v.name.toLowerCase().includes('female') || v.name.includes('Milena') || v.name.includes('Алёна')
+        : v.name.toLowerCase().includes('male') || v.name.includes('Dmitri')
+      );
+      utterance.voice = genderMatch || ruVoices[0];
+    }
     speechSynthesis.speak(utterance);
   }
 
@@ -654,23 +675,23 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
               <div className="bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md overflow-hidden max-h-48 overflow-y-auto">
                 {VOICES.map((v) => (
                   <div
-                    key={v}
+                    key={v.name}
                     className={`w-full px-4 py-3 flex items-center justify-between transition-colors ${
-                      selectedVoice === v ? 'bg-white/[0.06]' : ''
+                      selectedVoice === v.name ? 'bg-white/[0.06]' : ''
                     }`}
                   >
                     <button
-                      onClick={() => { setSelectedVoice(v); setShowVoicePicker(false); }}
+                      onClick={() => { setSelectedVoice(v.name); setShowVoicePicker(false); }}
                       className="flex items-center gap-3 flex-1 text-left"
                     >
                       <div className="w-8 h-8 rounded-full bg-white/[0.08] flex items-center justify-center text-xs font-bold text-white">
-                        {v[0]}
+                        {v.name[0]}
                       </div>
-                      <span className="text-white text-sm font-medium">{v}</span>
+                      <span className="text-white text-sm font-medium">{v.name}</span>
                     </button>
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={(e) => { e.stopPropagation(); playVoicePreview(v); }}
+                        onClick={(e) => { e.stopPropagation(); playVoicePreview(v.name); }}
                         className="w-8 h-8 rounded-full bg-violet-500/20 border border-violet-500/30 flex items-center justify-center active:scale-95 transition-transform"
                         title="Прослушать"
                       >
@@ -678,7 +699,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
                           <polygon points="5 3 19 12 5 21 5 3"/>
                         </svg>
                       </button>
-                      {selectedVoice === v && (
+                      {selectedVoice === v.name && (
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="20 6 9 17 4 12"/>
                         </svg>

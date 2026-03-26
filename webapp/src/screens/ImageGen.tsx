@@ -96,8 +96,12 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
     }
   }
 
-  function handleSelectTemplate(templatePrompt: string) {
+  function handleSelectTemplate(templatePrompt: string, imageUrl?: string) {
     setPrompt(templatePrompt);
+    if (imageUrl) {
+      setRefImage(imageUrl);
+      setTab('img2img');
+    }
     setSection('create');
     setTimeout(() => promptRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
   }

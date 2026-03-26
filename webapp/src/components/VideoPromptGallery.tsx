@@ -14,6 +14,7 @@ type Props = {
 export function VideoPromptGallery({ tab, onSelectTemplate }: Props) {
   const { lang, t } = useLang();
   const [activeCategory, setActiveCategory] = useState<AnyCategory>('all');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const templates = tab === 'video' ? VIDEO_TEMPLATES
     : tab === 'motion' ? MOTION_TEMPLATES
@@ -26,8 +27,6 @@ export function VideoPromptGallery({ tab, onSelectTemplate }: Props) {
   const filtered = activeCategory === 'all'
     ? templates
     : templates.filter(tpl => tpl.category === activeCategory);
-
-  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   return (
     <div className="space-y-4">
@@ -58,13 +57,25 @@ export function VideoPromptGallery({ tab, onSelectTemplate }: Props) {
               className="relative group rounded-xl overflow-hidden border border-white/[0.10] bg-white/[0.05]"
               onClick={() => setExpandedId(isExpanded ? null : tpl.id)}
             >
-              {/* Preview image */}
-              <img
-                src={tpl.previewUrl}
-                alt={lang === 'sah' ? tpl.label.sah : tpl.label.ru}
-                loading="lazy"
-                className="w-full aspect-[3/4] object-cover"
-              />
+              {/* Preview: video or image */}
+              {tpl.isVideo ? (
+                <video
+                  src={tpl.previewUrl}
+                  poster={tpl.posterUrl}
+                  muted
+                  loop
+                  playsInline
+                  autoPlay
+                  className="w-full aspect-[3/4] object-cover"
+                />
+              ) : (
+                <img
+                  src={tpl.previewUrl}
+                  alt={lang === 'sah' ? tpl.label.sah : tpl.label.ru}
+                  loading="lazy"
+                  className="w-full aspect-[3/4] object-cover"
+                />
+              )}
 
               {/* Label overlay */}
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-2.5 pt-8">
@@ -73,12 +84,14 @@ export function VideoPromptGallery({ tab, onSelectTemplate }: Props) {
                 </p>
               </div>
 
-              {/* Play icon overlay */}
-              <div className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="white" stroke="none">
-                  <polygon points="5 3 19 12 5 21 5 3"/>
-                </svg>
-              </div>
+              {/* Play icon overlay (for images) */}
+              {!tpl.isVideo && (
+                <div className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="white" stroke="none">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                  </svg>
+                </div>
+              )}
 
               {/* Expanded overlay with prompt + use button */}
               {isExpanded && (

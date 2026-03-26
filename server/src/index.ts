@@ -14,6 +14,7 @@ import { generationsRouter } from './routes/generations';
 import { adminRouter } from './routes/admin';
 import { adminPanelRouter } from './routes/admin-panel';
 import { processHeldReferrals } from './services/referral';
+import { seedPushSequences } from './services/push-seed';
 import { LANDING_HTML } from './landing';
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
@@ -108,6 +109,9 @@ migrate()
 
     runProcessor(); // сразу при старте
     setInterval(runProcessor, 15 * 60 * 1000); // каждые 15 мин
+
+    // Заполняем пуш-последовательности при первом запуске
+    seedPushSequences().catch(console.error);
   })
   .catch((err) => {
     console.error('❌ Ошибка миграции:', err);

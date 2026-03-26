@@ -991,6 +991,45 @@ function scheduleReports() {
 }
 
 // ═══════════════════════════════════════════════════════
+// АВТОМАТИЧЕСКИЕ ПУШ-ПОСЛЕДОВАТЕЛЬНОСТИ
+// ═══════════════════════════════════════════════════════
+
+async function processAutoSequences() {
+  try {
+    const pending = await httpGet(`${SERVER_URL}/admin/push/sequences/pending`) as any[];
+    if (!pending || !Array.isArray(pending) || pending.length === 0) return;
+
+    let sent = 0;
+    for (const p of pending) {
+      try {
+        if (p.media_type === 'photo' && p.media_url) {
+          await bot.api.sendPhoto(Number(p.user_id), p.media_url, {
+            caption: p.text,
+          });
+        } else {
+          await bot.api.sendMessage(Number(p.user_id), p.text);
+        }
+        await httpPost(`${SERVER_URL}/admin/push/sequences/mark-sent`, {
+          user_id: p.user_id, sequence_id: p.sequence_id,
+        });
+        sent++;
+        if (sent % 25 === 0) await new Promise(r => setTimeout(r, 1000));
+      } catch (e: any) {
+        // Пользователь заблокировал бота — помечаем чтобы не спамить
+        if (e?.error_code === 403 || e?.message?.includes('403')) {
+          await httpPost(`${SERVER_URL}/admin/push/sequences/mark-sent`, {
+            user_id: p.user_id, sequence_id: p.sequence_id,
+          }).catch(() => {});
+        }
+      }
+    }
+    if (sent > 0) console.log(`📨 Автопуши: отправлено ${sent} из ${pending.length}`);
+  } catch (_e) {
+    // Тихая ошибка — не ломаем бот
+  }
+}
+
+// ═══════════════════════════════════════════════════════
 // ЗАПУСК
 // ═══════════════════════════════════════════════════════
 
@@ -998,5 +1037,8 @@ bot.start({
   onStart: () => {
     console.log('Бот @UraanxAI_bot запущен');
     scheduleReports();
+    // Автопуши каждые 2 минуты
+    setInterval(processAutoSequences, 2 * 60 * 1000);
+    setTimeout(processAutoSequences, 30000); // первый запуск через 30 сек
   },
 });

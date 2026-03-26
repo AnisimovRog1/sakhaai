@@ -1,5 +1,6 @@
 import { pool } from '../db/pool';
 import { memCache } from '../db/redis';
+import { markCreditsZero, clearCreditsZero, resetNoPurchasePushes, resetZeroCreditsPushes } from './push-sequences';
 
 const BALANCE_KEY = (userId: number) => `balance:${userId}`;
 const BALANCE_TTL = 60;
@@ -30,6 +31,8 @@ export async function deduct(userId: number, amount: number, type: TxType, descr
     await client.query('COMMIT');
     const newBalance: number = updated.rows[0].credits;
     await memCache.setex(BALANCE_KEY(userId), BALANCE_TTL, newBalance);
+    // Трекинг обнуления кредитов для пуш-последовательностей
+    if (newBalance <= 0) markCreditsZero(userId).catch(() => {});
     return newBalance;
   } catch (err) {
     await client.query('ROLLBACK');
@@ -44,6 +47,12 @@ export async function addCredits(userId: number, amount: number, type: TxType, d
   await pool.query('INSERT INTO transactions (user_id, type, amount, description) VALUES ($1, $2, $3, $4)', [userId, type, amount, description]);
   const newBalance: number = result.rows[0].credits;
   await memCache.setex(BALANCE_KEY(userId), BALANCE_TTL, newBalance);
+  // При пополнении: сбрасываем zero_credits трекинг и пуш-цепочки
+  if (type === 'topup') {
+    clearCreditsZero(userId).catch(() => {});
+    resetZeroCreditsPushes(userId).catch(() => {});
+    resetNoPurchasePushes(userId).catch(() => {});
+  }
   return newBalance;
 }
 

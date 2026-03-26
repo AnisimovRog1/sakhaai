@@ -1,0 +1,231 @@
+import { pool } from '../db/pool';
+
+// ═══════════════════════════════════════════════════
+// Автоматические пуш-последовательности
+// ═══════════════════════════════════════════════════
+
+export type TriggerType = 'no_purchase' | 'after_purchase' | 'low_credits' | 'zero_credits';
+
+export interface PushSequence {
+  id: number;
+  trigger_type: TriggerType;
+  delay_minutes: number;
+  credits_threshold: number | null;
+  text: string;
+  media_type: string | null;
+  media_url: string | null;
+  media_file_id: string | null;
+  label: string;
+  is_active: boolean;
+  allow_hour_from: number;
+  allow_hour_to: number;
+}
+
+export interface PendingPush {
+  user_id: number;
+  sequence_id: number;
+  text: string;
+  media_type: string | null;
+  media_url: string | null;
+  media_file_id: string | null;
+}
+
+// ─── Получить все активные последовательности ───
+export async function getActiveSequences(trigger?: TriggerType): Promise<PushSequence[]> {
+  const q = trigger
+    ? `SELECT * FROM push_sequences WHERE is_active = true AND trigger_type = $1 ORDER BY delay_minutes`
+    : `SELECT * FROM push_sequences WHERE is_active = true ORDER BY trigger_type, delay_minutes`;
+  const { rows } = trigger ? await pool.query(q, [trigger]) : await pool.query(q);
+  return rows;
+}
+
+// ─── Найти пользователей для пуша no_purchase ───
+// Те, кто зарегистрировался >= delay_minutes назад и НЕ покупал пакет
+async function findNoPurchaseUsers(seq: PushSequence): Promise<number[]> {
+  const { rows } = await pool.query(`
+    SELECT u.id FROM users u
+    WHERE u.is_banned = false
+      AND u.created_at <= NOW() - INTERVAL '1 minute' * $1
+      AND NOT EXISTS (SELECT 1 FROM orders o WHERE o.user_id = u.id AND o.status = 'paid')
+      AND NOT EXISTS (SELECT 1 FROM push_sent ps WHERE ps.user_id = u.id AND ps.sequence_id = $2)
+  `, [seq.delay_minutes, seq.id]);
+  return rows.map((r: any) => r.id);
+}
+
+// ─── Найти пользователей для пуша after_purchase ───
+// Те, кто купил пакет >= delay_minutes назад
+async function findAfterPurchaseUsers(seq: PushSequence): Promise<number[]> {
+  const { rows } = await pool.query(`
+    SELECT DISTINCT o.user_id AS id FROM orders o
+    WHERE o.status = 'paid'
+      AND o.paid_at <= NOW() - INTERVAL '1 minute' * $1
+      AND NOT EXISTS (SELECT 1 FROM push_sent ps WHERE ps.user_id = o.user_id AND ps.sequence_id = $2)
+  `, [seq.delay_minutes, seq.id]);
+  return rows.map((r: any) => r.id);
+}
+
+// ─── Найти пользователей для пуша low_credits ───
+// Те, у кого credits <= threshold И кто покупал раньше (значит тратит)
+async function findLowCreditsUsers(seq: PushSequence): Promise<number[]> {
+  if (!seq.credits_threshold) return [];
+  const { rows } = await pool.query(`
+    SELECT u.id FROM users u
+    WHERE u.is_banned = false
+      AND u.credits <= $1
+      AND u.credits > 0
+      AND EXISTS (SELECT 1 FROM orders o WHERE o.user_id = u.id AND o.status = 'paid')
+      AND NOT EXISTS (SELECT 1 FROM push_sent ps WHERE ps.user_id = u.id AND ps.sequence_id = $2)
+  `, [seq.credits_threshold, seq.id]);
+  return rows.map((r: any) => r.id);
+}
+
+// ─── Найти пользователей для пуша zero_credits ───
+// Те, у кого credits = 0 и credits_zero_at >= delay_minutes назад
+async function findZeroCreditsUsers(seq: PushSequence): Promise<number[]> {
+  const { rows } = await pool.query(`
+    SELECT u.id FROM users u
+    WHERE u.is_banned = false
+      AND u.credits <= 0
+      AND u.credits_zero_at IS NOT NULL
+      AND u.credits_zero_at <= NOW() - INTERVAL '1 minute' * $1
+      AND NOT EXISTS (SELECT 1 FROM push_sent ps WHERE ps.user_id = u.id AND ps.sequence_id = $2)
+  `, [seq.delay_minutes, seq.id]);
+  return rows.map((r: any) => r.id);
+}
+
+// ─── Проверить разрешённые часы по таймзоне юзера ───
+async function filterByTimezone(userIds: number[], seq: PushSequence): Promise<number[]> {
+  if (userIds.length === 0) return [];
+  const { rows } = await pool.query(`
+    SELECT id, timezone_offset FROM users WHERE id = ANY($1)
+  `, [userIds]);
+
+  return rows.filter((u: any) => {
+    const offsetMin = u.timezone_offset || 180; // default UTC+3 (Moscow)
+    const userHour = (new Date().getUTCHours() + Math.floor(offsetMin / 60)) % 24;
+    return userHour >= seq.allow_hour_from && userHour < seq.allow_hour_to;
+  }).map((u: any) => u.id);
+}
+
+// ─── Главная функция: найти все pending пуши ───
+export async function findPendingPushes(): Promise<PendingPush[]> {
+  const sequences = await getActiveSequences();
+  const result: PendingPush[] = [];
+
+  for (const seq of sequences) {
+    let userIds: number[] = [];
+
+    switch (seq.trigger_type) {
+      case 'no_purchase':
+        userIds = await findNoPurchaseUsers(seq);
+        break;
+      case 'after_purchase':
+        userIds = await findAfterPurchaseUsers(seq);
+        break;
+      case 'low_credits':
+        userIds = await findLowCreditsUsers(seq);
+        break;
+      case 'zero_credits':
+        userIds = await findZeroCreditsUsers(seq);
+        break;
+    }
+
+    // Фильтр по разрешённым часам
+    userIds = await filterByTimezone(userIds, seq);
+
+    for (const uid of userIds) {
+      result.push({
+        user_id: uid,
+        sequence_id: seq.id,
+        text: seq.text,
+        media_type: seq.media_type,
+        media_url: seq.media_url,
+        media_file_id: seq.media_file_id,
+      });
+    }
+  }
+
+  return result;
+}
+
+// ─── Пометить пуш как отправленный ───
+export async function markPushSent(userId: number, sequenceId: number): Promise<void> {
+  await pool.query(
+    `INSERT INTO push_sent (user_id, sequence_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+    [userId, sequenceId]
+  );
+}
+
+// ─── Обновить credits_zero_at при обнулении кредитов ───
+export async function markCreditsZero(userId: number): Promise<void> {
+  await pool.query(
+    `UPDATE users SET credits_zero_at = NOW() WHERE id = $1 AND credits_zero_at IS NULL`,
+    [userId]
+  );
+}
+
+// ─── Сбросить credits_zero_at при пополнении ───
+export async function clearCreditsZero(userId: number): Promise<void> {
+  await pool.query(
+    `UPDATE users SET credits_zero_at = NULL WHERE id = $1`,
+    [userId]
+  );
+}
+
+// ─── Сбросить пуши no_purchase при покупке (чтобы остановить цепочку) ───
+export async function resetNoPurchasePushes(userId: number): Promise<void> {
+  await pool.query(`
+    INSERT INTO push_sent (user_id, sequence_id)
+    SELECT $1, id FROM push_sequences WHERE trigger_type = 'no_purchase'
+    ON CONFLICT DO NOTHING
+  `, [userId]);
+}
+
+// ─── Сбросить пуши zero_credits при пополнении ───
+export async function resetZeroCreditsPushes(userId: number): Promise<void> {
+  await pool.query(`
+    DELETE FROM push_sent WHERE user_id = $1 AND sequence_id IN (
+      SELECT id FROM push_sequences WHERE trigger_type = 'zero_credits'
+    )
+  `, [userId]);
+}
+
+// ─── CRUD для админки ───
+export async function getAllSequences(): Promise<PushSequence[]> {
+  const { rows } = await pool.query(`SELECT * FROM push_sequences ORDER BY trigger_type, delay_minutes`);
+  return rows;
+}
+
+export async function upsertSequence(data: Partial<PushSequence> & { trigger_type: string; text: string; label: string }): Promise<PushSequence> {
+  if (data.id) {
+    const { rows } = await pool.query(`
+      UPDATE push_sequences SET
+        trigger_type = $2, delay_minutes = $3, credits_threshold = $4,
+        text = $5, media_type = $6, media_url = $7, label = $8,
+        is_active = $9, allow_hour_from = $10, allow_hour_to = $11
+      WHERE id = $1 RETURNING *
+    `, [data.id, data.trigger_type, data.delay_minutes || 0, data.credits_threshold,
+        data.text, data.media_type, data.media_url, data.label,
+        data.is_active ?? true, data.allow_hour_from ?? 9, data.allow_hour_to ?? 22]);
+    return rows[0];
+  }
+  const { rows } = await pool.query(`
+    INSERT INTO push_sequences (trigger_type, delay_minutes, credits_threshold, text, media_type, media_url, label, is_active, allow_hour_from, allow_hour_to)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *
+  `, [data.trigger_type, data.delay_minutes || 0, data.credits_threshold,
+      data.text, data.media_type, data.media_url, data.label,
+      data.is_active ?? true, data.allow_hour_from ?? 9, data.allow_hour_to ?? 22]);
+  return rows[0];
+}
+
+export async function deleteSequence(id: number): Promise<void> {
+  await pool.query(`DELETE FROM push_sequences WHERE id = $1`, [id]);
+}
+
+export async function toggleSequence(id: number): Promise<boolean> {
+  const { rows } = await pool.query(
+    `UPDATE push_sequences SET is_active = NOT is_active WHERE id = $1 RETURNING is_active`,
+    [id]
+  );
+  return rows[0]?.is_active;
+}

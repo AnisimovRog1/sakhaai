@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { pool } from '../db/pool';
 import { addCredits, deduct } from '../services/balance';
+import { getAllSequences, upsertSequence, deleteSequence, toggleSequence, findPendingPushes, markPushSent } from '../services/push-sequences';
 
 export const adminRouter = Router();
 
@@ -325,5 +326,54 @@ adminRouter.get('/push/log', async (_req: Request, res: Response) => {
       ORDER BY l.started_at DESC LIMIT 20
     `);
     res.json(r.rows);
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+// ═══════════════════════════════════════════════════
+// PUSH SEQUENCES — Автоматические последовательности
+// ═══════════════════════════════════════════════════
+
+adminRouter.get('/push/sequences', async (_req: Request, res: Response) => {
+  try {
+    const sequences = await getAllSequences();
+    res.json(sequences);
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+adminRouter.post('/push/sequences', async (req: Request, res: Response) => {
+  try {
+    const seq = await upsertSequence(req.body);
+    res.json(seq);
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+adminRouter.put('/push/sequences/:id/toggle', async (req: Request, res: Response) => {
+  try {
+    const active = await toggleSequence(parseInt(req.params.id));
+    res.json({ is_active: active });
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+adminRouter.delete('/push/sequences/:id', async (req: Request, res: Response) => {
+  try {
+    await deleteSequence(parseInt(req.params.id));
+    res.json({ ok: true });
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+// Получить pending пуши для отправки ботом
+adminRouter.get('/push/sequences/pending', async (_req: Request, res: Response) => {
+  try {
+    const pending = await findPendingPushes();
+    res.json(pending);
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+// Пометить пуш как отправленный
+adminRouter.post('/push/sequences/mark-sent', async (req: Request, res: Response) => {
+  try {
+    const { user_id, sequence_id } = req.body;
+    await markPushSent(user_id, sequence_id);
+    res.json({ ok: true });
   } catch (err: any) { res.status(500).json({ error: err.message }); }
 });

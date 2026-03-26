@@ -137,6 +137,47 @@ export async function migrate() {
       started_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       finished_at   TIMESTAMPTZ
     );
+    -- ═══════════════════════════════════════════════════
+    -- Автоматические пуш-последовательности
+    -- ═══════════════════════════════════════════════════
+
+    -- Шаблоны автоматических пушей (триггерные последовательности)
+    CREATE TABLE IF NOT EXISTS push_sequences (
+      id              SERIAL PRIMARY KEY,
+      trigger_type    TEXT NOT NULL,              -- 'no_purchase' | 'after_purchase' | 'low_credits' | 'zero_credits'
+      delay_minutes   INTEGER NOT NULL DEFAULT 0, -- задержка после триггера (минуты)
+      credits_threshold INTEGER,                  -- порог кредитов для low_credits (500/350/150)
+      text            TEXT NOT NULL,              -- текст сообщения
+      media_type      TEXT,                       -- 'photo' | 'video' | NULL
+      media_url       TEXT,                       -- URL картинки/видео
+      media_file_id   TEXT,                       -- Telegram file_id (после первой отправки)
+      label           TEXT NOT NULL,              -- название для админки
+      is_active       BOOLEAN NOT NULL DEFAULT true,
+      allow_hour_from INTEGER NOT NULL DEFAULT 9, -- не раньше 9:00 по времени юзера
+      allow_hour_to   INTEGER NOT NULL DEFAULT 22,-- не позже 22:00
+      sort_order      INTEGER NOT NULL DEFAULT 0, -- порядок в админке
+      created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE INDEX IF NOT EXISTS push_seq_trigger_idx ON push_sequences (trigger_type, is_active);
+
+    -- Лог отправленных автопушей (дедупликация — один пуш одному юзеру один раз)
+    CREATE TABLE IF NOT EXISTS push_sent (
+      id          SERIAL PRIMARY KEY,
+      user_id     BIGINT NOT NULL REFERENCES users(id),
+      sequence_id INTEGER NOT NULL REFERENCES push_sequences(id) ON DELETE CASCADE,
+      sent_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE(user_id, sequence_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS push_sent_user_idx ON push_sent (user_id);
+
+    -- Трекинг событий для триггеров (когда юзер перешёл в состояние)
+    -- Используем для zero_credits: запоминаем момент когда кредиты обнулились
+    DO $$ BEGIN
+      ALTER TABLE users ADD COLUMN credits_zero_at TIMESTAMPTZ;
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$;
   `);
 
   console.log('✅ Миграции применены');

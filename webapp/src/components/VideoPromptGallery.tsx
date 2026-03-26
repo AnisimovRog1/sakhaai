@@ -8,11 +8,13 @@ import {
 
 type Props = {
   tab: VideoTemplateTab;
-  onSelectTemplate: (prompt: string) => void;
+  onSelectTemplate: (prompt: string, videoUrl?: string) => void;
 };
 
-// Lazy video — autoplay только когда видно на экране
-function LazyVideo({ src, poster, className }: { src: string; poster?: string; className: string }) {
+// Lazy video — autoplay только когда видно, звук при нажатии
+function LazyVideo({ src, poster, className, unmuted }: {
+  src: string; poster?: string; className: string; unmuted?: boolean;
+}) {
   const ref = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -35,6 +37,13 @@ function LazyVideo({ src, poster, className }: { src: string; poster?: string; c
     observer.observe(el);
     return () => observer.disconnect();
   }, [src]);
+
+  // Управление звуком
+  useEffect(() => {
+    const video = ref.current;
+    if (!video) return;
+    video.muted = !unmuted;
+  }, [unmuted]);
 
   return (
     <div ref={containerRef} className={className}>
@@ -69,6 +78,7 @@ function TemplateCard({ tpl, lang, isExpanded, onTap, onUse, useLabel }: {
           src={tpl.previewUrl}
           poster={tpl.posterUrl}
           className="w-full aspect-[3/4]"
+          unmuted={isExpanded}
         />
       ) : (
         <img
@@ -85,6 +95,16 @@ function TemplateCard({ tpl, lang, isExpanded, onTap, onUse, useLabel }: {
           {lang === 'sah' ? tpl.label.sah : tpl.label.ru}
         </p>
       </div>
+
+      {/* Sound indicator when expanded */}
+      {isExpanded && tpl.isVideo && (
+        <div className="absolute top-2 right-2 w-7 h-7 rounded-full bg-violet-500/80 backdrop-blur-sm flex items-center justify-center">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="white" stroke="none">
+            <path d="M11 5L6 9H2v6h4l5 4V5z"/>
+            <path d="M15.54 8.46a5 5 0 010 7.07" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+        </div>
+      )}
 
       {/* Expanded overlay */}
       {isExpanded && (
@@ -121,13 +141,12 @@ export function VideoPromptGallery({ tab, onSelectTemplate }: Props) {
     ? templates
     : templates.filter(tpl => tpl.category === activeCategory);
 
-  const handleUse = useCallback((prompt: string) => {
-    onSelectTemplate(prompt);
+  const handleUse = useCallback((tpl: VideoPromptTemplate) => {
+    onSelectTemplate(tpl.prompt, tpl.previewUrl);
   }, [onSelectTemplate]);
 
   return (
     <div className="space-y-4">
-      {/* Category pills — скрываем если только "Все" */}
       {categories.length > 1 && (
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
           {categories.map((cat) => (
@@ -146,7 +165,6 @@ export function VideoPromptGallery({ tab, onSelectTemplate }: Props) {
         </div>
       )}
 
-      {/* Templates grid */}
       <div className="grid grid-cols-2 gap-2.5">
         {filtered.map((tpl) => (
           <TemplateCard
@@ -155,7 +173,7 @@ export function VideoPromptGallery({ tab, onSelectTemplate }: Props) {
             lang={lang}
             isExpanded={expandedId === tpl.id}
             onTap={() => setExpandedId(expandedId === tpl.id ? null : tpl.id)}
-            onUse={() => handleUse(tpl.prompt)}
+            onUse={() => handleUse(tpl)}
             useLabel={t('video.useTemplate')}
           />
         ))}

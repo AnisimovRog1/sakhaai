@@ -251,14 +251,65 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
     setError(null);
   }
 
-  function handleSelectTemplate(templatePrompt: string) {
-    if (tab === 'avatar') {
+  function handleSelectTemplate(templatePrompt: string, videoUrl?: string) {
+    if (tab === 'motion' && videoUrl) {
+      // Motion: видео шаблона → поле "Видео с движениями персонажа"
+      setMotionVideo(videoUrl);
+      setPrompt(templatePrompt);
+    } else if (tab === 'avatar' && videoUrl) {
+      // Avatar: извлекаем первый кадр видео как изображение лица
+      setAvatarPrompt(templatePrompt);
+      extractFrameFromVideo(videoUrl).then((frameUrl) => {
+        if (frameUrl) setAvatarImage(frameUrl);
+      });
+    } else if (tab === 'avatar') {
       setAvatarPrompt(templatePrompt);
     } else {
       setPrompt(templatePrompt);
     }
     setSection('create');
     setTimeout(() => promptRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+  }
+
+  // Извлечение первого кадра из видео URL → data URL изображения
+  function extractFrameFromVideo(url: string): Promise<string | null> {
+    return new Promise((resolve) => {
+      const video = document.createElement('video');
+      video.crossOrigin = 'anonymous';
+      video.muted = true;
+      video.preload = 'auto';
+      video.onloadeddata = () => {
+        video.currentTime = 0.5; // чуть после начала для лучшего кадра
+      };
+      video.onseeked = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          canvas.getContext('2d')?.drawImage(video, 0, 0);
+          resolve(canvas.toDataURL('image/jpeg', 0.8));
+        } catch {
+          resolve(null);
+        }
+      };
+      video.onerror = () => resolve(null);
+      video.src = url;
+      // Таймаут на случай если видео не грузится
+      setTimeout(() => resolve(null), 5000);
+    });
+  }
+
+  // Проиграть пример голоса через Web Speech API
+  function playVoicePreview(_voiceName: string) {
+    if (!('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance('Привет! Это пример моего голоса.');
+    utterance.lang = 'ru-RU';
+    utterance.rate = speechRate;
+    const voices = speechSynthesis.getVoices();
+    const match = voices.find(v => v.lang.startsWith('ru'));
+    if (match) utterance.voice = match;
+    speechSynthesis.speak(utterance);
   }
 
   return (
@@ -602,25 +653,38 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
             {showVoicePicker && (
               <div className="bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md overflow-hidden max-h-48 overflow-y-auto">
                 {VOICES.map((v) => (
-                  <button
+                  <div
                     key={v}
-                    onClick={() => { setSelectedVoice(v); setShowVoicePicker(false); }}
-                    className={`w-full text-left px-4 py-3 flex items-center justify-between transition-colors ${
+                    className={`w-full px-4 py-3 flex items-center justify-between transition-colors ${
                       selectedVoice === v ? 'bg-white/[0.06]' : ''
                     }`}
                   >
-                    <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => { setSelectedVoice(v); setShowVoicePicker(false); }}
+                      className="flex items-center gap-3 flex-1 text-left"
+                    >
                       <div className="w-8 h-8 rounded-full bg-white/[0.08] flex items-center justify-center text-xs font-bold text-white">
                         {v[0]}
                       </div>
                       <span className="text-white text-sm font-medium">{v}</span>
+                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); playVoicePreview(v); }}
+                        className="w-8 h-8 rounded-full bg-violet-500/20 border border-violet-500/30 flex items-center justify-center active:scale-95 transition-transform"
+                        title="Прослушать"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="#8B5CF6" stroke="none">
+                          <polygon points="5 3 19 12 5 21 5 3"/>
+                        </svg>
+                      </button>
+                      {selectedVoice === v && (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                      )}
                     </div>
-                    {selectedVoice === v && (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="20 6 9 17 4 12"/>
-                      </svg>
-                    )}
-                  </button>
+                  </div>
                 ))}
               </div>
             )}

@@ -24,16 +24,60 @@ const VIDEO_MODELS: { id: VideoModel; name: string; desc: string; badge?: string
   { id: 'video-2.5-turbo', name: 'VIDEO 2.5 Turbo', desc: 'Максимум креатива с лучшим качеством', badge: undefined },
 ];
 
-// Голоса Kling TTS (fal-ai/kling-video/v1/tts)
+// Все голоса Kling TTS (fal-ai/kling-video/v1/tts) — 46 голосов
 const VOICES: { name: string; voiceId: string; gender: 'male' | 'female' }[] = [
-  { name: 'David',   voiceId: 'oversea_male1',        gender: 'male' },
-  { name: 'Diana',   voiceId: 'chat1_female_new-3',   gender: 'female' },
-  { name: 'Betty',   voiceId: 'girlfriend_4_speech02', gender: 'female' },
-  { name: 'Mary',    voiceId: 'cartoon-girl-01',       gender: 'female' },
-  { name: 'Michael', voiceId: 'ai_chenjiahao_712',     gender: 'male' },
-  { name: 'Eric',    voiceId: 'uk_boy1',               gender: 'male' },
-  { name: 'Amir',    voiceId: 'AOT',                   gender: 'male' },
-  { name: 'Emma',    voiceId: 'chat_0407_5-1',         gender: 'female' },
+  // ─── Английские / международные ───
+  { name: 'David',       voiceId: 'oversea_male1',           gender: 'male' },
+  { name: 'James',       voiceId: 'uk_boy1',                 gender: 'male' },
+  { name: 'Arthur',      voiceId: 'uk_man2',                 gender: 'male' },
+  { name: 'George',      voiceId: 'uk_oldman3',              gender: 'male' },
+  { name: 'Marcus',      voiceId: 'reader_en_m-v1',          gender: 'male' },
+  { name: 'Sophia',      voiceId: 'commercial_lady_en_f-v1', gender: 'female' },
+  // ─── Аниме / персонажи ───
+  { name: 'Vindi',       voiceId: 'genshin_vindi2',          gender: 'female' },
+  { name: 'Klee',        voiceId: 'genshin_klee2',           gender: 'female' },
+  { name: 'Kirara',      voiceId: 'genshin_kirara',          gender: 'female' },
+  { name: 'Kaiya',       voiceId: 'ai_kaiya',                gender: 'male' },
+  { name: 'Titan',       voiceId: 'AOT',                     gender: 'male' },
+  { name: 'Peppa',       voiceId: 'PeppaPig_platform',       gender: 'female' },
+  // ─── Женские голоса ───
+  { name: 'Luna',        voiceId: 'chat1_female_new-3',      gender: 'female' },
+  { name: 'Mia',         voiceId: 'chat_0407_5-1',           gender: 'female' },
+  { name: 'Lily',        voiceId: 'girlfriend_1_speech02',   gender: 'female' },
+  { name: 'Rose',        voiceId: 'girlfriend_2_speech02',   gender: 'female' },
+  { name: 'Amy',         voiceId: 'girlfriend_4_speech02',   gender: 'female' },
+  { name: 'Chloe',       voiceId: 'cartoon-girl-01',         gender: 'female' },
+  { name: 'Sophie',      voiceId: 'chengshu_jiejie',         gender: 'female' },
+  { name: 'Grace',       voiceId: 'you_pingjing',            gender: 'female' },
+  { name: 'Nana',        voiceId: 'heainainai_speech02',     gender: 'female' },
+  { name: 'Sweetie',     voiceId: 'tianmeixuemei-v1',        gender: 'female' },
+  { name: 'Baby',        voiceId: 'mengwa-v1',               gender: 'female' },
+  // ─── Мужские голоса ───
+  { name: 'Alex',        voiceId: 'ai_chenjiahao_712',       gender: 'male' },
+  { name: 'Leo',         voiceId: 'cartoon-boy-07',          gender: 'male' },
+  { name: 'Max',         voiceId: 'tiyuxi_xuedi',            gender: 'male' },
+  { name: 'Ryan',        voiceId: 'tiexin_nanyou',           gender: 'male' },
+  { name: 'Oliver',      voiceId: 'ai_shatang',              gender: 'male' },
+  { name: 'Henry',       voiceId: 'ai_huangzhong_712',       gender: 'male' },
+  { name: 'Victor',      voiceId: 'ai_huangyaoshi_712',      gender: 'male' },
+  { name: 'Walter',      voiceId: 'ai_laoguowang_712',       gender: 'male' },
+  { name: 'Bass',        voiceId: 'diyinnansang_DB_CN_M_04-v2', gender: 'male' },
+  { name: 'Narrator',    voiceId: 'yizhipiannan-v1',         gender: 'male' },
+  { name: 'Reporter',    voiceId: 'guanxiaofang-v2',         gender: 'male' },
+  { name: 'Villain',     voiceId: 'daopianyansang-v1',       gender: 'male' },
+  // ─── Рассказчики / специальные ───
+  { name: 'Storyteller', voiceId: 'calm_story1',             gender: 'male' },
+  { name: 'Student',     voiceId: 'zhinen_xuesheng',         gender: 'male' },
+  { name: 'Anchor',      voiceId: 'zhuxi_speech02',          gender: 'male' },
+  { name: 'Granny',      voiceId: 'laopopo_speech02',        gender: 'female' },
+  // ─── Региональные акценты ───
+  { name: 'Northeast',   voiceId: 'dongbeilaotie_speech02',     gender: 'male' },
+  { name: 'Chongqing',   voiceId: 'chongqingxiaohuo_speech02',  gender: 'male' },
+  { name: 'Sichuan',     voiceId: 'chuanmeizi_speech02',        gender: 'female' },
+  { name: 'Cantonese',   voiceId: 'chaoshandashu_speech02',     gender: 'male' },
+  { name: 'Taiwan',      voiceId: 'ai_taiwan_man2_speech02',    gender: 'male' },
+  { name: 'Shopkeeper',  voiceId: 'xianzhanggui_speech02',      gender: 'male' },
+  { name: 'Tianjin',     voiceId: 'tianjinjiejie_speech02',     gender: 'female' },
 ];
 
 const EMOTION_KEYS: { id: Emotion; key: 'video.emotion.neutral' | 'video.emotion.happy' | 'video.emotion.angry' | 'video.emotion.sad' | 'video.emotion.fearful' | 'video.emotion.disgusted' | 'video.emotion.surprised' }[] = [

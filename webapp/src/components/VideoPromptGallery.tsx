@@ -84,18 +84,8 @@ function FullscreenViewer({ tpl, lang, onClose, onUse, useLabel }: {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 bg-black" onClick={onClose}>
-      {/* Кнопка закрытия — ниже для удобства */}
-      <button
-        className="absolute top-12 right-4 z-10 w-10 h-10 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center border border-white/20"
-        onClick={(e) => { e.stopPropagation(); onClose(); }}
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
-          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </button>
-
-      {/* Видео на весь экран без просветов */}
+    <div className="fixed inset-0 z-50 bg-black flex flex-col" onClick={onClose}>
+      {/* Видео на весь экран */}
       <video
         ref={videoRef}
         src={tpl.previewUrl}
@@ -104,25 +94,34 @@ function FullscreenViewer({ tpl, lang, onClose, onUse, useLabel }: {
         className="absolute inset-0 w-full h-full object-cover"
       />
 
-      {/* Bottom sheet с промптом */}
+      {/* Кнопка закрытия — крупная, удобная, не перекрывается ничем */}
+      <button
+        className="absolute top-16 right-4 z-20 w-11 h-11 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center border border-white/25 active:scale-90 transition-transform"
+        onClick={(e) => { e.stopPropagation(); onClose(); }}
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+
+      {/* Bottom sheet — всегда снизу, полностью видим */}
       <div
-        className={`transition-transform duration-300 ease-out ${sheetOpen ? 'translate-y-0' : 'translate-y-full'}`}
+        className={`absolute bottom-0 left-0 right-0 z-10 transition-transform duration-300 ease-out ${sheetOpen ? 'translate-y-0' : 'translate-y-full'}`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="bg-gradient-to-t from-black via-black/95 to-transparent px-4 pb-6 pt-8 space-y-3">
-          {/* Drag handle */}
-          <div className="w-10 h-1 rounded-full bg-white/30 mx-auto -mt-4 mb-2" />
+        <div className="bg-gradient-to-t from-black via-black/95 to-transparent px-4 pb-8 pt-10 space-y-3">
+          <div className="w-10 h-1 rounded-full bg-white/30 mx-auto -mt-6 mb-2" />
 
-          <p className="text-white text-xs font-bold">
+          <p className="text-white text-sm font-bold">
             {lang === 'sah' ? tpl.label.sah : tpl.label.ru}
           </p>
-          <p className="text-white/80 text-[11px] leading-snug line-clamp-3">
+          <p className="text-white/80 text-xs leading-snug">
             {tpl.prompt}
           </p>
 
           <button
             onClick={onUse}
-            className="w-full py-3 rounded-xl bg-gradient-to-r from-violet-600 to-cyan-500 text-white text-sm font-bold shadow-lg shadow-violet-500/25 active:scale-[0.97] transition-transform"
+            className="w-full py-3.5 rounded-xl bg-gradient-to-r from-violet-600 to-cyan-500 text-white text-sm font-bold shadow-lg shadow-violet-500/25 active:scale-[0.97] transition-transform"
           >
             {useLabel}
           </button>

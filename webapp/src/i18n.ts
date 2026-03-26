@@ -118,6 +118,8 @@ const translations = {
   'video.history': { ru: 'Мои генерации', sah: 'Мин айбыттарым' },
   'video.noHistory': { ru: 'Пока нет генераций', sah: 'Билигин оҥоһуктар суохтар' },
   'video.motionDesc': { ru: 'Дополнительное описание движений', sah: 'Хамсаныыны эбии суруйуу' },
+  'video.templates': { ru: 'Шаблоны', sah: 'Хоһооннор' },
+  'video.useTemplate': { ru: 'Использовать', sah: 'Туһан' },
 
   // ─── Friends ───
   'friends.title': { ru: 'Партнёрская программа', sah: 'Партнерскай программа' },

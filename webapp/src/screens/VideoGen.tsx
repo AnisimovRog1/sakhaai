@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { api } from '../api/client';
 import type { User } from '../types';
 import { useLang } from '../LangContext';
+import { VideoPromptGallery } from '../components/VideoPromptGallery';
 
 type HistoryItem = { id: number; type: string; prompt: string | null; resultUrl: string; cost: number; createdAt: string };
 
@@ -148,8 +149,11 @@ function PillSelector<T extends string>({ options, value, onChange, columns }: {
 // ─── Main component ──────────────────────────────────────
 export function VideoGen({ user, onCreditsUpdate }: Props) {
   const { t } = useLang();
+  // Section toggle
+  const [section, setSection] = useState<'create' | 'templates'>('create');
   // Tab
   const [tab, setTab] = useState<Tab>('video');
+  const promptRef = useRef<HTMLTextAreaElement>(null);
 
   // Video Generation
   const [videoModel, setVideoModel] = useState<VideoModel>('video-3.0');
@@ -247,11 +251,56 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
     setError(null);
   }
 
+  function handleSelectTemplate(templatePrompt: string) {
+    if (tab === 'avatar') {
+      setAvatarPrompt(templatePrompt);
+    } else {
+      setPrompt(templatePrompt);
+    }
+    setSection('create');
+    setTimeout(() => promptRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+  }
+
   return (
     <div className="p-5 space-y-5 pb-6">
 
       {/* ─── Header ─── */}
       <h1 className="text-xl font-bold text-white pt-10">UraanxAI</h1>
+
+      {/* ─── Section toggle: Create / Templates ─── */}
+      <div className="flex gap-1 bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md p-1">
+        <button
+          onClick={() => setSection('create')}
+          className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+            section === 'create'
+              ? 'bg-gradient-to-r from-violet-600 to-cyan-500 text-white shadow-lg shadow-violet-500/20'
+              : 'text-slate-200'
+          }`}
+        >
+          {t('video.create')}
+        </button>
+        <button
+          onClick={() => setSection('templates')}
+          className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+            section === 'templates'
+              ? 'bg-gradient-to-r from-violet-600 to-cyan-500 text-white shadow-lg shadow-violet-500/20'
+              : 'text-slate-200'
+          }`}
+        >
+          {t('video.templates')}
+        </button>
+      </div>
+
+      {/* ─── Templates gallery ─── */}
+      {section === 'templates' && (
+        <VideoPromptGallery
+          filterTab={tab === 'avatar' ? 'avatar' : 'video'}
+          onSelectTemplate={handleSelectTemplate}
+        />
+      )}
+
+      {/* ─── Create section ─── */}
+      {section === 'create' && <>
 
       {/* ─── Tabs ─── */}
       <div className="flex gap-1 bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md p-1">
@@ -350,6 +399,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
             <label className="text-white text-sm font-semibold">{t('video.description')}</label>
             <div className="relative">
               <textarea
+                ref={promptRef}
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 placeholder="Опишите сцену, действия, камеру..."
@@ -737,6 +787,8 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
           </div>
         </div>
       )}
+
+      </>}
 
       {/* ─── Мои генерации ─── */}
       <div className="space-y-3 pt-2">

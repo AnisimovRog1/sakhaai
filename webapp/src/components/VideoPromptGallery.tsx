@@ -84,8 +84,8 @@ function FullscreenViewer({ tpl, lang, onClose, onUse, useLabel }: {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 bg-black flex flex-col" onClick={onClose}>
-      {/* Видео на весь экран */}
+    <div className="fixed z-50 bg-black" style={{ top: '-60px', left: 0, right: 0, bottom: 0 }} onClick={onClose}>
+      {/* Видео перекрывает всё включая Telegram header */}
       <video
         ref={videoRef}
         src={tpl.previewUrl}
@@ -94,9 +94,9 @@ function FullscreenViewer({ tpl, lang, onClose, onUse, useLabel }: {
         className="absolute inset-0 w-full h-full object-cover"
       />
 
-      {/* Кнопка закрытия — крупная, удобная, не перекрывается ничем */}
+      {/* Кнопка закрытия — крупная, удобная */}
       <button
-        className="absolute top-16 right-4 z-20 w-11 h-11 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center border border-white/25 active:scale-90 transition-transform"
+        className="absolute z-20 w-11 h-11 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center border border-white/25 active:scale-90 transition-transform" style={{ top: '80px', right: '16px' }}
         onClick={(e) => { e.stopPropagation(); onClose(); }}
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">

@@ -49,6 +49,10 @@ const KA = (name: string) => `https://v15-kling.klingai.com/bs2/upload-ylab-stun
 // ═══════════════════════════════════════════════════
 export const VIDEO_TEMPLATES: VideoPromptTemplate[] = [
   // ─── Кино ───
+  { id: 'v-cine-00', tab: 'video', category: 'cinematic', isVideo: true,
+    previewUrl: 'https://v15-kling.klingai.com/bs2/upload-ylab-stunt-sgp/special-effect/output/5ae3179e-914b-48bb-abd9-745da8a0c153/-2505652604036632340/out.mp4?x-kcdn-pid=112372',
+    prompt: 'Крупный план воина в богато украшенных средневековых доспехах. Камера медленно наезжает на лицо — решительный взгляд, отблески огня на металле шлема. Кинематографическое освещение в стиле Ридли Скотта, тёплые тона костра контрастируют с холодной сталью. Фотореалистичная детализация текстур — царапины на броне, пот на коже. Эпическая атмосфера, малая глубина резкости, качество 4K',
+    label: { ru: 'Воин в доспехах', sah: 'Кыһыл сэриичит' } },
   { id: 'v-cine-01', tab: 'video', category: 'cinematic',
     previewUrl: KL('YwoGdXBsb2FkEg55bGFiLXN0dW50LXNncBpJODM3Y2YxOWEtODcwMC00ODQwLTljMGQtYjI4MTQzMzY2NWU3LTlHcWl3YjRjUjlFMlRhZjNVYnpLc1Etb3V0cHV0X2ZmLmpwZw'),
     prompt: 'Фигуристка выполняет четверной прыжок на олимпийском катке, замедленная съёмка. Красивая воздушная позиция, идеальное приземление, ледяная крошка разлетается веером. Камера следит сбоку. Четверной лутц — мощный отталкивание с внешнего ребра, высокоскоростное вращение. Фотореализм, кинематографическое качество, съёмка как на олимпийской трансляции, плавное движение без размытия',

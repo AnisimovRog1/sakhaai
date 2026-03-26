@@ -15,16 +15,15 @@ function getInitData(): string {
   return window.Telegram?.WebApp?.initData ?? '';
 }
 
-// Фоновые фото для каждого экрана
+// Фоновые фото — всегда грузим десктопные (HD), на мобиле тоже ок
 const base = import.meta.env.BASE_URL;
-const isDesktop = window.innerWidth >= 1024;
 const BG: Record<string, string> = {
-  home:     `${base}${isDesktop ? 'bg-home-desktop.jpg' : 'newhome.jpg'}`,
-  chatList: `${base}${isDesktop ? 'bg-chatlist-desktop.jpg' : 'bg-chatlist.jpg'}`,
-  chat:     `${base}${isDesktop ? 'bg-chat-desktop.jpg' : 'bg-chat.jpg'}`,
-  imageGen: `${base}${isDesktop ? 'bg-chat-desktop.jpg' : 'bg-chat.jpg'}`,
-  videoGen: `${base}${isDesktop ? 'bg-video-desktop.jpg' : 'bg-video.jpg'}`,
-  friends:  `${base}${isDesktop ? 'bg-frends-desktop.jpg' : 'bg-frends.jpg'}`,
+  home:     `${base}bg-home-desktop.jpg`,
+  chatList: `${base}bg-chatlist-desktop.jpg`,
+  chat:     `${base}bg-chat-desktop.jpg`,
+  imageGen: `${base}bg-chat-desktop.jpg`,
+  videoGen: `${base}bg-video-desktop.jpg`,
+  friends:  `${base}bg-frends-desktop.jpg`,
 };
 
 // Разные оверлеи для каждого экрана — подчёркивают уникальность каждого фото
@@ -115,22 +114,18 @@ export function App() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-black">
-        <div className="relative flex flex-col items-center gap-8">
-          <img
-            src={`${base}logo-mammoth.png`}
-            alt="UraanxAI"
-            className="w-64 h-64 object-contain drop-shadow-[0_0_40px_rgba(100,180,255,0.5)]"
-          />
-          <div className="flex gap-3">
-            {[0, 1, 2].map((i) => (
-              <div
-                key={i}
-                className="w-2.5 h-2.5 bg-cyan-400 animate-bounce"
-                style={{ animationDelay: `${i * 0.2}s`, transform: 'rotate(45deg)', borderRadius: '2px' }}
-              />
-            ))}
-          </div>
+      <div
+        className="min-h-screen bg-black bg-contain bg-center bg-no-repeat flex flex-col items-center justify-end pb-24"
+        style={{ backgroundImage: `url(${base}logo-mammoth.png)` }}
+      >
+        <div className="flex gap-3">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="w-2.5 h-2.5 bg-cyan-400 animate-bounce"
+              style={{ animationDelay: `${i * 0.2}s`, transform: 'rotate(45deg)', borderRadius: '2px' }}
+            />
+          ))}
         </div>
       </div>
     );

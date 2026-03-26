@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { api } from '../api/client';
 import type { User } from '../types';
 import { useLang } from '../LangContext';
+import { PromptGallery } from '../components/PromptGallery';
 
 type HistoryItem = { id: number; type: string; prompt: string | null; resultUrl: string; cost: number; createdAt: string };
 
@@ -27,6 +28,7 @@ const BASE_COST = 60;
 
 export function ImageGen({ user, onCreditsUpdate }: Props) {
   const { t } = useLang();
+  const [section, setSection] = useState<'create' | 'templates'>('create');
   const [tab, setTab] = useState<Tab>('txt2img');
   const [model, setModel] = useState<Model>('nano-banana-2');
   const [prompt, setPrompt] = useState('');
@@ -38,6 +40,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
   const [refImage, setRefImage] = useState<string | null>(null);
   const [_refFile, setRefFile] = useState<File | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const promptRef = useRef<HTMLTextAreaElement>(null);
 
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -93,11 +96,49 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
     }
   }
 
+  function handleSelectTemplate(templatePrompt: string) {
+    setPrompt(templatePrompt);
+    setSection('create');
+    setTimeout(() => promptRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+  }
+
   return (
     <div className="p-5 space-y-5 pb-6">
 
       {/* ─── Header ─── */}
       <h1 className="text-xl font-bold text-white pt-10">UraanxAI</h1>
+
+      {/* ─── Section toggle: Create / Templates ─── */}
+      <div className="flex gap-1 bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md p-1">
+        <button
+          onClick={() => setSection('create')}
+          className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+            section === 'create'
+              ? 'bg-gradient-to-r from-violet-600 to-cyan-500 text-white shadow-lg shadow-violet-500/20'
+              : 'text-slate-200'
+          }`}
+        >
+          {t('image.create')}
+        </button>
+        <button
+          onClick={() => setSection('templates')}
+          className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+            section === 'templates'
+              ? 'bg-gradient-to-r from-violet-600 to-cyan-500 text-white shadow-lg shadow-violet-500/20'
+              : 'text-slate-200'
+          }`}
+        >
+          {t('image.templates')}
+        </button>
+      </div>
+
+      {/* ─── Templates gallery ─── */}
+      {section === 'templates' && (
+        <PromptGallery onSelectTemplate={handleSelectTemplate} />
+      )}
+
+      {/* ─── Create section ─── */}
+      {section === 'create' && <>
 
       {/* ─── Tabs ─── */}
       <div className="flex gap-1 bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md p-1">
@@ -217,6 +258,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
         <label className="text-white text-sm font-semibold">{t('image.prompt')}</label>
         <div className="relative">
           <textarea
+            ref={promptRef}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder={t('image.promptPlaceholder')}
@@ -397,6 +439,8 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
           </div>
         </div>
       )}
+
+      </>}
 
       {/* ─── Мои генерации ─── */}
       <div className="space-y-3 pt-2">

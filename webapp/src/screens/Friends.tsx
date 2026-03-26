@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api/client';
 import type { User, ReferralStats, ReferralFriend } from '../types';
+import { useLang } from '../LangContext';
 
 type Props = {
   user: User;
@@ -21,6 +22,7 @@ const REWARDS: Record<string, number> = {
 };
 
 export function Friends({ user }: Props) {
+  const { t } = useLang();
   const [stats, setStats]     = useState<ReferralStats | null>(null);
   const [friends, setFriends] = useState<ReferralFriend[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,13 +56,13 @@ export function Friends({ user }: Props) {
 
       {/* Header */}
       <div className="pt-1">
-        <h1 className="text-xl font-bold text-white">Партнёрская программа</h1>
-        <p className="text-slate-300 text-sm mt-1.5 font-medium">Приглашай друзей — получай кредиты</p>
+        <h1 className="text-xl font-bold text-white">{t('friends.title')}</h1>
+        <p className="text-slate-300 text-sm mt-1.5 font-medium">{t('friends.subtitle')}</p>
       </div>
 
       {/* Награды */}
       <div className="bg-white/[0.08] border border-white/[0.12] rounded-2xl p-5 space-y-4 backdrop-blur-md">
-        <p className="text-white text-sm font-bold uppercase tracking-wider">Награды за приглашение</p>
+        <p className="text-white text-sm font-bold uppercase tracking-wider">{t('friends.rewards')}</p>
         <div className="grid grid-cols-2 gap-2.5">
           {Object.entries(REWARDS).map(([pkg, cr]) => (
             <div key={pkg} className="bg-white/[0.07] border border-white/[0.10] rounded-xl px-4 py-3 flex items-center justify-between">
@@ -82,19 +84,19 @@ export function Friends({ user }: Props) {
         </div>
       ) : stats && (
         <div className="bg-white/[0.08] border border-white/[0.12] rounded-2xl p-5 backdrop-blur-md">
-          <p className="text-white text-sm font-bold uppercase tracking-wider mb-4">Статистика</p>
+          <p className="text-white text-sm font-bold uppercase tracking-wider mb-4">{t('friends.stats')}</p>
           <div className="grid grid-cols-3 gap-3">
             <div className="text-center">
               <p className="text-3xl font-extrabold text-white">{stats.totalEarned}</p>
-              <p className="text-slate-300 text-xs mt-1.5 font-semibold">кр. получено</p>
+              <p className="text-slate-300 text-xs mt-1.5 font-semibold">{t('friends.earned')}</p>
             </div>
             <div className="text-center border-x border-white/[0.12]">
               <p className="text-3xl font-extrabold text-white">{stats.total}</p>
-              <p className="text-slate-300 text-xs mt-1.5 font-semibold">друзей</p>
+              <p className="text-slate-300 text-xs mt-1.5 font-semibold">{t('friends.friendsCount')}</p>
             </div>
             <div className="text-center">
               <p className="text-3xl font-extrabold text-white">{stats.thisMonth}<span className="text-slate-400 text-lg font-bold">/{stats.monthlyLimit}</span></p>
-              <p className="text-slate-300 text-xs mt-1.5 font-semibold">в этом мес.</p>
+              <p className="text-slate-300 text-xs mt-1.5 font-semibold">{t('friends.thisMonth')}</p>
             </div>
           </div>
         </div>
@@ -165,8 +167,8 @@ export function Friends({ user }: Props) {
               <path d="M16 3.13a4 4 0 010 7.75"/>
             </svg>
           </div>
-          <p className="text-white text-base font-bold">Друзей пока нет</p>
-          <p className="text-slate-300 text-sm font-medium">Пригласи первого — получи кредиты!</p>
+          <p className="text-white text-base font-bold">{t('friends.noFriends')}</p>
+          <p className="text-slate-300 text-sm font-medium">{t('friends.noFriendsDesc')}</p>
         </div>
       )}
 
@@ -177,13 +179,13 @@ export function Friends({ user }: Props) {
             <circle cx="12" cy="12" r="10"/>
             <path d="M12 6v6l4 2"/>
           </svg>
-          <span className="text-slate-300 text-xs font-semibold">на проверке</span>
+          <span className="text-slate-300 text-xs font-semibold">{t('friends.checking')}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ADE80" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M20 6L9 17l-5-5"/>
           </svg>
-          <span className="text-slate-300 text-xs font-semibold">начислено</span>
+          <span className="text-slate-300 text-xs font-semibold">{t('friends.credited')}</span>
         </div>
       </div>
 
@@ -199,7 +201,7 @@ export function Friends({ user }: Props) {
             <line x1="20" y1="8" x2="20" y2="14"/>
             <line x1="23" y1="11" x2="17" y2="11"/>
           </svg>
-          Пригласить друга
+          {t('friends.invite')}
         </button>
       </div>
 

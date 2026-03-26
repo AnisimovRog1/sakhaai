@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../api/client';
 import type { Message } from '../types';
+import { useLang } from '../LangContext';
 
 type Props = {
   chatId: number;
@@ -9,6 +10,7 @@ type Props = {
 };
 
 export function Chat({ chatId, chatTitle, onBack }: Props) {
+  const { t } = useLang();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
@@ -62,7 +64,7 @@ export function Chat({ chatId, chatTitle, onBack }: Props) {
   }
 
   return (
-    <div className="flex flex-col tg-viewport pt-14">
+    <div className="flex flex-col tg-viewport pt-20">
 
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 bg-[#070b14]/90 backdrop-blur-xl border-b border-white/[0.08] flex-shrink-0">
@@ -140,7 +142,7 @@ export function Chat({ chatId, chatTitle, onBack }: Props) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Написать сообщение..."
+            placeholder={t('chat.placeholder')}
             rows={1}
             className="flex-1 bg-white/[0.08] border border-white/[0.10] rounded-2xl px-4 py-3 text-sm font-medium resize-none outline-none placeholder-slate-500 text-white max-h-32 focus:border-blue-500/50 transition-colors"
             style={{ lineHeight: '1.4' }}

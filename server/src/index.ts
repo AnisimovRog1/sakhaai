@@ -55,9 +55,19 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'sakhaai-server' });
 });
 
-// Лендинг + мета-тэг UnitPay
-app.get('/', (_req, res) => {
+// Лендинг (перенесён с / на /landing — корень теперь отдаёт SPA)
+app.get('/landing', (_req, res) => {
   res.type('text/html').send(LANDING_HTML);
+});
+
+// ─── Webapp SPA (React) ─────────────────────────────────
+// Собранный фронтенд копируется в server/webapp-dist/ при билде на Railway
+const webappDist = path.resolve(__dirname, '../webapp-dist');
+app.use(express.static(webappDist));
+
+// SPA fallback — все неизвестные роуты → index.html (React Router)
+app.get('*', (_req, res) => {
+  res.sendFile(path.join(webappDist, 'index.html'));
 });
 
 // Запуск

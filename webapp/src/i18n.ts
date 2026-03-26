@@ -68,6 +68,8 @@ const translations = {
   'image.noHistory': { ru: 'Пока нет генераций', sah: 'Билигин оҥоһуктар суохтар' },
   'image.addImage': { ru: 'Добавить', sah: 'Эп' },
   'image.uploadHint': { ru: 'Перетащите или нажмите, чтобы загрузить изображение', sah: 'Ойууну угарга манна сос эбэтэр баттаа' },
+  'image.templates': { ru: 'Шаблоны', sah: 'Хоһооннор' },
+  'image.useTemplate': { ru: 'Использовать', sah: 'Туһан' },
 
   // ─── VideoGen ───
   'video.title': { ru: 'UraanxAI', sah: 'UraanxAI' },

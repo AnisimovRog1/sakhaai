@@ -1,0 +1,12 @@
+[build]
+builder = "nixpacks"
+buildCommand = "cd webapp && npm install && npm run build && cd ../server && npm install && npm run build && mkdir -p webapp-dist && cp -r ../webapp/dist/* webapp-dist/"
+
+[deploy]
+startCommand = "cd server && node dist/index.js"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
+
+[healthcheck]
+path = "/health"
+timeout = 10

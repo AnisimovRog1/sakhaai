@@ -1,4 +1,6 @@
 import type { Screen } from '../types';
+import { useLang } from '../LangContext';
+import type { TranslationKey } from '../i18n';
 
 type Props = {
   current: string;
@@ -26,7 +28,8 @@ const HomeIcon = ({ active }: { active: boolean }) => (
   </svg>
 );
 
-const ChatIcon = ({ active }: { active: boolean }) => (
+// @ts-ignore временно скрыт
+const _ChatIcon = ({ active }: { active: boolean }) => (
   <svg width="26" height="26" viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round">
     {active && (
       <defs>
@@ -134,19 +137,21 @@ const FriendsIcon = ({ active }: { active: boolean }) => (
   </svg>
 );
 
-const items = [
-  { name: 'home'     as const, label: 'Главная',  Icon: HomeIcon    },
-  { name: 'chatList' as const, label: 'Чаты',     Icon: ChatIcon    },
-  { name: 'imageGen' as const, label: 'Картинки', Icon: ImageIcon   },
-  { name: 'videoGen' as const, label: 'Видео',    Icon: VideoIcon   },
-  { name: 'friends'  as const, label: 'Друзья',   Icon: FriendsIcon },
+const items: { name: 'home' | 'chatList' | 'imageGen' | 'videoGen' | 'friends'; labelKey: TranslationKey; Icon: typeof HomeIcon }[] = [
+  { name: 'home',     labelKey: 'nav.home',    Icon: HomeIcon    },
+  // { name: 'chatList', labelKey: 'nav.chats',   Icon: ChatIcon    }, // временно скрыт
+  { name: 'imageGen', labelKey: 'nav.images',  Icon: ImageIcon   },
+  { name: 'videoGen', labelKey: 'nav.video',   Icon: VideoIcon   },
+  { name: 'friends',  labelKey: 'nav.friends', Icon: FriendsIcon },
 ];
 
 export function BottomNav({ current, onNavigate }: Props) {
+  const { t } = useLang();
   return (
     <nav className="fixed bottom-0 left-0 right-0 w-full bg-[#070b14]/95 backdrop-blur-xl border-t border-white/[0.08]">
       <div className="flex">
-        {items.map(({ name, label, Icon }) => {
+        {items.map(({ name, labelKey, Icon }) => {
+          const label = t(labelKey);
           const active = current === name;
           return (
             <button

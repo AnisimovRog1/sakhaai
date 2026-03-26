@@ -292,7 +292,7 @@ function G(p){return apiFetch(p)}
 function P(p,d){return apiFetch(p,{method:'POST',body:JSON.stringify(d)})}
 function D(p){return apiFetch(p,{method:'DELETE'})}
 
-function showTab(el,n){document.querySelectorAll('[id^=tab-]').forEach(e=>e.classList.add('hidden'));document.getElementById('tab-'+n).classList.remove('hidden');document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));el.classList.add('active');if(n==='users')loadUsers();if(n==='pushes'){loadPushTemplates();loadPushLog()}}
+function showTab(el,n){document.querySelectorAll('[id^=tab-]').forEach(e=>e.classList.add('hidden'));document.getElementById('tab-'+n).classList.remove('hidden');document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));el.classList.add('active');if(n==='users')loadUsers();if(n==='pushes'){loadPushTemplates();loadPushLog();loadSeqs()}}
 
 // Auto-refresh every 30 sec
 function startAutoRefresh(){autoRefresh=setInterval(()=>loadStats(currentPeriod),30000)}
@@ -520,10 +520,6 @@ function addNewSeq(){
   if(!label)return;
   P('/admin/push/sequences',{trigger_type:'no_purchase',delay_minutes:0,text:'Текст пуша...',label,is_active:false}).then(()=>loadSeqs())
 }
-
-// Обновляем showTab чтобы грузить автопуши
-const _origShowTab=showTab;
-function showTab(el,n){document.querySelectorAll('[id^=tab-]').forEach(e=>e.classList.add('hidden'));document.getElementById('tab-'+n).classList.remove('hidden');document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));el.classList.add('active');if(n==='users')loadUsers();if(n==='pushes'){loadPushTemplates();loadPushLog();loadSeqs()}}
 
 if(TOKEN)showPanel();
 </script></body></html>`;

@@ -471,7 +471,7 @@ function renderSeqs(){
       '<textarea class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm text-slate-200 resize-y" rows="3" id="seqtext-'+s.id+'" onchange="markSeqDirty('+s.id+')">'+esc(s.text)+'</textarea>'+
       '<div class="flex gap-2 mt-2 flex-wrap items-center">'+
         '<input class="flex-1 min-w-[200px] text-xs bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-slate-300" placeholder="URL фото (необязательно)" value="'+(s.media_url||'')+'" id="seqimg-'+s.id+'" onchange="markSeqDirty('+s.id+')">'+
-        (s.media_url?'<img src="'+esc(s.media_url)+'" class="w-10 h-10 object-cover rounded" onerror="this.style.display=\'none\'">':'')+
+        (s.media_url?'<img src="'+esc(s.media_url)+'" class="w-10 h-10 object-cover rounded" onerror="this.remove()">':'')+
         '<select class="text-xs bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-slate-300" id="seqtrig-'+s.id+'" onchange="markSeqDirty('+s.id+')">'+
           '<option value="no_purchase"'+(s.trigger_type==='no_purchase'?' selected':'')+'>🛒 Не купил</option>'+
           '<option value="after_purchase"'+(s.trigger_type==='after_purchase'?' selected':'')+'>✅ Купил</option>'+

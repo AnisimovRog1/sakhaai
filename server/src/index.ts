@@ -63,10 +63,31 @@ app.get('/landing', (_req, res) => {
 // ─── Webapp SPA (React) ─────────────────────────────────
 // Собранный фронтенд копируется в server/webapp-dist/ при билде на Railway
 const webappDist = path.resolve(__dirname, '../webapp-dist');
-app.use(express.static(webappDist));
+
+// Статика (JS/CSS/images) — кэш на 1 год (хэш в имени файла)
+app.use('/assets', express.static(path.join(webappDist, 'assets'), {
+  maxAge: '1y',
+  immutable: true,
+}));
+
+// Всё остальное (index.html, favicon) — без кэша
+app.use(express.static(webappDist, {
+  etag: false,
+  lastModified: false,
+  setHeaders: (res) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    res.set('Surrogate-Control', 'no-store');
+  },
+}));
 
 // SPA fallback — все неизвестные роуты → index.html (React Router)
 app.get('*', (_req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  res.set('Surrogate-Control', 'no-store');
   res.sendFile(path.join(webappDist, 'index.html'));
 });
 

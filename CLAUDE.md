@@ -3,24 +3,20 @@
 > Последнее обновление: 2026-03-18. Шаги 1–6 и Шаг 9 (редизайн) выполнены.
 
 ## Стек
-- **webapp** — React 19 + TypeScript + Vite 8 + Tailwind 3 → Netlify
+- **webapp** — React 19 + TypeScript + Vite 8 + Tailwind 3 → Railway (раздаётся через Express)
 - **server** — Node.js + Express 4 + PostgreSQL + Gemini AI → Railway (сервис `sakhaai`)
 - **bot** — grammY → Railway (сервис `focused-clarity`)
 
 ## Деплой
 ```bash
-# Webapp
-cd webapp && npm run build && npx netlify-cli deploy --dir=dist --prod
-
-# Server / Bot
-git push  # Railway автодеплой по main
+# Всё через Railway автодеплой по main
+git push
 ```
 
 ## Ключевые URL
 | Что | URL |
 |---|---|
-| Webapp (Netlify) | https://dreamy-churros-2c46d7.netlify.app |
-| Server (Railway) | https://sakhaai-production.up.railway.app |
+| Webapp + Server (Railway) | https://sakhaai-production.up.railway.app |
 | Health check | https://sakhaai-production.up.railway.app/health |
 | Bot | @UraanxAI_bot |
 
@@ -40,7 +36,7 @@ git push  # Railway автодеплой по main
 | Переменная | Описание |
 |---|---|
 | `BOT_TOKEN` | Токен @UraanxAI_bot |
-| `WEBAPP_URL` | https://dreamy-churros-2c46d7.netlify.app |
+| `WEBAPP_URL` | https://sakhaai-production.up.railway.app |
 
 ### webapp/.env.production
 ```

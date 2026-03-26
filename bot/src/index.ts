@@ -5,7 +5,7 @@ import https from 'https';
 dotenv.config();
 
 const BOT_TOKEN  = process.env.BOT_TOKEN;
-const WEBAPP_URL = process.env.WEBAPP_URL ?? 'https://anisimovrog1.github.io/sakhaai/';
+const WEBAPP_URL = process.env.WEBAPP_URL ?? 'https://sakhaai-production.up.railway.app';
 const SERVER_URL = process.env.SERVER_URL ?? 'https://sakhaai-production.up.railway.app';
 // Список админов: ADMIN_CHAT_ID + доп. ID через запятую
 const ADMIN_IDS: number[] = (process.env.ADMIN_CHAT_ID || '')

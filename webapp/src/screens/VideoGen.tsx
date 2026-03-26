@@ -291,18 +291,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
         </button>
       </div>
 
-      {/* ─── Templates gallery ─── */}
-      {section === 'templates' && (
-        <VideoPromptGallery
-          filterTab={tab === 'avatar' ? 'avatar' : 'video'}
-          onSelectTemplate={handleSelectTemplate}
-        />
-      )}
-
-      {/* ─── Create section ─── */}
-      {section === 'create' && <>
-
-      {/* ─── Tabs ─── */}
+      {/* ─── Tabs (видны всегда) ─── */}
       <div className="flex gap-1 bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md p-1">
         {([
           { id: 'video' as Tab, label: t('video.tab.video'), icon: <IconVideo size={14} /> },
@@ -323,6 +312,17 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
           </button>
         ))}
       </div>
+
+      {/* ─── Templates gallery ─── */}
+      {section === 'templates' && (
+        <VideoPromptGallery
+          tab={tab}
+          onSelectTemplate={handleSelectTemplate}
+        />
+      )}
+
+      {/* ─── Create section ─── */}
+      {section === 'create' && <>
 
       {/* ─── Model selector (Video & Motion) ─── */}
       {(tab === 'video' || tab === 'motion') && (

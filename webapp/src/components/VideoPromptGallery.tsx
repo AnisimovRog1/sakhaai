@@ -1,34 +1,39 @@
 import { useState } from 'react';
 import { useLang } from '../LangContext';
-import { VIDEO_CATEGORIES, VIDEO_PROMPT_TEMPLATES, type VideoTemplateCategory, type VideoTemplateTab } from '../data/videoPromptTemplates';
+import {
+  VIDEO_TEMPLATES, MOTION_TEMPLATES, AVATAR_TEMPLATES,
+  VIDEO_TAB_CATEGORIES, MOTION_TAB_CATEGORIES, AVATAR_TAB_CATEGORIES,
+  type VideoTemplateTab, type AnyCategory,
+} from '../data/videoPromptTemplates';
 
 type Props = {
-  filterTab?: VideoTemplateTab;
+  tab: VideoTemplateTab;
   onSelectTemplate: (prompt: string) => void;
 };
 
-export function VideoPromptGallery({ filterTab, onSelectTemplate }: Props) {
+export function VideoPromptGallery({ tab, onSelectTemplate }: Props) {
   const { lang, t } = useLang();
-  const [activeCategory, setActiveCategory] = useState<VideoTemplateCategory | 'all'>('all');
+  const [activeCategory, setActiveCategory] = useState<AnyCategory>('all');
+
+  const templates = tab === 'video' ? VIDEO_TEMPLATES
+    : tab === 'motion' ? MOTION_TEMPLATES
+    : AVATAR_TEMPLATES;
+
+  const categories = tab === 'video' ? VIDEO_TAB_CATEGORIES
+    : tab === 'motion' ? MOTION_TAB_CATEGORIES
+    : AVATAR_TAB_CATEGORIES;
+
+  const filtered = activeCategory === 'all'
+    ? templates
+    : templates.filter(tpl => tpl.category === activeCategory);
+
   const [expandedId, setExpandedId] = useState<string | null>(null);
-
-  const filtered = VIDEO_PROMPT_TEMPLATES
-    .filter(tpl => !filterTab || tpl.tab === filterTab)
-    .filter(tpl => activeCategory === 'all' || tpl.category === activeCategory);
-
-  // Hide categories with 0 items for current filterTab
-  const visibleCategories = VIDEO_CATEGORIES.filter(cat => {
-    if (cat.id === 'all') return true;
-    return VIDEO_PROMPT_TEMPLATES.some(
-      tpl => tpl.category === cat.id && (!filterTab || tpl.tab === filterTab)
-    );
-  });
 
   return (
     <div className="space-y-4">
       {/* ─── Category pills ─── */}
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
-        {visibleCategories.map((cat) => (
+        {categories.map((cat) => (
           <button
             key={cat.id}
             onClick={() => setActiveCategory(cat.id)}
@@ -66,11 +71,13 @@ export function VideoPromptGallery({ filterTab, onSelectTemplate }: Props) {
                 <p className="text-white text-xs font-bold leading-tight">
                   {lang === 'sah' ? tpl.label.sah : tpl.label.ru}
                 </p>
-                {tpl.tab === 'avatar' && (
-                  <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-cyan-500/80 text-white">
-                    Аватар
-                  </span>
-                )}
+              </div>
+
+              {/* Play icon overlay */}
+              <div className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="white" stroke="none">
+                  <polygon points="5 3 19 12 5 21 5 3"/>
+                </svg>
               </div>
 
               {/* Expanded overlay with prompt + use button */}

@@ -87,10 +87,22 @@ export const api = {
       body: JSON.stringify({ imageUrl, prompt }),
     }),
 
-  generateAvatar: (imageUrl: string, text: string) =>
+  generateAvatar: (imageUrl: string, audioUrl: string) =>
     request<{ videoUrl: string; creditsLeft: number; cost: number }>('/video/avatar', {
       method: 'POST',
-      body: JSON.stringify({ imageUrl, text }),
+      body: JSON.stringify({ imageUrl, audioUrl }),
+    }),
+
+  generateTTS: (text: string, voiceId: string, voiceSpeed?: number) =>
+    request<{ audioUrl: string }>('/video/tts', {
+      method: 'POST',
+      body: JSON.stringify({ text, voiceId, voiceSpeed }),
+    }),
+
+  previewVoice: (text: string, voiceId: string, voiceSpeed?: number) =>
+    request<{ audioUrl: string }>('/video/tts-preview', {
+      method: 'POST',
+      body: JSON.stringify({ text, voiceId, voiceSpeed }),
     }),
 
   // ── Рефералы ────────────────────────────

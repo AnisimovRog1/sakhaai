@@ -54,6 +54,26 @@ export async function generateMotion(
   };
 }
 
+// TTS — текст в речь (Kling TTS v1)
+export async function generateTTS(
+  text: string,
+  voiceId: string = 'oversea_male1',
+  voiceSpeed: number = 1.0
+): Promise<{ audioUrl: string }> {
+  if (!process.env.FAL_KEY) throw new Error('FAL_KEY не задан');
+
+  const result = await fal.subscribe('fal-ai/kling-video/v1/tts', {
+    input: {
+      text,
+      voice_id: voiceId as any,
+      voice_speed: voiceSpeed,
+    },
+  });
+
+  const data = result.data as any;
+  return { audioUrl: data.audio?.url ?? '' };
+}
+
 // Avatar — говорящая аватарка (Kling Avatar v2 Pro)
 export async function generateAvatar(
   imageUrl: string,

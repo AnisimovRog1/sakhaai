@@ -24,16 +24,16 @@ const VIDEO_MODELS: { id: VideoModel; name: string; desc: string; badge?: string
   { id: 'video-2.5-turbo', name: 'VIDEO 2.5 Turbo', desc: 'Максимум креатива с лучшим качеством', badge: undefined },
 ];
 
-// Голоса с уникальными параметрами (pitch + rate) для Web Speech API
-const VOICES: { name: string; pitch: number; rate: number; gender: 'male' | 'female' }[] = [
-  { name: 'Давид',  pitch: 0.9,  rate: 1.0, gender: 'male' },
-  { name: 'Диана',  pitch: 1.3,  rate: 1.05, gender: 'female' },
-  { name: 'Бетти',  pitch: 1.5,  rate: 0.95, gender: 'female' },
-  { name: 'Мария',  pitch: 1.1,  rate: 0.9, gender: 'female' },
-  { name: 'Михаил', pitch: 0.7,  rate: 0.95, gender: 'male' },
-  { name: 'Эрик',   pitch: 0.8,  rate: 1.1, gender: 'male' },
-  { name: 'Амир',   pitch: 1.0,  rate: 1.0, gender: 'male' },
-  { name: 'Эмма',   pitch: 1.4,  rate: 1.0, gender: 'female' },
+// Голоса Kling TTS (fal-ai/kling-video/v1/tts)
+const VOICES: { name: string; voiceId: string; gender: 'male' | 'female' }[] = [
+  { name: 'David',   voiceId: 'oversea_male1',        gender: 'male' },
+  { name: 'Diana',   voiceId: 'chat1_female_new-3',   gender: 'female' },
+  { name: 'Betty',   voiceId: 'girlfriend_4_speech02', gender: 'female' },
+  { name: 'Mary',    voiceId: 'cartoon-girl-01',       gender: 'female' },
+  { name: 'Michael', voiceId: 'ai_chenjiahao_712',     gender: 'male' },
+  { name: 'Eric',    voiceId: 'uk_boy1',               gender: 'male' },
+  { name: 'Amir',    voiceId: 'AOT',                   gender: 'male' },
+  { name: 'Emma',    voiceId: 'chat_0407_5-1',         gender: 'female' },
 ];
 
 const EMOTION_KEYS: { id: Emotion; key: 'video.emotion.neutral' | 'video.emotion.happy' | 'video.emotion.angry' | 'video.emotion.sad' | 'video.emotion.fearful' | 'video.emotion.disgusted' | 'video.emotion.surprised' }[] = [
@@ -185,7 +185,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
   // Avatar
   const [avatarImage, setAvatarImage] = useState<string | null>(null);
   const [speechText, setSpeechText] = useState('');
-  const [selectedVoice, setSelectedVoice] = useState('Давид');
+  const [selectedVoice, setSelectedVoice] = useState('David');
   const [showVoicePicker, setShowVoicePicker] = useState(false);
   const [speechRate, setSpeechRate] = useState(1.0);
   const [emotion, setEmotion] = useState<Emotion>('neutral');
@@ -310,27 +310,27 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
   }
 
   // Проиграть пример голоса через Web Speech API
-  function playVoicePreview(voiceName: string) {
-    if (!('speechSynthesis' in window)) return;
-    speechSynthesis.cancel();
+  const [previewLoading, setPreviewLoading] = useState<string | null>(null);
+
+  async function playVoicePreview(voiceName: string) {
     const voiceConfig = VOICES.find(v => v.name === voiceName);
     if (!voiceConfig) return;
-    const utterance = new SpeechSynthesisUtterance(`Привет! Меня зовут ${voiceName}. Я могу озвучить ваш контент.`);
-    utterance.lang = 'ru-RU';
-    utterance.pitch = voiceConfig.pitch;
-    utterance.rate = voiceConfig.rate * speechRate;
-    // Подбираем голос по полу
-    const allVoices = speechSynthesis.getVoices();
-    const ruVoices = allVoices.filter(v => v.lang.startsWith('ru'));
-    if (ruVoices.length > 0) {
-      // Пробуем найти голос нужного пола
-      const genderMatch = ruVoices.find(v =>
-        voiceConfig.gender === 'female' ? v.name.toLowerCase().includes('female') || v.name.includes('Milena') || v.name.includes('Алёна')
-        : v.name.toLowerCase().includes('male') || v.name.includes('Dmitri')
+    setPreviewLoading(voiceName);
+    try {
+      const result = await api.previewVoice(
+        `Hello! My name is ${voiceName}. I can voice your content.`,
+        voiceConfig.voiceId,
+        speechRate
       );
-      utterance.voice = genderMatch || ruVoices[0];
+      if (result.audioUrl) {
+        const audio = new Audio(result.audioUrl);
+        audio.play().catch(() => {});
+      }
+    } catch {
+      // fallback: ничего не делаем
+    } finally {
+      setPreviewLoading(null);
     }
-    speechSynthesis.speak(utterance);
   }
 
   return (
@@ -692,12 +692,19 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={(e) => { e.stopPropagation(); playVoicePreview(v.name); }}
-                        className="w-8 h-8 rounded-full bg-violet-500/20 border border-violet-500/30 flex items-center justify-center active:scale-95 transition-transform"
+                        disabled={previewLoading === v.name}
+                        className="w-8 h-8 rounded-full bg-violet-500/20 border border-violet-500/30 flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50"
                         title="Прослушать"
                       >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="#8B5CF6" stroke="none">
-                          <polygon points="5 3 19 12 5 21 5 3"/>
-                        </svg>
+                        {previewLoading === v.name ? (
+                          <svg className="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="3" strokeLinecap="round">
+                            <path d="M12 3a9 9 0 019 9" />
+                          </svg>
+                        ) : (
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="#8B5CF6" stroke="none">
+                            <polygon points="5 3 19 12 5 21 5 3"/>
+                          </svg>
+                        )}
                       </button>
                       {selectedVoice === v.name && (
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

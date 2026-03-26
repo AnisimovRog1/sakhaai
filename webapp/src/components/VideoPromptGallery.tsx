@@ -84,27 +84,25 @@ function FullscreenViewer({ tpl, lang, onClose, onUse, useLabel }: {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 bg-black flex flex-col" onClick={onClose}>
-      {/* Кнопка закрытия */}
+    <div className="fixed inset-0 z-50 bg-black" onClick={onClose}>
+      {/* Кнопка закрытия — ниже для удобства */}
       <button
-        className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center"
-        onClick={onClose}
+        className="absolute top-12 right-4 z-10 w-10 h-10 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center border border-white/20"
+        onClick={(e) => { e.stopPropagation(); onClose(); }}
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
       </button>
 
-      {/* Видео на весь экран */}
-      <div className="flex-1 flex items-center justify-center">
-        <video
-          ref={videoRef}
-          src={tpl.previewUrl}
-          loop
-          playsInline
-          className="w-full h-full object-contain"
-        />
-      </div>
+      {/* Видео на весь экран без просветов */}
+      <video
+        ref={videoRef}
+        src={tpl.previewUrl}
+        loop
+        playsInline
+        className="absolute inset-0 w-full h-full object-cover"
+      />
 
       {/* Bottom sheet с промптом */}
       <div

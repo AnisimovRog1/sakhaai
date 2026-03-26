@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth';
-import { generateVideo, generateMotion, generateAvatar } from '../services/kling';
+import { generateVideo, generateMotion, generateAvatar, generateTTS } from '../services/kling';
 import { deduct, TxType } from '../services/balance';
 import { saveGeneration } from '../services/generations';
 
@@ -56,6 +56,30 @@ videoRouter.post('/motion', async (req: Request, res: Response) => {
     res.json({ ...result, creditsLeft, cost: COSTS.motion.credits });
   } catch (e: any) {
     res.status(500).json({ error: e.message ?? 'Ошибка генерации' });
+  }
+});
+
+// POST /video/tts-preview — превью голоса (бесплатно, без списания)
+videoRouter.post('/tts-preview', async (req: Request, res: Response) => {
+  const { text, voiceId, voiceSpeed } = req.body;
+  if (!text?.trim()) { res.status(400).json({ error: 'Текст обязателен' }); return; }
+  try {
+    const result = await generateTTS(text, voiceId, voiceSpeed);
+    res.json(result);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message ?? 'Ошибка TTS' });
+  }
+});
+
+// POST /video/tts — генерация аудио для аватара (списание при генерации аватара)
+videoRouter.post('/tts', async (req: Request, res: Response) => {
+  const { text, voiceId, voiceSpeed } = req.body;
+  if (!text?.trim()) { res.status(400).json({ error: 'Текст обязателен' }); return; }
+  try {
+    const result = await generateTTS(text, voiceId, voiceSpeed);
+    res.json(result);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message ?? 'Ошибка TTS' });
   }
 });
 

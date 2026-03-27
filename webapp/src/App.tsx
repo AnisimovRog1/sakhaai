@@ -97,8 +97,7 @@ export function App() {
       undefined;
 
     if (!initData) {
-      setError('Открой приложение через Telegram-бота @UraanxAI_bot');
-      setLoading(false);
+      window.location.href = '/landing';
       return;
     }
 

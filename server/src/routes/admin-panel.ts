@@ -173,61 +173,35 @@ input:focus,textarea:focus{border-color:rgba(139,92,246,.5);box-shadow:0 0 20px 
     <div id="tab-pushes" class="hidden">
       <!-- Создание пуша -->
       <div class="glass-neon p-6 mb-5 glow-border">
-        <h3 class="text-base font-bold mb-5 flex items-center gap-2"><span class="anim-bounce">📝</span> Создать пуш</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="space-y-3">
-            <input id="pushName" placeholder="📌 Название шаблона">
-            <textarea id="pushText" placeholder="✏️ Текст сообщения" rows="4"></textarea>
-            <div>
-              <label class="text-xs text-slate-500 mb-1 block">🖼 Медиа</label>
-              <div id="dropZone" style="border:2px dashed rgba(139,92,246,.3);border-radius:12px;padding:20px;text-align:center;cursor:pointer;transition:all .3s" onclick="document.getElementById('fileInput').click()" ondragover="event.preventDefault();this.style.borderColor='rgba(6,182,212,.6)';this.style.background='rgba(6,182,212,.05)'" ondragleave="this.style.borderColor='rgba(139,92,246,.3)';this.style.background='transparent'" ondrop="event.preventDefault();handleFileDrop(event);this.style.borderColor='rgba(139,92,246,.3)';this.style.background='transparent'">
-                <div id="dropZoneContent">
-                  <div class="text-2xl mb-2 anim-bounce">📁</div>
-                  <p class="text-slate-400 text-sm">Перетащите фото/видео сюда</p>
-                  <p class="text-slate-600 text-xs mt-1">или нажмите для выбора</p>
-                </div>
-                <div id="mediaPreview" class="hidden">
-                  <img id="mediaImg" class="max-h-32 mx-auto rounded-lg" style="display:none">
-                  <video id="mediaVid" class="max-h-32 mx-auto rounded-lg" style="display:none" muted></video>
-                  <p id="mediaName" class="text-cyan-400 text-sm mt-2 font-medium"></p>
-                  <button class="btn btn-danger mt-2" style="padding:4px 12px;font-size:11px" onclick="event.stopPropagation();clearMedia()">✕ Убрать</button>
-                </div>
+        <h3 class="text-base font-bold mb-4 flex items-center gap-2"><span class="anim-bounce">📝</span> Создать разовый пуш</h3>
+        <div class="space-y-3">
+          <input id="pushName" placeholder="📌 Название пуша">
+          <textarea id="pushText" placeholder="✏️ Текст сообщения" rows="3"></textarea>
+          <div>
+            <div id="dropZone" style="border:2px dashed rgba(139,92,246,.3);border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:all .3s" onclick="document.getElementById('fileInput').click()" ondragover="event.preventDefault();this.style.borderColor='rgba(6,182,212,.6)';this.style.background='rgba(6,182,212,.05)'" ondragleave="this.style.borderColor='rgba(139,92,246,.3)';this.style.background='transparent'" ondrop="event.preventDefault();handleFileDrop(event);this.style.borderColor='rgba(139,92,246,.3)';this.style.background='transparent'">
+              <div id="dropZoneContent">
+                <p class="text-slate-400 text-sm">📁 Перетащите фото/видео или нажмите</p>
               </div>
-              <input type="file" id="fileInput" accept="image/*,video/*" class="hidden" onchange="handleFileSelect(event)">
+              <div id="mediaPreview" class="hidden">
+                <img id="mediaImg" class="max-h-32 mx-auto rounded-lg" style="display:none">
+                <video id="mediaVid" class="max-h-32 mx-auto rounded-lg" style="display:none" muted></video>
+                <p id="mediaName" class="text-cyan-400 text-sm mt-2 font-medium"></p>
+                <button class="btn btn-danger mt-2" style="padding:4px 12px;font-size:11px" onclick="event.stopPropagation();clearMedia()">✕ Убрать</button>
+              </div>
             </div>
+            <input type="file" id="fileInput" accept="image/*,video/*" class="hidden" onchange="handleFileSelect(event)">
           </div>
-          <div class="space-y-3">
-            <select id="pushType" onchange="document.getElementById('pushTimeRow').classList.toggle('hidden',this.value!=='daily')">
-              <option value="manual">📨 Разовый</option>
-              <option value="daily">📅 Ежедневный</option>
-              <option value="welcome">👋 Приветственный</option>
-            </select>
-            <div id="pushTimeRow" class="hidden">
-              <label class="text-xs text-slate-500 mb-1 block">⏰ Время (по местному времени юзера)</label>
-              <select id="pushTime">
-                <option value="08:00">08:00</option>
-                <option value="09:00">09:00</option>
-                <option value="10:00" selected>10:00</option>
-                <option value="11:00">11:00</option>
-                <option value="12:00">12:00</option>
-                <option value="13:00">13:00</option>
-                <option value="14:00">14:00</option>
-                <option value="16:00">16:00</option>
-                <option value="18:00">18:00</option>
-                <option value="20:00">20:00</option>
-                <option value="21:00">21:00</option>
-              </select>
-            </div>
-            <div class="flex gap-2 pt-2">
-              <button class="btn btn-primary flex-1 py-3" onclick="createPush(false)">💾 Сохранить</button>
-              <button class="btn btn-success flex-1 py-3" onclick="createPush(true)">📨 Сохранить и отправить</button>
-            </div>
+          <input type="hidden" id="pushType" value="manual">
+          <div id="pushTimeRow" class="hidden"></div>
+          <div class="flex gap-2">
+            <button class="btn btn-primary flex-1 py-3" onclick="createPush(false)">💾 Сохранить</button>
+            <button class="btn btn-success flex-1 py-3" onclick="createPush(true)">📨 Отправить всем</button>
           </div>
         </div>
       </div>
 
-      <!-- Таблица шаблонов -->
-      <h3 class="text-base font-bold mb-4 flex items-center gap-2"><span class="anim-pulse">📋</span> Активные пуши</h3>
+      <!-- Таблица пушей -->
+      <h3 class="text-base font-bold mb-4 flex items-center gap-2"><span class="anim-pulse">📋</span> Разовые пуши</h3>
       <div class="glass-strong overflow-x-auto mb-5">
         <table>
           <thead><tr>
@@ -241,6 +215,15 @@ input:focus,textarea:focus{border-color:rgba(139,92,246,.5);box-shadow:0 0 20px 
       <div class="glass-cyan p-5 mb-5">
         <h3 class="text-sm font-bold mb-4 flex items-center gap-2"><span class="anim-spin">📊</span> Лог рассылок</h3>
         <div id="pushLogList"></div>
+      </div>
+
+      <!-- ═══ КОРЗИНА ═══ -->
+      <div class="glass p-5 mb-5" style="border:1px dashed rgba(255,255,255,.1)">
+        <div class="flex items-center justify-between cursor-pointer" onclick="toggleTrash()">
+          <h3 class="text-sm font-bold flex items-center gap-2">🗑 Корзина удалённых <span id="trashCount" class="text-slate-600 font-normal">(0)</span></h3>
+          <span class="text-slate-600 text-xs" id="trashArrow">▶</span>
+        </div>
+        <div id="trashList" class="hidden mt-4 space-y-2"></div>
       </div>
 
       <!-- ═══ АВТОПУШ-ЦЕПОЧКИ ═══ -->
@@ -262,12 +245,6 @@ input:focus,textarea:focus{border-color:rgba(139,92,246,.5);box-shadow:0 0 20px 
         </div>
 
         <div id="seqList"></div>
-
-        <!-- Корзина -->
-        <div class="mt-6">
-          <button class="btn btn-ghost text-xs flex items-center gap-2" onclick="toggleTrash()">🗑 Корзина удалённых <span id="trashCount" class="text-slate-600">(0)</span></button>
-          <div id="trashList" class="hidden mt-3 space-y-2"></div>
-        </div>
       </div>
     </div>
 
@@ -617,7 +594,7 @@ function addNewSeq(){
 
 // Корзина удалённых
 var trashData=[];
-function toggleTrash(){var el=document.getElementById('trashList');if(el.classList.contains('hidden')){loadTrash();el.classList.remove('hidden')}else el.classList.add('hidden')}
+function toggleTrash(){var el=document.getElementById('trashList');var ar=document.getElementById('trashArrow');if(el.classList.contains('hidden')){loadTrash();el.classList.remove('hidden');if(ar)ar.textContent='▼'}else{el.classList.add('hidden');if(ar)ar.textContent='▶'}}
 async function loadTrash(){trashData=await G('/admin/push/sequences/deleted');if(!Array.isArray(trashData))trashData=[];document.getElementById('trashCount').textContent='('+trashData.length+')';renderTrash()}
 function renderTrash(){
   var el=document.getElementById('trashList');

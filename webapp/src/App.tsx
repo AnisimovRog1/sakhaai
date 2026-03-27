@@ -106,33 +106,18 @@ export function App() {
 
   if (loading) {
     return (
-      <LangProvider initialLang={lang}>
-      <div className="flex flex-col min-h-screen text-slate-100 relative">
-        {/* Фон home сразу */}
+      <div className="min-h-screen flex flex-col items-center justify-center relative">
         <div className="fixed inset-0 -z-10">
           <img src={BG.home} alt="" className="absolute inset-0 w-full h-full object-cover" />
-          <div className={`absolute inset-0 ${OVERLAYS.home}`} />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-[#070b14]/60 to-[#070b14]" />
         </div>
-        {/* Skeleton контент */}
-        <div className="flex-1 flex flex-col items-center" style={{ paddingTop: 'calc(var(--safe-top, 0px) + 7rem)' }}>
-          <div className="max-w-lg w-full px-5 space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-2">
-                <div className="h-3 w-24 bg-white/10 rounded animate-pulse" />
-                <div className="h-5 w-36 bg-white/10 rounded animate-pulse" />
-              </div>
-              <div className="w-12 h-12 rounded-full bg-white/10 animate-pulse" />
-            </div>
-            <div className="h-24 bg-white/[0.06] rounded-2xl animate-pulse" />
-            <div className="h-40 bg-white/[0.06] rounded-2xl animate-pulse" />
-            <div className="h-32 bg-white/[0.06] rounded-2xl animate-pulse" />
-          </div>
-          <div className="fixed bottom-0 left-0 right-0 flex gap-3 justify-center py-4 bg-[#070b14]/90">
-            {[0,1,2,3].map(i => <div key={i} className="w-10 h-10 bg-white/10 rounded-xl animate-pulse" />)}
-          </div>
+        <img src={`${base}logo-mammoth-sm.png`} alt="" className="w-32 h-32 mb-6 drop-shadow-2xl" />
+        <div className="flex gap-3">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="w-2.5 h-2.5 bg-cyan-400 animate-bounce" style={{ animationDelay: `${i * 0.2}s`, transform: 'rotate(45deg)', borderRadius: '2px' }} />
+          ))}
         </div>
       </div>
-      </LangProvider>
     );
   }
 
@@ -192,7 +177,7 @@ export function App() {
           onBack={() => setScreen({ name: 'chatList' })}
         />
       ) : (
-        <div className="flex-1 overflow-y-auto" style={{ paddingTop: 'calc(var(--safe-top, 0px) + 5.5rem)', paddingBottom: 'calc(5rem + var(--safe-bottom, 0px))' }}>
+        <div className="flex-1 overflow-y-auto" style={{ paddingTop: 'calc(var(--safe-top, 0px) + 3.5rem)', paddingBottom: 'calc(5rem + var(--safe-bottom, 0px))' }}>
           <div className="max-w-lg mx-auto">
             <div style={{ display: screen.name === 'home' ? 'block' : 'none' }}>
               <Home user={user} onCreditsUpdate={(c) => setUser({ ...user, credits: c })} />

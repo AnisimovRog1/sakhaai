@@ -381,7 +381,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
     <div className="p-5 space-y-5 pb-6">
 
       {/* ─── Header ─── */}
-      <h1 className="text-xl font-bold text-white pt-10">UraanxAI</h1>
+      <h1 className="text-xl font-bold text-white">UraanxAI</h1>
 
       {/* ─── Section toggle: Create / Templates ─── */}
       <div className="flex gap-1 bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md p-1">

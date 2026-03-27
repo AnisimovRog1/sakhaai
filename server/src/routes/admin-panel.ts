@@ -338,6 +338,8 @@ async function addCredits(){
   if(r.success){alert('✅ Начислено! Баланс: '+r.newBalance);loadUsers()}else alert('❌ '+r.error)}
 
 // User modal
+function closeUserModal(){document.getElementById('userModal').classList.add('hidden')}
+
 async function showUser(id){
   const u=await G('/admin/user/'+id);if(u.error){alert(u.error);return}
   const tz=Math.round((u.timezone_offset||540)/60);
@@ -361,7 +363,7 @@ async function showUser(id){
       '<div class="flex justify-between py-2 border-b border-white/5"><span class="text-slate-500">📝 Транзакций</span><span>'+u.transactions+'</span></div>'+
       '<div class="flex justify-between py-2"><span class="text-slate-500">🚫 Забанен</span><span>'+(u.is_banned?'Да':'Нет')+'</span></div>'+
     '</div>'+
-    '<button class="btn btn-ghost w-full mt-4" onclick="document.getElementById(\\'userModal\\').classList.add(\\'hidden\\')">Закрыть</button>';
+    '<button class="btn btn-ghost w-full mt-4" onclick="closeUserModal()">Закрыть</button>';
   document.getElementById('userModal').classList.remove('hidden');
 }
 

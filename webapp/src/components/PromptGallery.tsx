@@ -33,7 +33,7 @@ function FullscreenViewer({ tpl, lang, onClose, onUse, useLabel }: {
       {/* Кнопка закрытия */}
       <button
         className="absolute z-20 w-11 h-11 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center border border-white/25 active:scale-90 transition-transform"
-        style={{ top: 'calc(var(--safe-top, 0px) + 12px)', right: '16px' }}
+        style={{ top: 'calc(var(--safe-top, 0px) + 52px)', right: '16px' }}
         onClick={(e) => { e.stopPropagation(); onClose(); }}
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">

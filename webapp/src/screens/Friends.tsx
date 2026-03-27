@@ -55,7 +55,7 @@ export function Friends({ user }: Props) {
     <div className="p-5 pb-28 space-y-5">
 
       {/* Header */}
-      <div>
+      <div className="mt-1">
         <h1 className="text-xl font-bold text-white">{t('friends.title')}</h1>
         <p className="text-slate-300 text-sm mt-1.5 font-medium">{t('friends.subtitle')}</p>
       </div>

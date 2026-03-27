@@ -486,11 +486,11 @@ function renderSeqs(){
     // Превью фото с кнопкой удаления
     html+='<div class="relative mb-2" id="seqmedia-'+s.id+'">';
     if(s.media_url){
-      html+='<img src="'+esc(s.media_url)+'" class="w-full max-h-40 object-cover rounded-lg opacity-90" onerror="this.remove()">';
+      html+='<img src="'+esc(s.media_url)+'" class="w-full max-h-64 object-contain rounded-lg" onerror="this.remove()">';
       html+='<button class="absolute top-2 right-2 w-7 h-7 rounded-full bg-red-500/80 text-white text-sm flex items-center justify-center hover:bg-red-500" onclick="clearSeqImg('+s.id+')">✕</button>';
     } else {
-      html+='<div class="border-2 border-dashed border-white/10 rounded-lg p-4 text-center cursor-pointer hover:border-violet-500/40 transition" onclick="seqPickFile('+s.id+')">';
-      html+='<p class="text-slate-600 text-xs">📁 Нажмите чтобы выбрать фото</p></div>';
+      html+='<div class="border-2 border-dashed border-white/10 rounded-lg p-4 text-center cursor-pointer hover:border-violet-500/40 transition" onclick="seqPickFile('+s.id+')" ondragover="event.preventDefault();this.classList.add(&quot;border-violet-500&quot;)" ondragleave="this.classList.remove(&quot;border-violet-500&quot;)" ondrop="event.preventDefault();this.classList.remove(&quot;border-violet-500&quot;);seqDropFile(event,'+s.id+')">';
+      html+='<p class="text-slate-600 text-xs">📁 Перетащите фото или нажмите</p></div>';
       html+='<input type="file" id="seqfile-'+s.id+'" class="hidden" accept="image/*" onchange="seqFileSelect(event,'+s.id+')">';
     }
     html+='</div>';
@@ -499,7 +499,7 @@ function renderSeqs(){
     html+='<div class="flex gap-1 mb-1 flex-wrap">';
     html+='<button class="px-2 py-0.5 rounded text-[11px] bg-white/5 hover:bg-white/10 text-slate-400 font-bold" data-seq="'+s.id+'" data-fmt="bold" onclick="seqFmt(this)">B</button>';
     html+='<button class="px-2 py-0.5 rounded text-[11px] bg-white/5 hover:bg-white/10 text-slate-400 italic" data-seq="'+s.id+'" data-fmt="italic" onclick="seqFmt(this)">I</button>';
-    html+='<button class="px-2 py-0.5 rounded text-[11px] bg-white/5 hover:bg-white/10 text-slate-400" data-seq="'+s.id+'" data-fmt="newline" onclick="seqFmt(this)">↵</button>';
+    html+='<button class="px-2 py-0.5 rounded text-[11px] bg-violet-500/20 hover:bg-violet-500/30 text-violet-300 font-bold" data-seq="'+s.id+'" data-fmt="chevron-bold" onclick="seqFmt(this)">&laquo;\\u0416&raquo;</button>';
     html+='<span class="border-l border-white/10 mx-1"></span>';
     var emojis=["🎨","🔥","⭐","💎","🎬","✨","🚀","💰","❤️","👋","📸","🎁","⚡","🆕"];
     emojis.forEach(function(e){html+='<button class="px-1 py-0.5 rounded text-sm bg-white/5 hover:bg-white/10" data-seq="'+s.id+'" data-emoji="'+e+'" onclick="seqEmoji(this)">'+e+'</button>'});
@@ -529,12 +529,15 @@ function markSeqDirty(id){var b=document.getElementById('seqsave-'+id);if(b)b.cl
 
 async function saveSeq(id){
   var text=document.getElementById('seqtext-'+id).value;
-  var media_url=document.getElementById('seqimg-'+id).value||null;
+  var raw_url=document.getElementById('seqimg-'+id).value||null;
+  var media_url=null,media_file_id=null;
+  if(raw_url&&raw_url.startsWith('tg://file_id/')){media_file_id=raw_url.replace('tg://file_id/','');media_url=null}
+  else{media_url=raw_url}
   var delay_minutes=parseInt(document.getElementById('seqdelay-'+id).value)||0;
   var allow_hour_from=parseInt(document.getElementById('seqhfrom-'+id).value)||9;
   var allow_hour_to=parseInt(document.getElementById('seqhto-'+id).value)||22;
   var s=seqData.find(function(x){return x.id===id});
-  var r=await P('/admin/push/sequences',{id:id,trigger_type:s.trigger_type,delay_minutes:delay_minutes,credits_threshold:s.credits_threshold,text:text,media_type:media_url?'photo':null,media_url:media_url,label:s.label,is_active:s.is_active,allow_hour_from:allow_hour_from,allow_hour_to:allow_hour_to});
+  var r=await P('/admin/push/sequences',{id:id,trigger_type:s.trigger_type,delay_minutes:delay_minutes,credits_threshold:s.credits_threshold,text:text,media_type:(media_url||media_file_id)?'photo':null,media_url:media_url,media_file_id:media_file_id,label:s.label,is_active:s.is_active,allow_hour_from:allow_hour_from,allow_hour_to:allow_hour_to});
   if(r.id){document.getElementById('seqsave-'+id).classList.add('hidden');loadSeqs()}
   else alert(r.error||'Ошибка')
 }
@@ -551,7 +554,7 @@ function seqFmt(btn){
   var before='',after='';
   if(fmt==='bold'){before='**';after='**'}
   else if(fmt==='italic'){before='_';after='_'}
-  else if(fmt==='newline'){before='\\n';after=''}
+  else if(fmt==='chevron-bold'){before='<<';after='>>'}
   ta.value=text.substring(0,start)+before+sel+after+text.substring(end);
   ta.selectionStart=ta.selectionEnd=start+before.length+sel.length+after.length;
   ta.focus();markSeqDirty(id);
@@ -566,20 +569,32 @@ function seqEmoji(btn){
 }
 
 // Удалить фото
-function clearSeqImg(id){
+async function clearSeqImg(id){
   document.getElementById('seqimg-'+id).value='';
-  markSeqDirty(id);loadSeqs();
+  var s=seqData.find(function(x){return x.id===id});
+  if(s){s.media_url=null;s.media_type=null}
+  await saveSeq(id);
 }
 
 // Выбор файла
 function seqPickFile(id){document.getElementById('seqfile-'+id).click()}
-function seqFileSelect(e,id){
-  var f=e.target.files[0];if(!f)return;
-  var reader=new FileReader();
-  reader.onload=function(ev){
-    var media=document.getElementById('seqmedia-'+id);
-    if(media){media.innerHTML='<img src="'+ev.target.result+'" class="w-full max-h-40 object-cover rounded-lg"><p class="text-amber-400 text-[10px] mt-1">Вставьте публичный URL фото в поле ниже</p>'}
-  };reader.readAsDataURL(f);
+function seqDropFile(e,id){var f=e.dataTransfer.files[0];if(f&&f.type.startsWith('image/'))uploadSeqPhoto(f,id)}
+function seqFileSelect(e,id){var f=e.target.files[0];if(f)uploadSeqPhoto(f,id)}
+async function uploadSeqPhoto(file,id){
+  var media=document.getElementById('seqmedia-'+id);
+  if(media)media.innerHTML='<p class="text-cyan-400 text-xs py-4 text-center">Загрузка...</p>';
+  var fd=new FormData();fd.append('photo',file);
+  try{
+    var r=await fetch(API+'/admin/upload-photo',{method:'POST',headers:{'Authorization':'Bearer '+TOKEN},body:fd});
+    var d=await r.json();
+    if(d.file_id){
+      document.getElementById('seqimg-'+id).value='tg://file_id/'+d.file_id;
+      var s=seqData.find(function(x){return x.id===id});
+      if(s){s.media_url='tg://file_id/'+d.file_id;s.media_type='photo'}
+      markSeqDirty(id);
+      if(media)media.innerHTML='<img src="'+URL.createObjectURL(file)+'" class="w-full max-h-64 object-contain rounded-lg"><button class="absolute top-2 right-2 w-7 h-7 rounded-full bg-red-500/80 text-white text-sm flex items-center justify-center hover:bg-red-500" onclick="clearSeqImg('+id+')">✕</button>';
+    }else{alert(d.error||'Ошибка загрузки');loadSeqs()}
+  }catch(e){alert('Ошибка: '+e);loadSeqs()}
 }
 
 function addNewSeq(){

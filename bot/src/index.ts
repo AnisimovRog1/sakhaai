@@ -994,6 +994,20 @@ function scheduleReports() {
 // АВТОМАТИЧЕСКИЕ ПУШ-ПОСЛЕДОВАТЕЛЬНОСТИ
 // ═══════════════════════════════════════════════════════
 
+function formatText(raw: string): string {
+  // 1. Экранируем HTML спецсимволы
+  let t = raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  // 2. <<жирный>> → <b>жирный</b>
+  t = t.replace(/&lt;&lt;([^&]+?)&gt;&gt;/g, '<b>$1</b>');
+  // 3. **жирный** → <b>жирный</b>
+  t = t.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+  // 4. _курсив_ → <i>курсив</i>
+  t = t.replace(/(?<!\w)_(.+?)_(?!\w)/g, '<i>$1</i>');
+  // 5. Premium emoji :emoji:ID: → <tg-emoji emoji-id="ID">emoji</tg-emoji>
+  t = t.replace(/:([^:]+):(\d+):/g, '<tg-emoji emoji-id="$2">$1</tg-emoji>');
+  return t;
+}
+
 async function processAutoSequences() {
   try {
     const pending = await httpGet(`${SERVER_URL}/admin/push/sequences/pending`) as any[];
@@ -1002,12 +1016,16 @@ async function processAutoSequences() {
     let sent = 0;
     for (const p of pending) {
       try {
-        if (p.media_type === 'photo' && p.media_url) {
-          await bot.api.sendPhoto(Number(p.user_id), p.media_url, {
-            caption: p.text,
+        const photo = p.media_file_id || p.media_url;
+        if (p.media_type === 'photo' && photo) {
+          await bot.api.sendPhoto(Number(p.user_id), photo, {
+            caption: formatText(p.text),
+            parse_mode: 'HTML',
           });
         } else {
-          await bot.api.sendMessage(Number(p.user_id), p.text);
+          await bot.api.sendMessage(Number(p.user_id), formatText(p.text), {
+            parse_mode: 'HTML',
+          });
         }
         await httpPost(`${SERVER_URL}/admin/push/sequences/mark-sent`, {
           user_id: p.user_id, sequence_id: p.sequence_id,

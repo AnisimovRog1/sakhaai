@@ -1,10 +1,12 @@
 import { Router, Request, Response } from 'express';
+import multer from 'multer';
 import { pool } from '../db/pool';
 import { addCredits, deduct } from '../services/balance';
 import { getAllSequences, upsertSequence, deleteSequence, toggleSequence, findPendingPushes, markPushSent } from '../services/push-sequences';
 import { seedPushSequences } from '../services/push-seed';
 
 export const adminRouter = Router();
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 function requireBotAuth(req: Request, res: Response, next: () => void) {
   const auth = req.headers.authorization;
@@ -385,5 +387,30 @@ adminRouter.post('/push/sequences/mark-sent', async (req: Request, res: Response
     const { user_id, sequence_id } = req.body;
     await markPushSent(user_id, sequence_id);
     res.json({ ok: true });
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+// Загрузка фото → Telegram Bot API → file_id
+adminRouter.post('/upload-photo', upload.single('photo'), async (req: Request, res: Response) => {
+  try {
+    const file = req.file;
+    if (!file) { res.status(400).json({ error: 'Нет файла' }); return; }
+    if (!file.mimetype.startsWith('image/')) { res.status(400).json({ error: 'Только изображения' }); return; }
+    const BOT_TOKEN = process.env.BOT_TOKEN;
+    const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID;
+    if (!BOT_TOKEN || !ADMIN_CHAT_ID) { res.status(503).json({ error: 'BOT_TOKEN/ADMIN_CHAT_ID не настроены' }); return; }
+
+    const form = new FormData();
+    form.append('chat_id', ADMIN_CHAT_ID);
+    form.append('photo', new Blob([file.buffer], { type: file.mimetype }), file.originalname);
+
+    const tgRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+      method: 'POST', body: form,
+    });
+    const data = await tgRes.json() as any;
+    if (!data.ok) { res.status(500).json({ error: data.description || 'Telegram upload failed' }); return; }
+
+    const fileId = data.result.photo[data.result.photo.length - 1].file_id;
+    res.json({ file_id: fileId });
   } catch (err: any) { res.status(500).json({ error: err.message }); }
 });

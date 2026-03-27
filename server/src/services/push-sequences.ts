@@ -201,19 +201,20 @@ export async function upsertSequence(data: Partial<PushSequence> & { trigger_typ
     const { rows } = await pool.query(`
       UPDATE push_sequences SET
         trigger_type = $2, delay_minutes = $3, credits_threshold = $4,
-        text = $5, media_type = $6, media_url = $7, label = $8,
+        text = $5, media_type = $6, media_url = $7, media_file_id = $12, label = $8,
         is_active = $9, allow_hour_from = $10, allow_hour_to = $11
       WHERE id = $1 RETURNING *
     `, [data.id, data.trigger_type, data.delay_minutes || 0, data.credits_threshold,
         data.text, data.media_type, data.media_url, data.label,
-        data.is_active ?? true, data.allow_hour_from ?? 9, data.allow_hour_to ?? 22]);
+        data.is_active ?? true, data.allow_hour_from ?? 9, data.allow_hour_to ?? 22,
+        data.media_file_id || null]);
     return rows[0];
   }
   const { rows } = await pool.query(`
-    INSERT INTO push_sequences (trigger_type, delay_minutes, credits_threshold, text, media_type, media_url, label, is_active, allow_hour_from, allow_hour_to)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *
+    INSERT INTO push_sequences (trigger_type, delay_minutes, credits_threshold, text, media_type, media_url, media_file_id, label, is_active, allow_hour_from, allow_hour_to)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *
   `, [data.trigger_type, data.delay_minutes || 0, data.credits_threshold,
-      data.text, data.media_type, data.media_url, data.label,
+      data.text, data.media_type, data.media_url, data.media_file_id || null, data.label,
       data.is_active ?? true, data.allow_hour_from ?? 9, data.allow_hour_to ?? 22]);
   return rows[0];
 }

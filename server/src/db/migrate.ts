@@ -180,10 +180,16 @@ export async function migrate() {
     END $$;
   `);
 
-  // Заполняем пуш-последовательности если пусто
+  console.log('✅ Миграции применены');
+}
+
+// Отдельная функция для seed — вызывается из index.ts ПОСЛЕ миграции
+export async function seedPushData() {
   const { rows: seqCount } = await pool.query(`SELECT COUNT(*) as cnt FROM push_sequences`);
-  if (parseInt(seqCount[0].cnt) === 0) {
-    const IMG = {
+  const cnt = parseInt(seqCount[0].cnt);
+  if (cnt > 0) { console.log('⏭ push_sequences: уже есть ' + cnt + ' записей'); return 0; }
+  console.log('📥 Заполняем push_sequences...');
+  const IMG = {
       fashion: 'https://dqv0cqkoy5oj7.cloudfront.net/user_36Hwty94QweUxs82UEGsxmReIrf/hf_20260217_175012_2482b23d-7762-4366-b718-3fde133ac10e.png',
       fantasy: 'https://dqv0cqkoy5oj7.cloudfront.net/user_35h9Zqn0Bk5qurQOPUM7laOSfXO/hf_20260207_193655_711f3c26-8d2b-4e66-89e4-8357c0100b62.png',
       portrait: 'https://dqv0cqkoy5oj7.cloudfront.net/user_36Hwty94QweUxs82UEGsxmReIrf/hf_20260218_142019_2da23ac9-1bf0-4ba6-8b0c-11e45297c26e.png',
@@ -234,7 +240,5 @@ export async function migrate() {
       );
     }
     console.log(`✅ Заполнено ${seeds.length} пуш-последовательностей`);
-  }
-
-  console.log('✅ Миграции применены');
+  return seeds.length;
 }

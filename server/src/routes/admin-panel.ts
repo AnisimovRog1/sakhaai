@@ -521,7 +521,7 @@ async function delSeq(id){if(!confirm('Удалить автопуш?'))return;a
 
 async function seedSeqs(force){
   if(force&&!confirm('Это удалит ВСЕ автопуши и загрузит стандартные шаблоны. Продолжить?'))return;
-  const r=await P('/admin/push/sequences/seed',{force});
+  const r=await P('/admin/push/seed-sequences',{force});
   if(r.ok){alert('✅ Загружено '+r.count+' шаблонов');loadSeqs()}
   else alert('❌ '+(r.error||'Ошибка'))
 }

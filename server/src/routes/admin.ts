@@ -371,7 +371,7 @@ adminRouter.get('/push/sequences/pending', async (_req: Request, res: Response) 
 });
 
 // Заполнить пуш-последовательности из seed (force=true перезаписывает)
-adminRouter.post('/push/sequences/seed', async (req: Request, res: Response) => {
+adminRouter.post('/push/seed-sequences', async (req: Request, res: Response) => {
   try {
     const force = req.body?.force === true;
     const count = await seedPushSequences(force);

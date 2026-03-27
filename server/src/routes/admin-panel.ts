@@ -506,7 +506,7 @@ function renderSeqs(){
     html+='</div>';
 
     // Текст
-    html+='<textarea class="w-full bg-black/20 border border-white/8 rounded-lg p-2.5 text-xs text-slate-300 resize-y leading-relaxed font-mono" rows="4" id="seqtext-'+s.id+'" oninput="markSeqDirty('+s.id+')">'+esc(s.text)+'</textarea>';
+    html+='<textarea class="w-full bg-black/20 border border-white/8 rounded-lg p-2.5 text-xs text-slate-300 resize-y leading-relaxed font-mono" rows="4" id="seqtext-'+s.id+'" oninput="markSeqDirty('+s.id+')" onkeydown="seqHotkey(event,'+s.id+')">'+esc(s.text)+'</textarea>';
 
     // Настройки
     html+='<div class="flex gap-2 mt-2 flex-wrap items-center">';
@@ -558,6 +558,10 @@ function seqFmt(btn){
   ta.value=text.substring(0,start)+before+sel+after+text.substring(end);
   ta.selectionStart=ta.selectionEnd=start+before.length+sel.length+after.length;
   ta.focus();markSeqDirty(id);
+}
+function seqHotkey(e,id){
+  if((e.ctrlKey||e.metaKey)&&e.key==='b'){e.preventDefault();var ta=document.getElementById('seqtext-'+id);if(!ta)return;var start=ta.selectionStart,end=ta.selectionEnd,text=ta.value,sel=text.substring(start,end);ta.value=text.substring(0,start)+'<<'+sel+'>>'+text.substring(end);ta.selectionStart=start+2;ta.selectionEnd=start+2+sel.length;ta.focus();markSeqDirty(id)}
+  if((e.ctrlKey||e.metaKey)&&e.key==='i'){e.preventDefault();var ta=document.getElementById('seqtext-'+id);if(!ta)return;var start=ta.selectionStart,end=ta.selectionEnd,text=ta.value,sel=text.substring(start,end);ta.value=text.substring(0,start)+'_'+sel+'_'+text.substring(end);ta.selectionStart=start+1;ta.selectionEnd=start+1+sel.length;ta.focus();markSeqDirty(id)}
 }
 function seqEmoji(btn){
   var id=btn.dataset.seq;var emoji=btn.dataset.emoji;

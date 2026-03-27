@@ -420,7 +420,7 @@ async function togglePush(id){await apiFetch('/admin/push/templates/'+id+'/toggl
 async function loadPushLog(){
   const l=await G('/admin/push/log');const el=document.getElementById('pushLogList');
   if(!Array.isArray(l)||!l.length){el.innerHTML='<p class="text-slate-600 text-sm">Рассылок не было</p>';return}
-  el.innerHTML=l.map(x=>'<div class="flex justify-between py-2.5 text-sm border-b border-white/5"><span>'+(x.template_name||'—')+'</span><span class="text-slate-500">'+new Date(x.started_at).toLocaleDateString('ru')+'</span><span class="text-green-400">✅'+x.sent_count+'</span></div>').join('')}
+  el.innerHTML=l.map(x=>{var icon=x.source==='auto'?'🤖':'📨';var date=x.sent_at?new Date(x.sent_at).toLocaleDateString('ru',''):'';return '<div class="flex justify-between items-center py-2.5 text-sm border-b border-white/5"><div class="flex items-center gap-2"><span>'+icon+'</span><span class="text-white font-medium">'+(x.label||'—')+'</span></div><span class="text-slate-500 text-xs">'+date+'</span><span class="text-green-400 font-bold">'+x.sent_count+' чел.</span></div>'}).join('')}
 
 // ═══ АВТОПУШ-ЦЕПОЧКИ ═══
 let seqData=[];
@@ -476,7 +476,7 @@ function renderSeqs(){
     }
     html+='<div class="border-2 border-dashed border-white/10 rounded-lg p-3 text-center cursor-pointer hover:border-violet-500/40 transition" onclick="seqPickFile('+s.id+')" ondragover="event.preventDefault();this.classList.add(&quot;border-violet-500&quot;)" ondragleave="this.classList.remove(&quot;border-violet-500&quot;)" ondrop="event.preventDefault();this.classList.remove(&quot;border-violet-500&quot;);seqDropFile(event,'+s.id+')">';
     html+='<p class="text-slate-500 text-xs">📁 Перетащите фото или нажмите для выбора</p></div>';
-    html+='<input type="file" id="seqfile-'+s.id+'" class="hidden" accept="image/*" onchange="seqFileSelect(event,'+s.id+')">';
+    html+='<input type="file" id="seqfile-'+s.id+'" class="hidden" accept="image/*,video/*" onchange="seqFileSelect(event,'+s.id+')">';
     html+='</div>';
 
     // Форматирование — через data-атрибуты, без кавычек в onclick
@@ -568,19 +568,21 @@ async function clearSeqImg(id){
 
 // Выбор файла
 function seqPickFile(id){document.getElementById('seqfile-'+id).click()}
-function seqDropFile(e,id){var f=e.dataTransfer.files[0];if(f&&f.type.startsWith('image/'))uploadSeqPhoto(f,id)}
-function seqFileSelect(e,id){var f=e.target.files[0];if(f)uploadSeqPhoto(f,id)}
-async function uploadSeqPhoto(file,id){
+function seqDropFile(e,id){var f=e.dataTransfer.files[0];if(f&&(f.type.startsWith('image/')||f.type.startsWith('video/')))uploadSeqMedia(f,id)}
+function seqFileSelect(e,id){var f=e.target.files[0];if(f)uploadSeqMedia(f,id)}
+async function uploadSeqMedia(file,id){
   var media=document.getElementById('seqmedia-'+id);
-  if(media)media.innerHTML='<p class="text-cyan-400 text-xs py-4 text-center">Загрузка...</p>';
+  var isVideo=file.type.startsWith('video/');
+  if(media){var old=media.querySelector('.relative');if(old)old.remove();var zone=media.querySelector('[ondragover]');if(zone)zone.innerHTML='<p class="text-cyan-400 text-xs">⏳ Загрузка...</p>'}
   var fd=new FormData();fd.append('photo',file);
   try{
     var r=await fetch(API+'/admin/upload-photo',{method:'POST',headers:{'Authorization':'Bearer '+TOKEN},body:fd});
     var d=await r.json();
     if(d.file_id){
       document.getElementById('seqimg-'+id).value='tg://file_id/'+d.file_id;
+      var mtype=d.media_type||( isVideo?'video':'photo');
       var s=seqData.find(function(x){return x.id===id});
-      if(s){s.media_url='tg://file_id/'+d.file_id;s.media_type='photo'}
+      if(s){s.media_url='tg://file_id/'+d.file_id;s.media_type=mtype;s.media_file_id=d.file_id}
       markSeqDirty(id);
       if(media)media.innerHTML='<img src="'+URL.createObjectURL(file)+'" class="w-full max-h-64 object-contain rounded-lg"><button class="absolute top-2 right-2 w-7 h-7 rounded-full bg-red-500/80 text-white text-sm flex items-center justify-center hover:bg-red-500" onclick="clearSeqImg('+id+')">✕</button>';
     }else{alert(d.error||'Ошибка загрузки');loadSeqs()}
@@ -601,10 +603,11 @@ function renderTrash(){
   if(!trashData.length){el.innerHTML='<p class="text-slate-600 text-sm py-4 text-center">Корзина пуста</p>';return}
   el.innerHTML=trashData.map(function(s){
     var d=s.deleted_at?new Date(s.deleted_at).toLocaleDateString('ru'):'';
-    return '<div class="glass p-3 flex items-center justify-between"><div class="flex-1 min-w-0"><span class="text-white text-sm font-bold">'+esc(s.label)+'</span><span class="text-slate-500 text-xs ml-2">'+s.trigger_type+'</span>'+(d?' <span class="text-slate-600 text-xs">удалён '+d+'</span>':'')+'<p class="text-slate-400 text-xs truncate mt-1">'+esc((s.text||'').substring(0,80))+'</p></div><button class="btn btn-success text-xs ml-3" style="padding:6px 14px" onclick="restoreSeq('+s.id+')">♻️ Вернуть</button></div>'
+    return '<div class="glass p-3 flex items-center justify-between"><div class="flex-1 min-w-0"><span class="text-white text-sm font-bold">'+esc(s.label)+'</span><span class="text-slate-500 text-xs ml-2">'+s.trigger_type+'</span>'+(d?' <span class="text-slate-600 text-xs">удалён '+d+'</span>':'')+'<p class="text-slate-400 text-xs truncate mt-1">'+esc((s.text||'').substring(0,80))+'</p></div><div class="flex gap-2 ml-3"><button class="btn btn-success text-xs" style="padding:6px 12px" onclick="restoreSeq('+s.id+')">♻️ Вернуть</button><button class="btn btn-danger text-xs" style="padding:6px 12px" onclick="permDeleteSeq('+s.id+')">🗑 Удалить</button></div></div>'
   }).join('')
 }
 async function restoreSeq(id){await P('/admin/push/sequences/'+id+'/restore',{});loadSeqs();loadTrash()}
+async function permDeleteSeq(id){if(!confirm('Удалить навсегда? Это нельзя отменить!'))return;await D('/admin/push/sequences/'+id+'/permanent');loadTrash()}
 
 if(TOKEN)showPanel();
 </script></body></html>`;

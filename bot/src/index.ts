@@ -1016,9 +1016,14 @@ async function processAutoSequences() {
     let sent = 0;
     for (const p of pending) {
       try {
-        const photo = p.media_file_id || p.media_url;
-        if (p.media_type === 'photo' && photo) {
-          await bot.api.sendPhoto(Number(p.user_id), photo, {
+        const media = p.media_file_id || p.media_url;
+        if (p.media_type === 'video' && media) {
+          await bot.api.sendVideo(Number(p.user_id), media, {
+            caption: formatText(p.text),
+            parse_mode: 'HTML',
+          });
+        } else if (p.media_type === 'photo' && media) {
+          await bot.api.sendPhoto(Number(p.user_id), media, {
             caption: formatText(p.text),
             parse_mode: 'HTML',
           });

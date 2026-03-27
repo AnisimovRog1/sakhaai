@@ -323,10 +323,16 @@ adminRouter.post('/push/log', async (req: Request, res: Response) => {
 
 adminRouter.get('/push/log', async (_req: Request, res: Response) => {
   try {
+    // Объединяем: разовые пуши (push_log) + автопуши (push_sent с группировкой)
     const r = await pool.query(`
-      SELECT l.*, t.name as template_name, t.schedule_type
-      FROM push_log l LEFT JOIN push_templates t ON l.template_id = t.id
-      ORDER BY l.started_at DESC LIMIT 20
+      (SELECT 'manual' as source, t.name as label, l.sent_count, l.failed_count, l.started_at as sent_at
+       FROM push_log l LEFT JOIN push_templates t ON l.template_id = t.id)
+      UNION ALL
+      (SELECT 'auto' as source, s.label, COUNT(ps.id)::int as sent_count, 0 as failed_count,
+              MAX(ps.sent_at) as sent_at
+       FROM push_sent ps JOIN push_sequences s ON ps.sequence_id = s.id
+       GROUP BY s.id, s.label)
+      ORDER BY sent_at DESC LIMIT 50
     `);
     res.json(r.rows);
   } catch (err: any) { res.status(500).json({ error: err.message }); }
@@ -379,6 +385,14 @@ adminRouter.post('/push/sequences/:id/restore', async (req: Request, res: Respon
   } catch (err: any) { res.status(500).json({ error: err.message }); }
 });
 
+adminRouter.delete('/push/sequences/:id/permanent', async (req: Request, res: Response) => {
+  try {
+    await pool.query(`DELETE FROM push_sent WHERE sequence_id = $1`, [req.params.id]);
+    await pool.query(`DELETE FROM push_sequences WHERE id = $1`, [req.params.id]);
+    res.json({ ok: true });
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
 // Получить pending пуши для отправки ботом
 adminRouter.get('/push/sequences/pending', async (_req: Request, res: Response) => {
   try {
@@ -410,22 +424,34 @@ adminRouter.post('/upload-photo', upload.single('photo'), async (req: Request, r
   try {
     const file = req.file;
     if (!file) { res.status(400).json({ error: 'Нет файла' }); return; }
-    if (!file.mimetype.startsWith('image/')) { res.status(400).json({ error: 'Только изображения' }); return; }
+    const isImage = file.mimetype.startsWith('image/');
+    const isVideo = file.mimetype.startsWith('video/');
+    if (!isImage && !isVideo) { res.status(400).json({ error: 'Только фото или видео' }); return; }
     const BOT_TOKEN = process.env.BOT_TOKEN;
     const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID;
     if (!BOT_TOKEN || !ADMIN_CHAT_ID) { res.status(503).json({ error: 'BOT_TOKEN/ADMIN_CHAT_ID не настроены' }); return; }
 
     const form = new FormData();
     form.append('chat_id', ADMIN_CHAT_ID);
-    form.append('photo', new Blob([file.buffer], { type: file.mimetype }), file.originalname);
+    const tgMethod = isVideo ? 'sendVideo' : 'sendPhoto';
+    const fieldName = isVideo ? 'video' : 'photo';
+    form.append(fieldName, new Blob([file.buffer], { type: file.mimetype }), file.originalname);
 
-    const tgRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+    const tgRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${tgMethod}`, {
       method: 'POST', body: form,
     });
     const data = await tgRes.json() as any;
     if (!data.ok) { res.status(500).json({ error: data.description || 'Telegram upload failed' }); return; }
 
-    const fileId = data.result.photo[data.result.photo.length - 1].file_id;
-    res.json({ file_id: fileId });
+    let fileId: string;
+    let mediaType: string;
+    if (isVideo) {
+      fileId = data.result.video.file_id;
+      mediaType = 'video';
+    } else {
+      fileId = data.result.photo[data.result.photo.length - 1].file_id;
+      mediaType = 'photo';
+    }
+    res.json({ file_id: fileId, media_type: mediaType });
   } catch (err: any) { res.status(500).json({ error: err.message }); }
 });

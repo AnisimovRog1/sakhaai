@@ -243,28 +243,25 @@ input:focus,textarea:focus{border-color:rgba(139,92,246,.5);box-shadow:0 0 20px 
         <div id="pushLogList"></div>
       </div>
 
-      <!-- ═══ АВТОМАТИЧЕСКИЕ ПУШ-ПОСЛЕДОВАТЕЛЬНОСТИ ═══ -->
+      <!-- ═══ АВТОПУШ-ЦЕПОЧКИ ═══ -->
       <div class="glass-neon p-6 glow-border">
-        <h3 class="text-base font-bold mb-2 flex items-center gap-2"><span class="anim-pulse">🤖</span> Автоматические пуш-последовательности</h3>
-        <p class="text-slate-500 text-xs mb-5">Пуши отправляются автоматически по триггерам. Отредактируйте текст, поставьте галочку ✅ — и пуш начнёт работать.</p>
-
-        <!-- Фильтр по триггеру -->
-        <div class="flex gap-2 mb-4 flex-wrap">
-          <button class="btn btn-ghost text-xs seq-filter active" onclick="filterSeq(this,'all')">Все</button>
-          <button class="btn btn-ghost text-xs seq-filter" onclick="filterSeq(this,'no_purchase')">🛒 Не купил</button>
-          <button class="btn btn-ghost text-xs seq-filter" onclick="filterSeq(this,'after_purchase')">✅ Купил</button>
-          <button class="btn btn-ghost text-xs seq-filter" onclick="filterSeq(this,'low_credits')">📉 Мало кредитов</button>
-          <button class="btn btn-ghost text-xs seq-filter" onclick="filterSeq(this,'zero_credits')">🔴 Ноль кредитов</button>
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h3 class="text-base font-bold flex items-center gap-2">🤖 Автоматические цепочки</h3>
+            <p class="text-slate-500 text-xs mt-1">Включите галочку ✅ — пуш начнёт вылетать по триггеру и таймингу</p>
+          </div>
+          <button class="btn btn-ghost text-xs" onclick="addNewSeq()">➕ Добавить</button>
         </div>
 
-        <div id="seqList" class="space-y-3"></div>
-
-        <!-- Действия -->
-        <div class="flex gap-2 mt-4">
-          <button class="btn btn-primary flex-1 py-3" onclick="addNewSeq()">➕ Добавить новый</button>
-          <button class="btn btn-success flex-1 py-3" onclick="seedSeqs(false)">📥 Загрузить шаблоны</button>
-          <button class="btn btn-danger py-3 px-4" onclick="seedSeqs(true)" title="Удалит все и загрузит заново">🔄 Сбросить</button>
+        <!-- Табы цепочек -->
+        <div class="flex gap-1 mb-5 bg-white/5 rounded-xl p-1">
+          <button class="flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all seq-tab active" onclick="filterSeq(this,'no_purchase')">🛒 Не купил<br><span class="text-[10px] font-normal opacity-60">11 шагов</span></button>
+          <button class="flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all seq-tab" onclick="filterSeq(this,'after_purchase')">✅ Купил<br><span class="text-[10px] font-normal opacity-60">1 шаг</span></button>
+          <button class="flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all seq-tab" onclick="filterSeq(this,'low_credits')">📉 Мало<br><span class="text-[10px] font-normal opacity-60">3 порога</span></button>
+          <button class="flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all seq-tab" onclick="filterSeq(this,'zero_credits')">🔴 Ноль<br><span class="text-[10px] font-normal opacity-60">7 шагов</span></button>
         </div>
+
+        <div id="seqList"></div>
       </div>
     </div>
 
@@ -440,96 +437,93 @@ async function loadPushLog(){
   if(!Array.isArray(l)||!l.length){el.innerHTML='<p class="text-slate-600 text-sm">Рассылок не было</p>';return}
   el.innerHTML=l.map(x=>'<div class="flex justify-between py-2.5 text-sm border-b border-white/5"><span>'+(x.template_name||'—')+'</span><span class="text-slate-500">'+new Date(x.started_at).toLocaleDateString('ru')+'</span><span class="text-green-400">✅'+x.sent_count+'</span></div>').join('')}
 
-// ═══ АВТОПУШ-ПОСЛЕДОВАТЕЛЬНОСТИ ═══
+// ═══ АВТОПУШ-ЦЕПОЧКИ ═══
 let seqData=[];
-let seqFilter='all';
+let seqFilter='no_purchase';
 
-function filterSeq(el,f){seqFilter=f;document.querySelectorAll('.seq-filter').forEach(e=>e.classList.remove('active'));el.classList.add('active');renderSeqs()}
+function filterSeq(el,f){seqFilter=f;document.querySelectorAll('.seq-tab').forEach(e=>{e.classList.remove('active');e.style.background=''});el.classList.add('active');el.style.background='rgba(139,92,246,.2)';renderSeqs()}
 
 async function loadSeqs(){seqData=await G('/admin/push/sequences');if(!Array.isArray(seqData))seqData=[];renderSeqs()}
 
-function triggerLabel(t){return{no_purchase:'🛒 Не купил пакет',after_purchase:'✅ После покупки',low_credits:'📉 Мало кредитов',zero_credits:'🔴 Кредиты кончились'}[t]||t}
-function delayLabel(m){if(m<60)return m+' мин';if(m<1440)return(m/60)+'ч';return(m/1440)+'д'}
+function delayLabel(m){if(m===0)return 'сразу';if(m<60)return m+' мин';if(m<1440){var h=Math.floor(m/60),mm=m%60;return h+'ч'+(mm?' '+mm+'м':'')}return Math.floor(m/1440)+'д'}
 
 function renderSeqs(){
-  const el=document.getElementById('seqList');
-  const list=seqFilter==='all'?seqData:seqData.filter(s=>s.trigger_type===seqFilter);
-  if(!list.length){el.innerHTML='<p class="text-slate-600 text-sm py-4">Нет автопушей</p>';return}
-  el.innerHTML=list.map(s=>{
-    const active=s.is_active;
-    const bg=active?'border-green-500/20 bg-green-500/5':'border-white/5 bg-white/3';
-    return '<div class="glass-strong p-4 '+bg+'" id="seq-'+s.id+'">'+
-      '<div class="flex items-start justify-between gap-3 mb-3">'+
-        '<div class="flex items-center gap-2 flex-wrap">'+
-          '<span class="text-xs font-mono bg-violet-500/20 text-violet-300 px-2 py-0.5 rounded">'+triggerLabel(s.trigger_type)+'</span>'+
-          (s.credits_threshold?'<span class="text-xs font-mono bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded">&lt;'+s.credits_threshold+' кр.</span>':'')+
-          '<span class="text-xs font-mono bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded">⏱ '+delayLabel(s.delay_minutes)+'</span>'+
-          '<span class="text-xs text-slate-500">🕐 '+s.allow_hour_from+':00–'+s.allow_hour_to+':00</span>'+
-        '</div>'+
-        '<div class="flex items-center gap-2 flex-shrink-0">'+
-          '<label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" '+(active?'checked':'')+' onchange="toggleSeq('+s.id+')" class="w-4 h-4 accent-green-500"><span class="text-xs '+(active?'text-green-400':'text-slate-500')+'">'+(active?'Активен':'Выкл')+'</span></label>'+
-          '<button class="text-red-400 hover:text-red-300 text-xs" onclick="delSeq('+s.id+')">🗑</button>'+
-        '</div>'+
-      '</div>'+
-      '<div class="text-sm font-semibold text-white mb-2">'+esc(s.label)+'</div>'+
-      '<textarea class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm text-slate-200 resize-y" rows="3" id="seqtext-'+s.id+'" onchange="markSeqDirty('+s.id+')">'+esc(s.text)+'</textarea>'+
-      '<div class="flex gap-2 mt-2 flex-wrap items-center">'+
-        '<input class="flex-1 min-w-[200px] text-xs bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-slate-300" placeholder="URL фото (необязательно)" value="'+(s.media_url||'')+'" id="seqimg-'+s.id+'" onchange="markSeqDirty('+s.id+')">'+
-        (s.media_url?'<img src="'+esc(s.media_url)+'" class="w-10 h-10 object-cover rounded" onerror="this.remove()">':'')+
-        '<select class="text-xs bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-slate-300" id="seqtrig-'+s.id+'" onchange="markSeqDirty('+s.id+')">'+
-          '<option value="no_purchase"'+(s.trigger_type==='no_purchase'?' selected':'')+'>🛒 Не купил</option>'+
-          '<option value="after_purchase"'+(s.trigger_type==='after_purchase'?' selected':'')+'>✅ Купил</option>'+
-          '<option value="low_credits"'+(s.trigger_type==='low_credits'?' selected':'')+'>📉 Мало кредитов</option>'+
-          '<option value="zero_credits"'+(s.trigger_type==='zero_credits'?' selected':'')+'>🔴 Ноль кредитов</option>'+
-        '</select>'+
-        '<input type="number" class="w-20 text-xs bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-slate-300" value="'+s.delay_minutes+'" id="seqdelay-'+s.id+'" onchange="markSeqDirty('+s.id+')" title="Задержка (мин)">'+
-        '<span class="text-xs text-slate-600">мин</span>'+
-        '<input type="number" class="w-14 text-xs bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-slate-300" value="'+(s.credits_threshold||'')+'" id="seqthresh-'+s.id+'" onchange="markSeqDirty('+s.id+')" placeholder="порог" title="Порог кредитов (для low_credits)">'+
-        '<div class="flex items-center gap-1">'+
-          '<span class="text-xs text-slate-600">с</span>'+
-          '<input type="number" class="w-12 text-xs bg-white/5 border border-white/10 rounded-lg px-1 py-2 text-slate-300 text-center" value="'+s.allow_hour_from+'" id="seqhfrom-'+s.id+'" min="0" max="23" onchange="markSeqDirty('+s.id+')">'+
-          '<span class="text-xs text-slate-600">до</span>'+
-          '<input type="number" class="w-12 text-xs bg-white/5 border border-white/10 rounded-lg px-1 py-2 text-slate-300 text-center" value="'+s.allow_hour_to+'" id="seqhto-'+s.id+'" min="0" max="23" onchange="markSeqDirty('+s.id+')">'+
-          '<span class="text-xs text-slate-600">ч</span>'+
-        '</div>'+
-        '<button class="btn btn-primary text-xs hidden" id="seqsave-'+s.id+'" onclick="saveSeq('+s.id+')" style="padding:6px 14px">💾 Сохранить</button>'+
-      '</div>'+
-    '</div>'
-  }).join('')
+  var el=document.getElementById('seqList');
+  var list=seqData.filter(function(s){return s.trigger_type===seqFilter}).sort(function(a,b){return a.delay_minutes-b.delay_minutes});
+  if(!list.length){el.innerHTML='<div class="text-center py-8 text-slate-600">Нет пушей в этой цепочке</div>';return}
+
+  var triggerDesc={no_purchase:'Юзер запустил бота но НЕ купил пакет',after_purchase:'Юзер купил пакет',low_credits:'Баланс юзера упал ниже порога',zero_credits:'Кредиты юзера закончились (= 0)'}[seqFilter]||'';
+
+  var html='<div class="mb-4 p-3 rounded-lg bg-white/5 border border-white/8"><p class="text-xs text-slate-400">⚡ Триггер: <span class="text-cyan-300 font-medium">'+triggerDesc+'</span></p></div>';
+
+  html+='<div class="relative">';
+  // Вертикальная линия таймлайна
+  html+='<div style="position:absolute;left:20px;top:0;bottom:0;width:2px;background:linear-gradient(to bottom,rgba(139,92,246,.4),rgba(6,182,212,.4))"></div>';
+
+  list.forEach(function(s,i){
+    var active=s.is_active;
+    var dotColor=active?'#4ade80':'#64748b';
+    var borderColor=active?'border-green-500/20':'border-white/6';
+
+    html+='<div class="relative pl-12 pb-5" id="seq-'+s.id+'">';
+    // Точка на таймлайне
+    html+='<div style="position:absolute;left:13px;top:8px;width:16px;height:16px;border-radius:50%;background:'+dotColor+';border:3px solid #0a0f1a;z-index:2"></div>';
+    // Время на таймлайне
+    html+='<div style="position:absolute;left:-60px;top:6px;width:70px;text-align:right" class="text-xs font-mono '+(active?'text-cyan-400':'text-slate-600')+'">'+delayLabel(s.delay_minutes)+'</div>';
+
+    html+='<div class="glass-strong p-4 '+borderColor+'" style="border-left:3px solid '+(active?'#4ade80':'#334155')+'">';
+
+    // Заголовок + переключатель
+    html+='<div class="flex items-center justify-between mb-2">';
+    html+='<div class="flex items-center gap-2"><span class="text-sm font-bold text-white">'+esc(s.label)+'</span>';
+    if(s.credits_threshold) html+='<span class="text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded">&lt; '+s.credits_threshold+' кр.</span>';
+    html+='</div>';
+    html+='<label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" '+(active?'checked':'')+' onchange="toggleSeq('+s.id+')" class="w-4 h-4 accent-green-500 rounded"><span class="text-xs font-medium '+(active?'text-green-400':'text-slate-600')+'">'+(active?'✅ Вкл':'Выкл')+'</span></label>';
+    html+='</div>';
+
+    // Превью фото
+    if(s.media_url) html+='<img src="'+esc(s.media_url)+'" class="w-full max-h-32 object-cover rounded-lg mb-2 opacity-80" onerror="this.remove()">';
+
+    // Текст
+    html+='<textarea class="w-full bg-black/20 border border-white/8 rounded-lg p-2.5 text-xs text-slate-300 resize-y leading-relaxed" rows="3" id="seqtext-'+s.id+'" oninput="markSeqDirty('+s.id+')">'+esc(s.text)+'</textarea>';
+
+    // Настройки
+    html+='<div class="flex gap-2 mt-2 flex-wrap items-center">';
+    html+='<input class="flex-1 min-w-[160px] text-[11px] bg-black/20 border border-white/8 rounded-lg px-2 py-1.5 text-slate-400" placeholder="URL фото" value="'+(s.media_url||'')+'" id="seqimg-'+s.id+'" oninput="markSeqDirty('+s.id+')">';
+    html+='<div class="flex items-center gap-1 text-[11px] text-slate-500"><span>⏱</span><input type="number" class="w-16 bg-black/20 border border-white/8 rounded px-1.5 py-1 text-slate-400 text-center" value="'+s.delay_minutes+'" id="seqdelay-'+s.id+'" oninput="markSeqDirty('+s.id+')"><span>мин</span></div>';
+    html+='<div class="flex items-center gap-1 text-[11px] text-slate-500"><span>🕐</span><input type="number" class="w-10 bg-black/20 border border-white/8 rounded px-1 py-1 text-slate-400 text-center" value="'+s.allow_hour_from+'" id="seqhfrom-'+s.id+'" min="0" max="23" oninput="markSeqDirty('+s.id+')"><span>–</span><input type="number" class="w-10 bg-black/20 border border-white/8 rounded px-1 py-1 text-slate-400 text-center" value="'+s.allow_hour_to+'" id="seqhto-'+s.id+'" min="0" max="23" oninput="markSeqDirty('+s.id+')"></div>';
+    html+='<button class="btn btn-primary text-[11px] hidden" id="seqsave-'+s.id+'" onclick="saveSeq('+s.id+')" style="padding:4px 12px">💾 Сохранить</button>';
+    html+='<button class="text-red-400/50 hover:text-red-400 text-[11px]" onclick="delSeq('+s.id+')">🗑</button>';
+    html+='</div>';
+
+    html+='</div></div>';
+  });
+  html+='</div>';
+  el.innerHTML=html;
 }
 
-function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function esc(s){var d=document.createElement('div');d.textContent=s||'';return d.innerHTML}
 
-function markSeqDirty(id){document.getElementById('seqsave-'+id).classList.remove('hidden')}
+function markSeqDirty(id){var b=document.getElementById('seqsave-'+id);if(b)b.classList.remove('hidden')}
 
 async function saveSeq(id){
-  const text=document.getElementById('seqtext-'+id).value;
-  const media_url=document.getElementById('seqimg-'+id).value||null;
-  const trigger_type=document.getElementById('seqtrig-'+id).value;
-  const delay_minutes=parseInt(document.getElementById('seqdelay-'+id).value)||0;
-  const credits_threshold=parseInt(document.getElementById('seqthresh-'+id).value)||null;
-  const allow_hour_from=parseInt(document.getElementById('seqhfrom-'+id).value)||9;
-  const allow_hour_to=parseInt(document.getElementById('seqhto-'+id).value)||22;
-  const s=seqData.find(x=>x.id===id);
-  const r=await P('/admin/push/sequences',{id,trigger_type,delay_minutes,credits_threshold,text,media_type:media_url?'photo':null,media_url,label:s?.label||'Автопуш',is_active:s?.is_active??true,allow_hour_from,allow_hour_to});
+  var text=document.getElementById('seqtext-'+id).value;
+  var media_url=document.getElementById('seqimg-'+id).value||null;
+  var delay_minutes=parseInt(document.getElementById('seqdelay-'+id).value)||0;
+  var allow_hour_from=parseInt(document.getElementById('seqhfrom-'+id).value)||9;
+  var allow_hour_to=parseInt(document.getElementById('seqhto-'+id).value)||22;
+  var s=seqData.find(function(x){return x.id===id});
+  var r=await P('/admin/push/sequences',{id:id,trigger_type:s.trigger_type,delay_minutes:delay_minutes,credits_threshold:s.credits_threshold,text:text,media_type:media_url?'photo':null,media_url:media_url,label:s.label,is_active:s.is_active,allow_hour_from:allow_hour_from,allow_hour_to:allow_hour_to});
   if(r.id){document.getElementById('seqsave-'+id).classList.add('hidden');loadSeqs()}
-  else alert('Ошибка: '+(r.error||''))
+  else alert(r.error||'Ошибка')
 }
 
 async function toggleSeq(id){await apiFetch('/admin/push/sequences/'+id+'/toggle',{method:'PUT'});loadSeqs()}
-async function delSeq(id){if(!confirm('Удалить автопуш?'))return;await D('/admin/push/sequences/'+id);loadSeqs()}
-
-async function seedSeqs(force){
-  if(force&&!confirm('Это удалит ВСЕ автопуши и загрузит стандартные шаблоны. Продолжить?'))return;
-  const r=await P('/admin/push/seed-sequences',{force});
-  if(r.ok){alert('✅ Загружено '+r.count+' шаблонов');loadSeqs()}
-  else alert('❌ '+(r.error||'Ошибка'))
-}
+async function delSeq(id){if(!confirm('Удалить?'))return;await D('/admin/push/sequences/'+id);loadSeqs()}
 
 function addNewSeq(){
-  const label=prompt('Название нового автопуша:');
-  if(!label)return;
-  P('/admin/push/sequences',{trigger_type:'no_purchase',delay_minutes:0,text:'Текст пуша...',label,is_active:false}).then(()=>loadSeqs())
+  var label=prompt('Название:');if(!label)return;
+  P('/admin/push/sequences',{trigger_type:seqFilter,delay_minutes:0,text:'Текст...',label:label,is_active:false}).then(function(){loadSeqs()})
 }
 
 if(TOKEN)showPanel();

@@ -106,17 +106,8 @@ export function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center relative">
-        <div className="fixed inset-0 -z-10">
-          <img src={BG.home} alt="" className="absolute inset-0 w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-[#070b14]/60 to-[#070b14]" />
-        </div>
-        <img src={`${base}logo-mammoth-sm.png`} alt="" className="w-32 h-32 mb-6 drop-shadow-2xl" />
-        <div className="flex gap-3">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="w-2.5 h-2.5 bg-cyan-400 animate-bounce" style={{ animationDelay: `${i * 0.2}s`, transform: 'rotate(45deg)', borderRadius: '2px' }} />
-          ))}
-        </div>
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <img src={`${base}logo-mammoth-sm.png`} alt="" className="w-40 h-40" />
       </div>
     );
   }

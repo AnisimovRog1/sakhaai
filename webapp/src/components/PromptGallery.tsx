@@ -27,7 +27,8 @@ function FullscreenViewer({ tpl, lang, onClose, onUse, useLabel }: {
       <img
         src={tpl.previewUrl}
         alt={lang === 'sah' ? tpl.label.sah : tpl.label.ru}
-        className="absolute inset-0 w-full h-full object-cover"
+        className="absolute w-full h-full object-cover"
+        style={{ top: '-30px', left: 0, right: 0, bottom: 0 }}
       />
 
       {/* Кнопка закрытия */}

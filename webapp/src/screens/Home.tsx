@@ -85,11 +85,11 @@ export function Home({ user, onCreditsUpdate }: Props) {
     <div className="flex flex-col justify-between px-5" style={{ minHeight: 'calc(var(--tg-viewport-height, 100vh) - var(--safe-top, 0px) - 8rem)' }}>
 
       {/* ─── Top content ─── */}
-      <div className="space-y-6">
+      <div className="space-y-4">
 
         {/* Header */}
         {/* Переключатель языка */}
-        <div className="flex justify-center pt-2 pb-2">
+        <div className="flex justify-center pb-1">
           <div className="flex bg-white/[0.08] border border-white/[0.12] rounded-xl p-1 gap-1">
             <button
               onClick={() => setLang('ru')}
@@ -114,7 +114,7 @@ export function Home({ user, onCreditsUpdate }: Props) {
           </div>
         </div>
 
-        <div className="flex items-center justify-between pt-2">
+        <div className="flex items-center justify-between">
           <div>
             <p className="text-blue-200/70 text-sm font-medium tracking-wide">{t('home.welcome')}</p>
             <p className="text-xl font-bold text-white mt-1">{displayName}</p>

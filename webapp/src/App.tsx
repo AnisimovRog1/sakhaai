@@ -15,15 +15,15 @@ function getInitData(): string {
   return window.Telegram?.WebApp?.initData ?? '';
 }
 
-// Фоновые фото — всегда грузим десктопные (HD), на мобиле тоже ок
+// Фоновые фото — оптимизированные (300-400 КБ вместо 3 МБ)
 const base = import.meta.env.BASE_URL;
 const BG: Record<string, string> = {
-  home:     `${base}bg-home-desktop.jpg`,
-  chatList: `${base}bg-chatlist-desktop.jpg`,
-  chat:     `${base}bg-chat-desktop.jpg`,
-  imageGen: `${base}bg-chat-desktop.jpg`,
-  videoGen: `${base}bg-video-desktop.jpg`,
-  friends:  `${base}bg-frends-desktop.jpg`,
+  home:     `${base}bg-home-opt.jpg`,
+  chatList: `${base}bg-chatlist-opt.jpg`,
+  chat:     `${base}bg-chat-opt.jpg`,
+  imageGen: `${base}bg-chat-opt.jpg`,
+  videoGen: `${base}bg-video-opt.jpg`,
+  friends:  `${base}bg-frends-opt.jpg`,
 };
 
 // Разные оверлеи для каждого экрана — подчёркивают уникальность каждого фото
@@ -42,17 +42,9 @@ const OVERLAYS: Record<string, string> = {
   friends:  'bg-gradient-to-b from-amber-950/15 via-[#070b14]/35 to-[#070b14]/95',
 };
 
-// Предзагрузка всех фонов
-const preloadedImages = new Set<string>();
-function preloadAllBGs() {
-  Object.values(BG).forEach((src) => {
-    if (preloadedImages.has(src)) return;
-    preloadedImages.add(src);
-    const img = new Image();
-    img.src = src;
-  });
-}
-preloadAllBGs();
+// Предзагрузка только home фона (самый первый экран)
+const _preHome = new Image();
+_preHome.src = BG.home;
 
 export function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -113,20 +105,33 @@ export function App() {
 
   if (loading) {
     return (
-      <div
-        className="min-h-screen bg-black bg-contain bg-center bg-no-repeat flex flex-col items-center justify-end pb-24"
-        style={{ backgroundImage: `url(${base}logo-mammoth-sm.png)` }}
-      >
-        <div className="flex gap-3">
-          {[0, 1, 2].map((i) => (
-            <div
-              key={i}
-              className="w-2.5 h-2.5 bg-cyan-400 animate-bounce"
-              style={{ animationDelay: `${i * 0.2}s`, transform: 'rotate(45deg)', borderRadius: '2px' }}
-            />
-          ))}
+      <LangProvider initialLang={lang}>
+      <div className="flex flex-col min-h-screen text-slate-100 relative">
+        {/* Фон home сразу */}
+        <div className="fixed inset-0 -z-10">
+          <img src={BG.home} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          <div className={`absolute inset-0 ${OVERLAYS.home}`} />
+        </div>
+        {/* Skeleton контент */}
+        <div className="flex-1 flex flex-col items-center" style={{ paddingTop: 'calc(var(--safe-top, 0px) + 7rem)' }}>
+          <div className="max-w-lg w-full px-5 space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="space-y-2">
+                <div className="h-3 w-24 bg-white/10 rounded animate-pulse" />
+                <div className="h-5 w-36 bg-white/10 rounded animate-pulse" />
+              </div>
+              <div className="w-12 h-12 rounded-full bg-white/10 animate-pulse" />
+            </div>
+            <div className="h-24 bg-white/[0.06] rounded-2xl animate-pulse" />
+            <div className="h-40 bg-white/[0.06] rounded-2xl animate-pulse" />
+            <div className="h-32 bg-white/[0.06] rounded-2xl animate-pulse" />
+          </div>
+          <div className="fixed bottom-0 left-0 right-0 flex gap-3 justify-center py-4 bg-[#070b14]/90">
+            {[0,1,2,3].map(i => <div key={i} className="w-10 h-10 bg-white/10 rounded-xl animate-pulse" />)}
+          </div>
         </div>
       </div>
+      </LangProvider>
     );
   }
 
@@ -167,13 +172,13 @@ export function App() {
             key={key}
             src={src}
             alt=""
-            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${
+            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${
               (BG[screen.name] ?? BG.home) === src ? 'opacity-100' : 'opacity-0'
             }`}
           />
         ))}
         {/* Градиентный оверлей — разный для каждого экрана */}
-        <div className={`absolute inset-0 ${currentOverlay} transition-all duration-500`} />
+        <div className={`absolute inset-0 ${currentOverlay} transition-all duration-200`} />
         {/* Сэргэ на экране видео */}
         {/* Силуэт сэргэ убран */}
       </div>
@@ -188,11 +193,21 @@ export function App() {
       ) : (
         <div className="flex-1 overflow-y-auto" style={{ paddingTop: 'calc(var(--safe-top, 0px) + 5.5rem)', paddingBottom: 'calc(5rem + var(--safe-bottom, 0px))' }}>
           <div className="max-w-lg mx-auto">
-            {screen.name === 'home' && <Home user={user} onCreditsUpdate={(c) => setUser({ ...user, credits: c })} />}
-            {screen.name === 'chatList' && <ChatList user={user} onNavigate={setScreen} />}
-            {screen.name === 'imageGen' && <ImageGen user={user} onCreditsUpdate={(c) => setUser({ ...user, credits: c })} />}
-            {screen.name === 'videoGen' && <VideoGen user={user} onCreditsUpdate={(c) => setUser({ ...user, credits: c })} />}
-            {screen.name === 'friends' && <Friends user={user} />}
+            <div style={{ display: screen.name === 'home' ? 'block' : 'none' }}>
+              <Home user={user} onCreditsUpdate={(c) => setUser({ ...user, credits: c })} />
+            </div>
+            <div style={{ display: screen.name === 'chatList' ? 'block' : 'none' }}>
+              <ChatList user={user} onNavigate={setScreen} />
+            </div>
+            <div style={{ display: screen.name === 'imageGen' ? 'block' : 'none' }}>
+              <ImageGen user={user} onCreditsUpdate={(c) => setUser({ ...user, credits: c })} />
+            </div>
+            <div style={{ display: screen.name === 'videoGen' ? 'block' : 'none' }}>
+              <VideoGen user={user} onCreditsUpdate={(c) => setUser({ ...user, credits: c })} />
+            </div>
+            <div style={{ display: screen.name === 'friends' ? 'block' : 'none' }}>
+              <Friends user={user} />
+            </div>
           </div>
         </div>
       )}

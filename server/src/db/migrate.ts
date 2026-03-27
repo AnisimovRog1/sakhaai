@@ -178,6 +178,16 @@ export async function migrate() {
       ALTER TABLE users ADD COLUMN credits_zero_at TIMESTAMPTZ;
     EXCEPTION WHEN duplicate_column THEN NULL;
     END $$;
+
+    -- Soft-delete для пуш-последовательностей (корзина)
+    DO $$ BEGIN
+      ALTER TABLE push_sequences ADD COLUMN is_deleted BOOLEAN NOT NULL DEFAULT false;
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$;
+    DO $$ BEGIN
+      ALTER TABLE push_sequences ADD COLUMN deleted_at TIMESTAMPTZ;
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$;
   `);
 
   console.log('✅ Миграции применены');

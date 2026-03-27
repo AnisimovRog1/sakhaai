@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import { pool } from '../db/pool';
 import { addCredits, deduct } from '../services/balance';
-import { getAllSequences, upsertSequence, deleteSequence, toggleSequence, findPendingPushes, markPushSent } from '../services/push-sequences';
+import { getAllSequences, getDeletedSequences, upsertSequence, deleteSequence, restoreSequence, toggleSequence, findPendingPushes, markPushSent } from '../services/push-sequences';
 import { seedPushSequences } from '../services/push-seed';
 
 export const adminRouter = Router();
@@ -360,6 +360,21 @@ adminRouter.put('/push/sequences/:id/toggle', async (req: Request, res: Response
 adminRouter.delete('/push/sequences/:id', async (req: Request, res: Response) => {
   try {
     await deleteSequence(parseInt(req.params.id));
+    res.json({ ok: true });
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+// Корзина удалённых пушей
+adminRouter.get('/push/sequences/deleted', async (_req: Request, res: Response) => {
+  try {
+    const deleted = await getDeletedSequences();
+    res.json(deleted);
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+adminRouter.post('/push/sequences/:id/restore', async (req: Request, res: Response) => {
+  try {
+    await restoreSequence(parseInt(req.params.id));
     res.json({ ok: true });
   } catch (err: any) { res.status(500).json({ error: err.message }); }
 });

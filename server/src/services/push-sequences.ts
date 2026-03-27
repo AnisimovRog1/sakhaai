@@ -192,7 +192,12 @@ export async function resetZeroCreditsPushes(userId: number): Promise<void> {
 
 // ─── CRUD для админки ───
 export async function getAllSequences(): Promise<PushSequence[]> {
-  const { rows } = await pool.query(`SELECT * FROM push_sequences ORDER BY trigger_type, delay_minutes`);
+  const { rows } = await pool.query(`SELECT * FROM push_sequences WHERE is_deleted = false ORDER BY trigger_type, delay_minutes`);
+  return rows;
+}
+
+export async function getDeletedSequences(): Promise<PushSequence[]> {
+  const { rows } = await pool.query(`SELECT * FROM push_sequences WHERE is_deleted = true ORDER BY deleted_at DESC`);
   return rows;
 }
 
@@ -220,7 +225,11 @@ export async function upsertSequence(data: Partial<PushSequence> & { trigger_typ
 }
 
 export async function deleteSequence(id: number): Promise<void> {
-  await pool.query(`DELETE FROM push_sequences WHERE id = $1`, [id]);
+  await pool.query(`UPDATE push_sequences SET is_deleted = true, is_active = false, deleted_at = NOW() WHERE id = $1`, [id]);
+}
+
+export async function restoreSequence(id: number): Promise<void> {
+  await pool.query(`UPDATE push_sequences SET is_deleted = false, deleted_at = NULL WHERE id = $1`, [id]);
 }
 
 export async function toggleSequence(id: number): Promise<boolean> {

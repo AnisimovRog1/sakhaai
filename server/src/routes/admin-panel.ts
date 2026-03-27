@@ -262,6 +262,12 @@ input:focus,textarea:focus{border-color:rgba(139,92,246,.5);box-shadow:0 0 20px 
         </div>
 
         <div id="seqList"></div>
+
+        <!-- Корзина -->
+        <div class="mt-6">
+          <button class="btn btn-ghost text-xs flex items-center gap-2" onclick="toggleTrash()">🗑 Корзина удалённых <span id="trashCount" class="text-slate-600">(0)</span></button>
+          <div id="trashList" class="hidden mt-3 space-y-2"></div>
+        </div>
       </div>
     </div>
 
@@ -445,7 +451,7 @@ let seqFilter='no_purchase';
 
 function filterSeq(el,f){seqFilter=f;document.querySelectorAll('.seq-tab').forEach(e=>{e.classList.remove('active');e.style.background=''});el.classList.add('active');el.style.background='rgba(139,92,246,.2)';renderSeqs()}
 
-async function loadSeqs(){seqData=await G('/admin/push/sequences');if(!Array.isArray(seqData))seqData=[];renderSeqs()}
+async function loadSeqs(){seqData=await G('/admin/push/sequences');if(!Array.isArray(seqData))seqData=[];renderSeqs();G('/admin/push/sequences/deleted').then(function(d){if(Array.isArray(d))document.getElementById('trashCount').textContent='('+d.length+')'}).catch(function(){})}
 
 function delayLabel(m){if(m===0)return 'сразу';if(m<60)return m+' мин';if(m<1440){var h=Math.floor(m/60),mm=m%60;return h+'ч'+(mm?' '+mm+'м':'')}return Math.floor(m/1440)+'д'}
 
@@ -483,16 +489,17 @@ function renderSeqs(){
     html+='<label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" '+(active?'checked':'')+' onchange="toggleSeq('+s.id+')" class="w-4 h-4 accent-green-500 rounded"><span class="text-xs font-medium '+(active?'text-green-400':'text-slate-600')+'">'+(active?'✅ Вкл':'Выкл')+'</span></label>';
     html+='</div>';
 
-    // Превью фото с кнопкой удаления
-    html+='<div class="relative mb-2" id="seqmedia-'+s.id+'">';
-    if(s.media_url){
-      html+='<img src="'+esc(s.media_url)+'" class="w-full max-h-64 object-contain rounded-lg" onerror="this.remove()">';
-      html+='<button class="absolute top-2 right-2 w-7 h-7 rounded-full bg-red-500/80 text-white text-sm flex items-center justify-center hover:bg-red-500" onclick="clearSeqImg('+s.id+')">✕</button>';
-    } else {
-      html+='<div class="border-2 border-dashed border-white/10 rounded-lg p-4 text-center cursor-pointer hover:border-violet-500/40 transition" onclick="seqPickFile('+s.id+')" ondragover="event.preventDefault();this.classList.add(&quot;border-violet-500&quot;)" ondragleave="this.classList.remove(&quot;border-violet-500&quot;)" ondrop="event.preventDefault();this.classList.remove(&quot;border-violet-500&quot;);seqDropFile(event,'+s.id+')">';
-      html+='<p class="text-slate-600 text-xs">📁 Перетащите фото или нажмите</p></div>';
-      html+='<input type="file" id="seqfile-'+s.id+'" class="hidden" accept="image/*" onchange="seqFileSelect(event,'+s.id+')">';
+    // Превью фото + зона загрузки
+    html+='<div class="mb-2" id="seqmedia-'+s.id+'">';
+    if(s.media_url||s.media_file_id){
+      html+='<div class="relative mb-2">';
+      html+='<img src="'+esc(s.media_url||'')+'" class="w-full rounded-lg" style="max-height:300px;object-fit:contain;background:#111" onerror="this.style.display=&quot;none&quot;">';
+      html+='<button class="absolute top-2 right-2 z-10 w-9 h-9 rounded-full bg-red-600 text-white text-lg flex items-center justify-center shadow-lg cursor-pointer" style="pointer-events:auto" onclick="event.stopPropagation();clearSeqImg('+s.id+')">✕</button>';
+      html+='</div>';
     }
+    html+='<div class="border-2 border-dashed border-white/10 rounded-lg p-3 text-center cursor-pointer hover:border-violet-500/40 transition" onclick="seqPickFile('+s.id+')" ondragover="event.preventDefault();this.classList.add(&quot;border-violet-500&quot;)" ondragleave="this.classList.remove(&quot;border-violet-500&quot;)" ondrop="event.preventDefault();this.classList.remove(&quot;border-violet-500&quot;);seqDropFile(event,'+s.id+')">';
+    html+='<p class="text-slate-500 text-xs">📁 Перетащите фото или нажмите для выбора</p></div>';
+    html+='<input type="file" id="seqfile-'+s.id+'" class="hidden" accept="image/*" onchange="seqFileSelect(event,'+s.id+')">';
     html+='</div>';
 
     // Форматирование — через data-атрибуты, без кавычек в onclick
@@ -574,9 +581,11 @@ function seqEmoji(btn){
 
 // Удалить фото
 async function clearSeqImg(id){
+  var media=document.getElementById('seqmedia-'+id);
+  if(media){var imgs=media.querySelectorAll('img,.relative');for(var i=0;i<imgs.length;i++)imgs[i].remove()}
   document.getElementById('seqimg-'+id).value='';
   var s=seqData.find(function(x){return x.id===id});
-  if(s){s.media_url=null;s.media_type=null}
+  if(s){s.media_url=null;s.media_type=null;s.media_file_id=null}
   await saveSeq(id);
 }
 
@@ -605,6 +614,20 @@ function addNewSeq(){
   var label=prompt('Название:');if(!label)return;
   P('/admin/push/sequences',{trigger_type:seqFilter,delay_minutes:0,text:'Текст...',label:label,is_active:false}).then(function(){loadSeqs()})
 }
+
+// Корзина удалённых
+var trashData=[];
+function toggleTrash(){var el=document.getElementById('trashList');if(el.classList.contains('hidden')){loadTrash();el.classList.remove('hidden')}else el.classList.add('hidden')}
+async function loadTrash(){trashData=await G('/admin/push/sequences/deleted');if(!Array.isArray(trashData))trashData=[];document.getElementById('trashCount').textContent='('+trashData.length+')';renderTrash()}
+function renderTrash(){
+  var el=document.getElementById('trashList');
+  if(!trashData.length){el.innerHTML='<p class="text-slate-600 text-sm py-4 text-center">Корзина пуста</p>';return}
+  el.innerHTML=trashData.map(function(s){
+    var d=s.deleted_at?new Date(s.deleted_at).toLocaleDateString('ru'):'';
+    return '<div class="glass p-3 flex items-center justify-between"><div class="flex-1 min-w-0"><span class="text-white text-sm font-bold">'+esc(s.label)+'</span><span class="text-slate-500 text-xs ml-2">'+s.trigger_type+'</span>'+(d?' <span class="text-slate-600 text-xs">удалён '+d+'</span>':'')+'<p class="text-slate-400 text-xs truncate mt-1">'+esc((s.text||'').substring(0,80))+'</p></div><button class="btn btn-success text-xs ml-3" style="padding:6px 14px" onclick="restoreSeq('+s.id+')">♻️ Вернуть</button></div>'
+  }).join('')
+}
+async function restoreSeq(id){await P('/admin/push/sequences/'+id+'/restore',{});loadSeqs();loadTrash()}
 
 if(TOKEN)showPanel();
 </script></body></html>`;

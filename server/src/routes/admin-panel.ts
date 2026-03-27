@@ -283,7 +283,7 @@ async function login(){
   try{const r=await fetch(API+'/panel/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:p})});
   const t=await r.text();let d;try{d=JSON.parse(t)}catch{alert(t);return}
   if(d.success){TOKEN=d.token;localStorage.setItem('at',TOKEN);showPanel()}
-  else document.getElementById('loginError').classList.remove('hidden')}catch(e){alert(e)}
+  else{const el=document.getElementById('loginError');el.textContent=d.error||'Неверный пароль';el.classList.remove('hidden')}}catch(e){alert(e)}
 }
 function showPanel(){document.getElementById('loginPage').classList.add('hidden');document.getElementById('panelPage').classList.remove('hidden');loadStats('today');startAutoRefresh()}
 function logout(){TOKEN='';localStorage.removeItem('at');clearInterval(autoRefresh);location.reload()}
@@ -551,7 +551,7 @@ function seqFmt(btn){
   var before='',after='';
   if(fmt==='bold'){before='**';after='**'}
   else if(fmt==='italic'){before='_';after='_'}
-  else if(fmt==='newline'){before='\n';after=''}
+  else if(fmt==='newline'){before='\\n';after=''}
   ta.value=text.substring(0,start)+before+sel+after+text.substring(end);
   ta.selectionStart=ta.selectionEnd=start+before.length+sel.length+after.length;
   ta.focus();markSeqDirty(id);

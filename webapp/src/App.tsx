@@ -187,7 +187,7 @@ export function App() {
           onBack={() => setScreen({ name: 'chatList' })}
         />
       ) : (
-        <div className="flex-1 overflow-y-auto pb-20 pt-14">
+        <div className="flex-1 overflow-y-auto pb-20" style={{ paddingTop: 'calc(var(--safe-top, 0px) + 3.5rem)' }}>
           {screen.name === 'home' && <Home user={user} onCreditsUpdate={(c) => setUser({ ...user, credits: c })} />}
           {screen.name === 'chatList' && <ChatList user={user} onNavigate={setScreen} />}
           {screen.name === 'imageGen' && <ImageGen user={user} onCreditsUpdate={(c) => setUser({ ...user, credits: c })} />}

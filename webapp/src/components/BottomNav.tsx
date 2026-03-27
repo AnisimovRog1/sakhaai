@@ -180,7 +180,7 @@ export function BottomNav({ current, onNavigate }: Props) {
           );
         })}
       </div>
-      <div className="h-safe-bottom" />
+      <div style={{ height: 'var(--safe-bottom, 0px)' }} />
     </nav>
   );
 }

@@ -82,7 +82,7 @@ export function Home({ user, onCreditsUpdate }: Props) {
   }
 
   return (
-    <div className="flex flex-col justify-between px-5" style={{ minHeight: 'calc(var(--tg-viewport-height, 100vh) - 130px)' }}>
+    <div className="flex flex-col justify-between px-5" style={{ minHeight: 'calc(var(--tg-viewport-height, 100vh) - var(--safe-top, 0px) - 8rem)' }}>
 
       {/* ─── Top content ─── */}
       <div className="space-y-6">

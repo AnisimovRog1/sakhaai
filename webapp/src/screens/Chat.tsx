@@ -64,7 +64,7 @@ export function Chat({ chatId, chatTitle, onBack }: Props) {
   }
 
   return (
-    <div className="flex flex-col tg-viewport pt-20">
+    <div className="flex flex-col tg-viewport" style={{ paddingTop: 'calc(var(--safe-top, 0px) + 5rem)' }}>
 
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 bg-[#070b14]/90 backdrop-blur-xl border-b border-white/[0.08] flex-shrink-0">

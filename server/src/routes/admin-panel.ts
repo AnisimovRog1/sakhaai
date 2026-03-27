@@ -481,11 +481,36 @@ function renderSeqs(){
     html+='<label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" '+(active?'checked':'')+' onchange="toggleSeq('+s.id+')" class="w-4 h-4 accent-green-500 rounded"><span class="text-xs font-medium '+(active?'text-green-400':'text-slate-600')+'">'+(active?'✅ Вкл':'Выкл')+'</span></label>';
     html+='</div>';
 
-    // Превью фото
-    if(s.media_url) html+='<img src="'+esc(s.media_url)+'" class="w-full max-h-32 object-cover rounded-lg mb-2 opacity-80" onerror="this.remove()">';
+    // Превью фото с кнопкой удаления и drag-drop
+    html+='<div class="relative mb-2" id="seqmedia-'+s.id+'">';
+    if(s.media_url){
+      html+='<img src="'+esc(s.media_url)+'" class="w-full max-h-40 object-cover rounded-lg opacity-90" onerror="this.remove()">';
+      html+='<button class="absolute top-2 right-2 w-7 h-7 rounded-full bg-red-500/80 text-white text-sm flex items-center justify-center hover:bg-red-500" onclick="clearSeqImg('+s.id+')">✕</button>';
+    } else {
+      html+='<div class="border-2 border-dashed border-white/10 rounded-lg p-4 text-center cursor-pointer hover:border-violet-500/40 transition" onclick="document.getElementById(\'seqfile-'+s.id+'\').click()" ondragover="event.preventDefault();this.style.borderColor=\'rgba(139,92,246,.5)\'" ondragleave="this.style.borderColor=\'\'" ondrop="event.preventDefault();seqFileDrop(event,'+s.id+');this.style.borderColor=\'\'">';
+      html+='<p class="text-slate-600 text-xs">📁 Перетащите фото или нажмите</p></div>';
+      html+='<input type="file" id="seqfile-'+s.id+'" class="hidden" accept="image/*" onchange="seqFileSelect(event,'+s.id+')">';
+    }
+    html+='</div>';
+
+    // Форматирование текста
+    html+='<div class="flex gap-1 mb-1">';
+    html+='<button class="px-2 py-0.5 rounded text-[11px] bg-white/5 hover:bg-white/10 text-slate-400 font-bold" onclick="seqInsert('+s.id+\',\'**\',\'**\')">B</button>';
+    html+='<button class="px-2 py-0.5 rounded text-[11px] bg-white/5 hover:bg-white/10 text-slate-400 italic" onclick="seqInsert('+s.id+\',\'_\',\'_\')">I</button>';
+    html+='<button class="px-2 py-0.5 rounded text-[11px] bg-white/5 hover:bg-white/10 text-slate-400" onclick="seqInsert('+s.id+\',\'\\n\',\'\')">↵</button>';
+    html+='<span class="border-l border-white/10 mx-1"></span>';
+    html+='<button class="px-1.5 py-0.5 rounded text-sm bg-white/5 hover:bg-white/10" onclick="seqInsert('+s.id+\',\'🎨\',\'\')">🎨</button>';
+    html+='<button class="px-1.5 py-0.5 rounded text-sm bg-white/5 hover:bg-white/10" onclick="seqInsert('+s.id+\',\'🔥\',\'\')">🔥</button>';
+    html+='<button class="px-1.5 py-0.5 rounded text-sm bg-white/5 hover:bg-white/10" onclick="seqInsert('+s.id+\',\'⭐\',\'\')">⭐</button>';
+    html+='<button class="px-1.5 py-0.5 rounded text-sm bg-white/5 hover:bg-white/10" onclick="seqInsert('+s.id+\',\'💎\',\'\')">💎</button>';
+    html+='<button class="px-1.5 py-0.5 rounded text-sm bg-white/5 hover:bg-white/10" onclick="seqInsert('+s.id+\',\'🎬\',\'\')">🎬</button>';
+    html+='<button class="px-1.5 py-0.5 rounded text-sm bg-white/5 hover:bg-white/10" onclick="seqInsert('+s.id+\',\'✨\',\'\')">✨</button>';
+    html+='<button class="px-1.5 py-0.5 rounded text-sm bg-white/5 hover:bg-white/10" onclick="seqInsert('+s.id+\',\'🚀\',\'\')">🚀</button>';
+    html+='<button class="px-1.5 py-0.5 rounded text-sm bg-white/5 hover:bg-white/10" onclick="seqInsert('+s.id+\',\'💰\',\'\')">💰</button>';
+    html+='</div>';
 
     // Текст
-    html+='<textarea class="w-full bg-black/20 border border-white/8 rounded-lg p-2.5 text-xs text-slate-300 resize-y leading-relaxed" rows="3" id="seqtext-'+s.id+'" oninput="markSeqDirty('+s.id+')">'+esc(s.text)+'</textarea>';
+    html+='<textarea class="w-full bg-black/20 border border-white/8 rounded-lg p-2.5 text-xs text-slate-300 resize-y leading-relaxed font-mono" rows="4" id="seqtext-'+s.id+'" oninput="markSeqDirty('+s.id+')">'+esc(s.text)+'</textarea>';
 
     // Настройки
     html+='<div class="flex gap-2 mt-2 flex-wrap items-center">';
@@ -520,6 +545,38 @@ async function saveSeq(id){
 
 async function toggleSeq(id){await apiFetch('/admin/push/sequences/'+id+'/toggle',{method:'PUT'});loadSeqs()}
 async function delSeq(id){if(!confirm('Удалить?'))return;await D('/admin/push/sequences/'+id);loadSeqs()}
+
+// Вставка форматирования/эмодзи в textarea
+function seqInsert(id,before,after){
+  var ta=document.getElementById('seqtext-'+id);if(!ta)return;
+  var start=ta.selectionStart,end=ta.selectionEnd;
+  var text=ta.value;var selected=text.substring(start,end);
+  ta.value=text.substring(0,start)+before+selected+after+text.substring(end);
+  ta.selectionStart=ta.selectionEnd=start+before.length+selected.length+after.length;
+  ta.focus();markSeqDirty(id);
+}
+
+// Удалить фото у пуша
+function clearSeqImg(id){
+  document.getElementById('seqimg-'+id).value='';
+  markSeqDirty(id);
+  // Перерисовать медиа-блок
+  var media=document.getElementById('seqmedia-'+id);
+  if(media)media.innerHTML='<div class="border-2 border-dashed border-white/10 rounded-lg p-4 text-center cursor-pointer hover:border-violet-500/40 transition" onclick="document.getElementById(\'seqfile-'+id+'\').click()"><p class="text-slate-600 text-xs">📁 Перетащите фото или нажмите</p></div><input type="file" id="seqfile-'+id+'" class="hidden" accept="image/*" onchange="seqFileSelect(event,'+id+')">';
+}
+
+// Drag-drop и выбор файла для фото
+function seqFileDrop(e,id){var f=e.dataTransfer.files[0];if(f&&f.type.startsWith('image/'))seqUploadFile(f,id)}
+function seqFileSelect(e,id){var f=e.target.files[0];if(f)seqUploadFile(f,id)}
+function seqUploadFile(f,id){
+  // Читаем как data URL для превью, но для Telegram нужен публичный URL
+  // Пока показываем превью и просим вставить URL
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var media=document.getElementById('seqmedia-'+id);
+    if(media)media.innerHTML='<img src="'+e.target.result+'" class="w-full max-h-40 object-cover rounded-lg opacity-90"><button class="absolute top-2 right-2 w-7 h-7 rounded-full bg-red-500/80 text-white text-sm flex items-center justify-center hover:bg-red-500" onclick="clearSeqImg('+id+')">✕</button><p class="text-amber-400 text-[10px] mt-1">⚠️ Загрузите фото на CDN и вставьте URL ниже</p>';
+  };reader.readAsDataURL(f);
+}
 
 function addNewSeq(){
   var label=prompt('Название:');if(!label)return;

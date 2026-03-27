@@ -61,14 +61,6 @@ app.get('/landing', (_req, res) => {
   res.type('text/html').send(LANDING_HTML);
 });
 
-// ─── Обычный браузер → landing (для модерации платёжки и SEO) ────
-app.get('/', (req, res, next) => {
-  if (req.query.tgWebAppData || req.query.tgWebAppVersion) {
-    return next(); // Telegram Mini App — отдаём SPA
-  }
-  res.type('text/html').send(LANDING_HTML);
-});
-
 // ─── Webapp SPA (React) ─────────────────────────────────
 // Собранный фронтенд копируется в server/webapp-dist/ при билде на Railway
 const webappDist = path.resolve(__dirname, '../webapp-dist');

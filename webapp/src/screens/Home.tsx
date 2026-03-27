@@ -89,7 +89,7 @@ export function Home({ user, onCreditsUpdate }: Props) {
 
         {/* Header */}
         {/* Переключатель языка */}
-        <div className="flex justify-center pt-6 pb-2">
+        <div className="flex justify-center pt-2 pb-2">
           <div className="flex bg-white/[0.08] border border-white/[0.12] rounded-xl p-1 gap-1">
             <button
               onClick={() => setLang('ru')}

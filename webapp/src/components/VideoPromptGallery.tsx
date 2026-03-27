@@ -85,22 +85,18 @@ function FullscreenViewer({ tpl, lang, onClose, onUse, useLabel }: {
 
   return (
     <div className="fixed inset-0 z-50 bg-black" onClick={onClose}>
-      {/* Видео на весь экран */}
+      {/* Видео на весь экран без зазоров */}
       <video
         ref={videoRef}
         src={tpl.previewUrl}
         loop
         playsInline
-        className="absolute w-full h-full object-cover"
-        style={{ top: 'calc(var(--safe-top, 0px) + 44px)', left: 0, right: 0, bottom: 0 }}
+        className="absolute inset-0 w-full h-full object-cover"
       />
-
-      {/* Тёмный градиент сверху для Telegram header */}
-      <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black via-black/80 to-transparent" style={{ height: 'calc(var(--safe-top, 0px) + 60px)' }} />
 
       {/* Кнопка закрытия */}
       <button
-        className="absolute z-20 w-11 h-11 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center border border-white/25 active:scale-90 transition-transform" style={{ top: 'calc(var(--safe-top, 0px) + 48px)', right: '16px' }}
+        className="absolute z-20 w-11 h-11 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center border border-white/25 active:scale-90 transition-transform" style={{ top: 'calc(var(--safe-top, 0px) + 50px)', right: '16px' }}
         onClick={(e) => { e.stopPropagation(); onClose(); }}
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">

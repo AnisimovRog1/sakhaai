@@ -107,7 +107,7 @@ export function App() {
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <img src={`${base}logo-mammoth-sm.png`} alt="" className="w-40 h-40" />
+        <img src={`${base}logo-mammoth-sm.png`} alt="" className="w-64 h-64" />
       </div>
     );
   }

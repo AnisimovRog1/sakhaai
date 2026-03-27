@@ -149,7 +149,7 @@ export function BottomNav({ current, onNavigate }: Props) {
   const { t } = useLang();
   return (
     <nav className="fixed bottom-0 left-0 right-0 w-full bg-[#070b14]/95 backdrop-blur-xl border-t border-white/[0.08]">
-      <div className="flex">
+      <div className="flex max-w-lg mx-auto">
         {items.map(({ name, labelKey, Icon }) => {
           const label = t(labelKey);
           const active = current === name;
@@ -166,7 +166,7 @@ export function BottomNav({ current, onNavigate }: Props) {
               <div className={`relative transition-all duration-300 ${active ? 'scale-110' : 'text-slate-500'}`}>
                 <Icon active={active} />
               </div>
-              <span className={`text-[10px] font-bold transition-all duration-300 ${
+              <span className={`text-[11px] font-bold transition-all duration-300 ${
                 active
                   ? 'bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent'
                   : 'text-slate-500'

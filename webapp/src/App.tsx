@@ -186,12 +186,14 @@ export function App() {
           onBack={() => setScreen({ name: 'chatList' })}
         />
       ) : (
-        <div className="flex-1 overflow-y-auto pb-20" style={{ paddingTop: 'calc(var(--safe-top, 0px) + 3.5rem)' }}>
-          {screen.name === 'home' && <Home user={user} onCreditsUpdate={(c) => setUser({ ...user, credits: c })} />}
-          {screen.name === 'chatList' && <ChatList user={user} onNavigate={setScreen} />}
-          {screen.name === 'imageGen' && <ImageGen user={user} onCreditsUpdate={(c) => setUser({ ...user, credits: c })} />}
-          {screen.name === 'videoGen' && <VideoGen user={user} onCreditsUpdate={(c) => setUser({ ...user, credits: c })} />}
-          {screen.name === 'friends' && <Friends user={user} />}
+        <div className="flex-1 overflow-y-auto" style={{ paddingTop: 'calc(var(--safe-top, 0px) + 3.5rem)', paddingBottom: 'calc(5rem + var(--safe-bottom, 0px))' }}>
+          <div className="max-w-lg mx-auto">
+            {screen.name === 'home' && <Home user={user} onCreditsUpdate={(c) => setUser({ ...user, credits: c })} />}
+            {screen.name === 'chatList' && <ChatList user={user} onNavigate={setScreen} />}
+            {screen.name === 'imageGen' && <ImageGen user={user} onCreditsUpdate={(c) => setUser({ ...user, credits: c })} />}
+            {screen.name === 'videoGen' && <VideoGen user={user} onCreditsUpdate={(c) => setUser({ ...user, credits: c })} />}
+            {screen.name === 'friends' && <Friends user={user} />}
+          </div>
         </div>
       )}
 

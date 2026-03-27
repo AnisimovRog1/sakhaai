@@ -183,7 +183,7 @@ export function ChatList({ user, onNavigate }: Props) {
       )}
 
       {/* ─── Кнопка "Новый чат" — фиксирована внизу ─── */}
-      <div className="fixed bottom-[68px] right-5 z-10">
+      <div className="fixed right-5 z-10" style={{ bottom: 'calc(68px + var(--safe-bottom, 0px))' }}>
         <button
           onClick={createNewChat}
           disabled={creatingChat}

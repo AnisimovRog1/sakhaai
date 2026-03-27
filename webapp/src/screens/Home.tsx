@@ -231,7 +231,7 @@ export function Home({ user, onCreditsUpdate }: Props) {
 
           {/* Bottom sheet */}
           <div
-            className="relative w-full max-w-md bg-[#0f1420] border-t border-white/[0.12] rounded-t-3xl p-6 pb-8 space-y-5 animate-slide-up"
+            className="relative w-full max-w-[calc(100vw-2rem)] sm:max-w-md bg-[#0f1420] border-t border-white/[0.12] rounded-t-3xl p-5 pb-8 space-y-5 animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Handle */}

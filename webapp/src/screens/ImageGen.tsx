@@ -308,7 +308,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
         </button>
 
         {showAspectPicker && (
-          <div className="grid grid-cols-5 gap-1.5 bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md p-2">
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5 bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md p-2">
             {ASPECT_RATIOS.map((ar) => (
               <button
                 key={ar}

@@ -190,7 +190,7 @@ export function Friends({ user }: Props) {
       </div>
 
       {/* ─── Кнопка пригласить — фиксирована внизу ─── */}
-      <div className="fixed bottom-[68px] left-0 right-0 px-5 pb-3 pt-4 bg-gradient-to-t from-[#070b14] via-[#070b14]/95 to-transparent">
+      <div className="fixed left-0 right-0 px-5 pb-3 pt-4 bg-gradient-to-t from-[#070b14] via-[#070b14]/95 to-transparent" style={{ bottom: 'calc(68px + var(--safe-bottom, 0px))' }}>
         <button
           onClick={shareLink}
           className="w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl bg-gradient-to-r from-violet-600 to-cyan-500 shadow-lg shadow-violet-500/25 font-bold text-base text-white active:scale-[0.98] transition-transform"

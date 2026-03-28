@@ -82,6 +82,16 @@ authRouter.post('/', async (req: Request, res: Response) => {
     pool.query('UPDATE users SET timezone_offset = $1 WHERE id = $2', [timezoneOffset, tgUser.id]).catch(console.error);
   }
 
+  // 3.6. Помечаем welcome push как отправленный (чтобы автопуши не дублировали)
+  if (user.is_new) {
+    pool.query(
+      `INSERT INTO push_sent (user_id, sequence_id)
+       SELECT $1, id FROM push_sequences WHERE trigger_type = 'welcome' AND is_active = true
+       ON CONFLICT DO NOTHING`,
+      [tgUser.id]
+    ).catch(console.error);
+  }
+
   // 4. Сохраняем IP (асинхронно, не блокируем ответ)
   saveUserIp(Number(tgUser.id), ip).catch(console.error);
 

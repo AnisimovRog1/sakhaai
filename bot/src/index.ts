@@ -74,14 +74,40 @@ bot.command('start', async (ctx) => {
   }
 
   const keyboard = new InlineKeyboard().webApp('🚀 Открыть UraanxAI', WEBAPP_URL);
-  await ctx.reply(
-    `Привет, ${ctx.from?.first_name ?? 'друг'}! 👋\n\n` +
-    `Я UraanxAI — твой ИИ-ассистент.\n\nНажми кнопку ниже, чтобы начать:`,
-    { reply_markup: keyboard }
-  );
 
-  // Welcome пуш теперь управляется через push_sequences в админке (триггер 'welcome')
-  // Бот автоматически подхватит новых юзеров через processAutoSequences
+  // Берём welcome push из админки (БД)
+  let welcomeSeq: any = null;
+  try {
+    welcomeSeq = await httpGet(`${SERVER_URL}/admin/push/sequences/welcome`);
+  } catch (_) { /* fallback to default */ }
+
+  if (welcomeSeq && welcomeSeq.text) {
+    const media = welcomeSeq.media_file_id || welcomeSeq.media_url;
+    const text = formatText(welcomeSeq.text);
+
+    if (welcomeSeq.media_type === 'photo' && media) {
+      await ctx.replyWithPhoto(media, {
+        caption: text,
+        parse_mode: 'HTML',
+        reply_markup: keyboard,
+      });
+    } else if (welcomeSeq.media_type === 'video' && media) {
+      await ctx.replyWithVideo(media, {
+        caption: text,
+        parse_mode: 'HTML',
+        reply_markup: keyboard,
+      });
+    } else {
+      await ctx.reply(text, { parse_mode: 'HTML', reply_markup: keyboard });
+    }
+  } else {
+    // Fallback если welcome push не настроен в админке
+    await ctx.reply(
+      `Привет, ${ctx.from?.first_name ?? 'друг'}! 👋\n\n` +
+      `Я UraanxAI — твой ИИ-ассистент.\n\nНажми кнопку ниже, чтобы начать:`,
+      { reply_markup: keyboard }
+    );
+  }
 });
 
 bot.command('help', async (ctx) => {
@@ -865,11 +891,19 @@ async function broadcastTemplate(tmpl: any, ctx: any) {
     for (const user of users) {
       try {
         if (tmpl.media_type === 'photo' && tmpl.media_file_id) {
-          await bot.api.sendPhoto(Number(user.id), tmpl.media_file_id, { caption: tmpl.text });
+          await bot.api.sendPhoto(Number(user.id), tmpl.media_file_id, {
+            caption: formatText(tmpl.text),
+            parse_mode: 'HTML',
+          });
         } else if (tmpl.media_type === 'video' && tmpl.media_file_id) {
-          await bot.api.sendVideo(Number(user.id), tmpl.media_file_id, { caption: tmpl.text });
+          await bot.api.sendVideo(Number(user.id), tmpl.media_file_id, {
+            caption: formatText(tmpl.text),
+            parse_mode: 'HTML',
+          });
         } else {
-          await bot.api.sendMessage(Number(user.id), tmpl.text);
+          await bot.api.sendMessage(Number(user.id), formatText(tmpl.text), {
+            parse_mode: 'HTML',
+          });
         }
         sent++;
       } catch { failed++; }
@@ -927,11 +961,19 @@ async function processDailyPushes() {
       for (const user of users) {
         try {
           if (tmpl.media_type === 'photo' && tmpl.media_file_id) {
-            await bot.api.sendPhoto(Number(user.id), tmpl.media_file_id, { caption: tmpl.text });
+            await bot.api.sendPhoto(Number(user.id), tmpl.media_file_id, {
+              caption: formatText(tmpl.text),
+              parse_mode: 'HTML',
+            });
           } else if (tmpl.media_type === 'video' && tmpl.media_file_id) {
-            await bot.api.sendVideo(Number(user.id), tmpl.media_file_id, { caption: tmpl.text });
+            await bot.api.sendVideo(Number(user.id), tmpl.media_file_id, {
+              caption: formatText(tmpl.text),
+              parse_mode: 'HTML',
+            });
           } else {
-            await bot.api.sendMessage(Number(user.id), tmpl.text);
+            await bot.api.sendMessage(Number(user.id), formatText(tmpl.text), {
+              parse_mode: 'HTML',
+            });
           }
           sent++;
         } catch { failed++; }

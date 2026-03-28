@@ -157,7 +157,7 @@ export async function findPendingPushes(): Promise<PendingPush[]> {
         userIds = await findDailyUsers(seq);
         break;
       case 'welcome':
-        userIds = await findWelcomeUsers(seq);
+        // Welcome отправляется напрямую из /start, не через автопуши
         break;
     }
 

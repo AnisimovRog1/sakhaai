@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import { pool } from '../db/pool';
 import { addCredits, deduct } from '../services/balance';
-import { getAllSequences, getDeletedSequences, upsertSequence, deleteSequence, restoreSequence, toggleSequence, findPendingPushes, markPushSent } from '../services/push-sequences';
+import { getAllSequences, getActiveSequences, getDeletedSequences, upsertSequence, deleteSequence, restoreSequence, toggleSequence, findPendingPushes, markPushSent } from '../services/push-sequences';
 import { seedPushSequences } from '../services/push-seed';
 
 export const adminRouter = Router();
@@ -426,6 +426,14 @@ adminRouter.delete('/push/sequences/:id/permanent', async (req: Request, res: Re
     await pool.query(`DELETE FROM push_sent WHERE sequence_id = $1`, [req.params.id]);
     await pool.query(`DELETE FROM push_sequences WHERE id = $1`, [req.params.id]);
     res.json({ ok: true });
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+// Получить активный welcome push для /start
+adminRouter.get('/push/sequences/welcome', async (_req: Request, res: Response) => {
+  try {
+    const sequences = await getActiveSequences('welcome');
+    res.json(sequences.length > 0 ? sequences[0] : null);
   } catch (err: any) { res.status(500).json({ error: err.message }); }
 });
 

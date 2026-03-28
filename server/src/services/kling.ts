@@ -32,6 +32,17 @@ export async function generateVideo(prompt: string): Promise<VideoGenResult> {
   };
 }
 
+// Конвертация data URL → fal.ai hosted URL
+async function ensureHttpUrl(url: string): Promise<string> {
+  if (!url.startsWith('data:')) return url;
+  const match = url.match(/^data:([^;]+);base64,(.+)$/);
+  if (!match) throw new Error('Некорректный data URL');
+  const [, mimeType, base64Data] = match;
+  const buffer = Buffer.from(base64Data, 'base64');
+  const blob = new Blob([buffer], { type: mimeType });
+  return fal.storage.upload(blob);
+}
+
 // Картинка → Видео (Motion, Kling v3)
 export async function generateMotion(
   imageUrl: string,
@@ -39,9 +50,11 @@ export async function generateMotion(
 ): Promise<VideoGenResult> {
   if (!process.env.FAL_KEY) throw new Error('FAL_KEY не задан');
 
+  const hostedUrl = await ensureHttpUrl(imageUrl);
+
   const result = await fal.subscribe('fal-ai/kling-video/v3/standard/image-to-video', {
     input: {
-      start_image_url: imageUrl,
+      start_image_url: hostedUrl,
       prompt: prompt ?? '',
       duration: 5,
     },
@@ -81,9 +94,11 @@ export async function generateAvatar(
 ): Promise<VideoGenResult> {
   if (!process.env.FAL_KEY) throw new Error('FAL_KEY не задан');
 
+  const hostedImageUrl = await ensureHttpUrl(imageUrl);
+
   const result = await fal.subscribe('fal-ai/kling-video/ai-avatar/v2/pro', {
     input: {
-      image_url: imageUrl,
+      image_url: hostedImageUrl,
       audio_url: audioUrl,
     },
   });

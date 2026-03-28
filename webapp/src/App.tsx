@@ -176,7 +176,7 @@ export function App() {
           onBack={() => setScreen({ name: 'chatList' })}
         />
       ) : (
-        <div className="flex-1 overflow-y-auto" style={{ paddingTop: 'calc(var(--safe-top, 0px) + 4rem)', paddingBottom: 'calc(5rem + var(--safe-bottom, 0px))' }}>
+        <div className="flex-1 overflow-y-auto overscroll-none" style={{ paddingTop: 'calc(var(--safe-top, 0px) + 4rem)', paddingBottom: 'calc(5rem + var(--safe-bottom, 0px))' }}>
           <div className="max-w-lg md:max-w-2xl lg:max-w-4xl mx-auto">
             <div style={{ display: screen.name === 'home' ? 'block' : 'none' }}>
               <Home user={user} onCreditsUpdate={(c) => setUser({ ...user, credits: c })} />

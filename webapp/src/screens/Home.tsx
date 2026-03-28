@@ -103,7 +103,7 @@ export function Home({ user, onCreditsUpdate }: Props) {
         </div>
 
         {/* Balance Card — флаг Якутии */}
-        <div className="relative rounded-2xl p-5 overflow-hidden shadow-xl glow-animate" style={{ marginTop: '4vh' }}>
+        <div className="relative rounded-2xl p-5 overflow-hidden shadow-xl glow-animate home-balance" style={{ marginTop: '4vh' }}>
           <div className="absolute inset-0 bg-gradient-to-b from-[#1a6bc4] via-[#155da8] to-[#0e4a8a]" />
           <div className="absolute -top-4 -right-4 w-24 h-24 rounded-full bg-white/[0.12] blur-xl" />
           <div className="absolute top-3 right-4 w-10 h-10 rounded-full bg-white/[0.15] shadow-[0_0_20px_rgba(255,255,255,0.2)]" />
@@ -136,7 +136,7 @@ export function Home({ user, onCreditsUpdate }: Props) {
         </div>
 
         {/* Packages */}
-        <div className="space-y-3" style={{ marginTop: '4vh' }}>
+        <div className="space-y-3 home-packages" style={{ marginTop: '4vh' }}>
           <p className="text-white text-base font-bold text-center">{t('home.buy')}</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {PACKAGES.map((pkg) => {
@@ -170,7 +170,7 @@ export function Home({ user, onCreditsUpdate }: Props) {
       </div>
 
       {/* ─── Payment Button ─── */}
-      <div className="pt-3 pb-1">
+      <div style={{ marginTop: '4vh' }} className="pb-1 home-pay">
         <button
           onClick={handlePay}
           disabled={!selectedPkg}

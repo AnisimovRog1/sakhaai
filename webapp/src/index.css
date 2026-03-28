@@ -108,3 +108,28 @@ p { margin: 0; }
 /* Responsive typography */
 @media (min-width: 768px) { body { font-size: 17px; } }
 @media (min-width: 1024px) { body { font-size: 18px; } }
+
+/* ─── Responsive spacing per screen size ─── */
+
+/* iPhone SE, маленькие телефоны (≤375px, высота ≤700px) */
+@media (max-height: 700px) {
+  .home-balance { margin-top: 2vh !important; }
+  .home-packages { margin-top: 2vh !important; }
+  .home-pay { margin-top: 2vh !important; }
+}
+
+/* iPhone 13/14 стандарт (700-850px) — дефолт, 4vh уже стоит */
+
+/* iPhone 14 Pro Max, большие телефоны (850-950px) */
+@media (min-height: 850px) {
+  .home-balance { margin-top: 5vh !important; }
+  .home-packages { margin-top: 5vh !important; }
+  .home-pay { margin-top: 5vh !important; }
+}
+
+/* iPad, планшеты (950px+) */
+@media (min-height: 950px) {
+  .home-balance { margin-top: 6vh !important; }
+  .home-packages { margin-top: 6vh !important; }
+  .home-pay { margin-top: 6vh !important; }
+}

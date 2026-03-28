@@ -188,6 +188,12 @@ export async function migrate() {
       ALTER TABLE push_sequences ADD COLUMN deleted_at TIMESTAMPTZ;
     EXCEPTION WHEN duplicate_column THEN NULL;
     END $$;
+
+    -- Убрать UNIQUE constraint на push_sent чтобы daily пуши могли отправляться каждый день
+    DO $$ BEGIN
+      ALTER TABLE push_sent DROP CONSTRAINT IF EXISTS push_sent_user_id_sequence_id_key;
+    EXCEPTION WHEN OTHERS THEN NULL;
+    END $$;
   `);
 
   console.log('✅ Миграции применены');

@@ -4,7 +4,7 @@ import { pool } from '../db/pool';
 // Автоматические пуш-последовательности
 // ═══════════════════════════════════════════════════
 
-export type TriggerType = 'no_purchase' | 'after_purchase' | 'low_credits' | 'zero_credits';
+export type TriggerType = 'no_purchase' | 'after_purchase' | 'low_credits' | 'zero_credits' | 'daily' | 'welcome';
 
 export interface PushSequence {
   id: number;
@@ -93,6 +93,31 @@ async function findZeroCreditsUsers(seq: PushSequence): Promise<number[]> {
   return rows.map((r: any) => r.id);
 }
 
+// ─── Ежедневный пуш — все активные юзеры, раз в день (дедупликация через push_sent с датой) ───
+async function findDailyUsers(seq: PushSequence): Promise<number[]> {
+  const { rows } = await pool.query(`
+    SELECT u.id FROM users u
+    WHERE u.is_banned = false
+      AND NOT EXISTS (
+        SELECT 1 FROM push_sent ps
+        WHERE ps.user_id = u.id AND ps.sequence_id = $1
+          AND ps.sent_at >= CURRENT_DATE
+      )
+  `, [seq.id]);
+  return rows.map((r: any) => r.id);
+}
+
+// ─── Приветственный пуш — юзеры зареганные менее 5 минут назад ───
+async function findWelcomeUsers(seq: PushSequence): Promise<number[]> {
+  const { rows } = await pool.query(`
+    SELECT u.id FROM users u
+    WHERE u.is_banned = false
+      AND u.created_at >= NOW() - INTERVAL '5 minutes'
+      AND NOT EXISTS (SELECT 1 FROM push_sent ps WHERE ps.user_id = u.id AND ps.sequence_id = $1)
+  `, [seq.id]);
+  return rows.map((r: any) => r.id);
+}
+
 // ─── Проверить разрешённые часы по таймзоне юзера ───
 async function filterByTimezone(userIds: number[], seq: PushSequence): Promise<number[]> {
   if (userIds.length === 0) return [];
@@ -128,6 +153,12 @@ export async function findPendingPushes(): Promise<PendingPush[]> {
       case 'zero_credits':
         userIds = await findZeroCreditsUsers(seq);
         break;
+      case 'daily':
+        userIds = await findDailyUsers(seq);
+        break;
+      case 'welcome':
+        userIds = await findWelcomeUsers(seq);
+        break;
     }
 
     // Фильтр по разрешённым часам
@@ -150,10 +181,19 @@ export async function findPendingPushes(): Promise<PendingPush[]> {
 
 // ─── Пометить пуш как отправленный ───
 export async function markPushSent(userId: number, sequenceId: number): Promise<void> {
-  await pool.query(
-    `INSERT INTO push_sent (user_id, sequence_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-    [userId, sequenceId]
-  );
+  // Для daily пушей — вставляем новую запись каждый день (без ON CONFLICT)
+  const seq = await pool.query('SELECT trigger_type FROM push_sequences WHERE id = $1', [sequenceId]);
+  if (seq.rows[0]?.trigger_type === 'daily') {
+    await pool.query(
+      `INSERT INTO push_sent (user_id, sequence_id) VALUES ($1, $2)`,
+      [userId, sequenceId]
+    );
+  } else {
+    await pool.query(
+      `INSERT INTO push_sent (user_id, sequence_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+      [userId, sequenceId]
+    );
+  }
 }
 
 // ─── Обновить credits_zero_at при обнулении кредитов ───

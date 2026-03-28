@@ -502,3 +502,18 @@ adminRouter.post('/upload-photo', upload.single('photo'), async (req: Request, r
     res.json({ file_id: fileId, media_type: mediaType, file_url: fileUrl });
   } catch (err: any) { res.status(500).json({ error: err.message }); }
 });
+
+// Получить URL файла по file_id (для превью в админке)
+adminRouter.get('/file-url/:fileId', async (req: Request, res: Response) => {
+  try {
+    const BOT_TOKEN = process.env.BOT_TOKEN;
+    if (!BOT_TOKEN) { res.status(503).json({ error: 'BOT_TOKEN не настроен' }); return; }
+    const fileRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${req.params.fileId}`);
+    const fileData = await fileRes.json() as any;
+    if (fileData.ok && fileData.result.file_path) {
+      res.json({ url: `https://api.telegram.org/file/bot${BOT_TOKEN}/${fileData.result.file_path}` });
+    } else {
+      res.status(404).json({ error: 'File not found' });
+    }
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});

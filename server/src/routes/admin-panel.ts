@@ -248,6 +248,8 @@ input:focus,textarea:focus{border-color:rgba(139,92,246,.5);box-shadow:0 0 20px 
           <button class="flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all seq-tab" onclick="filterSeq(this,'after_purchase')">✅ Купил<br><span class="text-[10px] font-normal opacity-60">1 шаг</span></button>
           <button class="flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all seq-tab" onclick="filterSeq(this,'low_credits')">📉 Мало<br><span class="text-[10px] font-normal opacity-60">3 порога</span></button>
           <button class="flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all seq-tab" onclick="filterSeq(this,'zero_credits')">🔴 Ноль<br><span class="text-[10px] font-normal opacity-60">7 шагов</span></button>
+          <button class="flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all seq-tab" onclick="filterSeq(this,'daily')">📅 Ежедневные<br><span class="text-[10px] font-normal opacity-60">для всех</span></button>
+          <button class="flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all seq-tab" onclick="filterSeq(this,'welcome')">👋 Приветствие<br><span class="text-[10px] font-normal opacity-60">новые юзеры</span></button>
         </div>
 
         <div id="seqList"></div>
@@ -452,7 +454,7 @@ function renderSeqs(){
   var list=seqData.filter(function(s){return s.trigger_type===seqFilter}).sort(function(a,b){return a.delay_minutes-b.delay_minutes});
   if(!list.length){el.innerHTML='<div class="text-center py-8 text-slate-600">Нет пушей в этой цепочке</div>';return}
 
-  var triggerDesc={no_purchase:'Юзер запустил бота но НЕ купил пакет',after_purchase:'Юзер купил пакет',low_credits:'Баланс юзера упал ниже порога',zero_credits:'Кредиты юзера закончились (= 0)'}[seqFilter]||'';
+  var triggerDesc={no_purchase:'Юзер запустил бота но НЕ купил пакет',after_purchase:'Юзер купил пакет',low_credits:'Баланс юзера упал ниже порога',zero_credits:'Кредиты юзера закончились (= 0)',daily:'Ежедневный пуш — отправляется ВСЕМ активным юзерам раз в день',welcome:'Приветственный пуш — отправляется при ПЕРВОМ запуске бота'}[seqFilter]||'';
 
   var html='<div class="mb-4 p-3 rounded-lg bg-white/5 border border-white/8"><p class="text-xs text-slate-400">⚡ Триггер: <span class="text-cyan-300 font-medium">'+triggerDesc+'</span></p></div>';
 
@@ -485,10 +487,11 @@ function renderSeqs(){
     html+='<div class="mb-2" id="seqmedia-'+s.id+'">';
     if(s.media_url||s.media_file_id){
       html+='<div class="relative mb-2">';
-      if(s.media_url){
-        html+='<img src="'+esc(s.media_url)+'" class="w-full rounded-lg" style="max-height:300px;object-fit:contain;background:#111" onerror="this.parentElement.innerHTML=&quot;<div class=\\'w-full rounded-lg p-4 text-center\\' style=\\'background:#111;border:1px solid rgba(255,255,255,0.1)\\'><p class=\\'text-green-400 text-sm font-medium\\'>📸 Фото прикреплено</p></div>&quot;">';
-      } else {
-        html+='<div class="w-full rounded-lg p-4 text-center" style="background:#111;border:1px solid rgba(255,255,255,0.1)"><p class="text-green-400 text-sm font-medium">📸 Фото прикреплено</p><p class="text-slate-500 text-[10px] mt-1">Telegram file_id</p></div>';
+      if(s.media_url&&!s.media_url.startsWith('tg://')){
+        html+='<img src="'+esc(s.media_url)+'" class="w-full rounded-lg" style="max-height:300px;object-fit:contain;background:#111">';
+      } else if(s.media_file_id){
+        html+='<img id="seqpreview-'+s.id+'" class="w-full rounded-lg" style="max-height:300px;object-fit:contain;background:#111;display:none"><div id="seqloading-'+s.id+'" class="w-full rounded-lg p-4 text-center" style="background:#111;border:1px solid rgba(255,255,255,0.1)"><p class="text-cyan-400 text-sm">⏳ Загрузка фото...</p></div>';
+        html+='<script>G("/admin/file-url/'+esc(s.media_file_id)+'").then(function(d){if(d&&d.url){var img=document.getElementById("seqpreview-'+s.id+'");if(img){img.src=d.url;img.style.display="block"}var ld=document.getElementById("seqloading-'+s.id+'");if(ld)ld.remove()}}).catch(function(){})<\/script>';
       }
       html+='<button class="absolute top-2 right-2 z-10 w-9 h-9 rounded-full bg-red-600 text-white text-lg flex items-center justify-center shadow-lg cursor-pointer" style="pointer-events:auto" onclick="event.stopPropagation();clearSeqImg('+s.id+')">✕</button>';
       html+='</div>';
@@ -514,8 +517,8 @@ function renderSeqs(){
     // Настройки
     html+='<div class="flex gap-2 mt-2 flex-wrap items-center">';
     html+='<input class="flex-1 min-w-[160px] text-[11px] bg-black/20 border border-white/8 rounded-lg px-2 py-1.5 text-slate-400" placeholder="URL фото" value="'+esc(s.media_url||'')+'" id="seqimg-'+s.id+'" oninput="markSeqDirty('+s.id+')"><input type="hidden" id="seqfileid-'+s.id+'" value="'+esc(s.media_file_id||'')+'">';
-    html+='<div class="flex items-center gap-1 text-[11px] text-slate-500"><span>⏱</span><input type="number" class="w-16 bg-black/20 border border-white/8 rounded px-1.5 py-1 text-slate-400 text-center" value="'+s.delay_minutes+'" id="seqdelay-'+s.id+'" oninput="markSeqDirty('+s.id+')"><span>мин</span></div>';
-    html+='<div class="flex items-center gap-1 text-[11px] text-slate-500"><span>🕐</span><input type="number" class="w-10 bg-black/20 border border-white/8 rounded px-1 py-1 text-slate-400 text-center" value="'+s.allow_hour_from+'" id="seqhfrom-'+s.id+'" min="0" max="23" oninput="markSeqDirty('+s.id+')"><span>–</span><input type="number" class="w-10 bg-black/20 border border-white/8 rounded px-1 py-1 text-slate-400 text-center" value="'+s.allow_hour_to+'" id="seqhto-'+s.id+'" min="0" max="23" oninput="markSeqDirty('+s.id+')"></div>';
+    html+='<div class="flex items-center gap-1 text-[11px] text-slate-500"><span>⏱ Через</span><input type="number" class="w-16 bg-black/20 border border-white/8 rounded px-1.5 py-1 text-slate-400 text-center" value="'+s.delay_minutes+'" id="seqdelay-'+s.id+'" oninput="markSeqDirty('+s.id+')"><span>мин после триггера</span></div>';
+    html+='<input type="hidden" id="seqhfrom-'+s.id+'" value="'+(s.allow_hour_from||9)+'"><input type="hidden" id="seqhto-'+s.id+'" value="'+(s.allow_hour_to||22)+'">';
     html+='<button class="btn btn-primary text-[11px] hidden" id="seqsave-'+s.id+'" onclick="saveSeq('+s.id+')" style="padding:4px 12px">💾 Сохранить</button>';
     html+='<button class="text-red-400/50 hover:text-red-400 text-[11px]" onclick="delSeq('+s.id+')">🗑</button>';
     html+='</div>';

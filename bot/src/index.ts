@@ -80,33 +80,8 @@ bot.command('start', async (ctx) => {
     { reply_markup: keyboard }
   );
 
-  // Приветственный пуш — только для новых юзеров
-  if (ctx.from && !payload?.startsWith('ref_')) {
-    setTimeout(async () => {
-      try {
-        // Проверяем — новый ли юзер (created_at сегодня)
-        const userInfo = await httpGet(`${SERVER_URL}/admin/user/${ctx.from!.id}`);
-        if (!userInfo || userInfo.error) return;
-        const createdAt = new Date(userInfo.created_at);
-        const now = new Date();
-        const diffMs = now.getTime() - createdAt.getTime();
-        // Если зарегался менее 60 секунд назад — новый юзер
-        if (diffMs > 60000) return;
-
-        const tmpls = await httpGet(`${SERVER_URL}/admin/push/templates?type=welcome&active=true`);
-        if (Array.isArray(tmpls) && tmpls.length > 0) {
-          const t = tmpls[0];
-          if (t.media_type === 'photo' && t.media_file_id) {
-            await bot.api.sendPhoto(ctx.from!.id, t.media_file_id, { caption: t.text });
-          } else if (t.media_type === 'video' && t.media_file_id) {
-            await bot.api.sendVideo(ctx.from!.id, t.media_file_id, { caption: t.text });
-          } else if (t.text) {
-            await bot.api.sendMessage(ctx.from!.id, t.text);
-          }
-        }
-      } catch {}
-    }, 3000);
-  }
+  // Welcome пуш теперь управляется через push_sequences в админке (триггер 'welcome')
+  // Бот автоматически подхватит новых юзеров через processAutoSequences
 });
 
 bot.command('help', async (ctx) => {

@@ -308,8 +308,44 @@ adminRouter.post('/push/send/:id', async (req: Request, res: Response) => {
   try {
     const tmpl = await pool.query('SELECT * FROM push_templates WHERE id = $1', [req.params.id]);
     if (tmpl.rowCount === 0) { res.status(404).json({ error: 'Шаблон не найден' }); return; }
+    const t = tmpl.rows[0];
     const users = await pool.query('SELECT id FROM users WHERE is_banned = false');
-    res.json({ template: tmpl.rows[0], users: users.rows });
+
+    // Отправка через бот (BOT_TOKEN)
+    const BOT_TOKEN = process.env.BOT_TOKEN;
+    if (!BOT_TOKEN) { res.status(503).json({ error: 'BOT_TOKEN не настроен' }); return; }
+
+    let sent = 0, failed = 0;
+    const formatText = (s: string) => s.replace(/<<([^>]+)>>/g, '<b>$1</b>').replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/_([^_]+)_/g, '<i>$1</i>');
+
+    for (const u of users.rows) {
+      try {
+        const media = t.media_file_id;
+        if (t.media_type === 'video' && media) {
+          await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendVideo`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: u.id, video: media, caption: formatText(t.text), parse_mode: 'HTML' })
+          });
+        } else if (t.media_type === 'photo' && media) {
+          await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: u.id, photo: media, caption: formatText(t.text), parse_mode: 'HTML' })
+          });
+        } else {
+          await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: u.id, text: formatText(t.text), parse_mode: 'HTML' })
+          });
+        }
+        sent++;
+        if (sent % 25 === 0) await new Promise(r => setTimeout(r, 1000)); // rate limit
+      } catch { failed++; }
+    }
+
+    // Логируем
+    await pool.query('INSERT INTO push_log (template_id, sent_count, failed_count, finished_at) VALUES ($1, $2, $3, NOW())', [t.id, sent, failed]);
+
+    res.json({ sent, failed, total: users.rows.length });
   } catch (err: any) { res.status(500).json({ error: err.message }); }
 });
 

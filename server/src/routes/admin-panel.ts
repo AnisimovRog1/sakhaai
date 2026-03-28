@@ -192,7 +192,13 @@ input:focus,textarea:focus{border-color:rgba(139,92,246,.5);box-shadow:0 0 20px 
             <input type="file" id="fileInput" accept="image/*,video/*" class="hidden" onchange="handleFileSelect(event)">
           </div>
           <input type="hidden" id="pushType" value="manual">
-          <div id="pushTimeRow" class="hidden"></div>
+          <div class="flex items-center gap-3 flex-wrap">
+            <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="pushTiming" value="now" checked onchange="document.getElementById('pushScheduleTime').classList.add('hidden')"><span class="text-sm text-slate-300">Отправить сразу</span></label>
+            <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="pushTiming" value="scheduled" onchange="document.getElementById('pushScheduleTime').classList.remove('hidden')"><span class="text-sm text-slate-300">Запланировать</span></label>
+            <div id="pushScheduleTime" class="hidden flex items-center gap-2">
+              <input type="datetime-local" id="pushScheduleAt" class="bg-black/20 border border-white/8 rounded-lg px-2 py-1.5 text-sm text-slate-300">
+            </div>
+          </div>
           <div class="flex gap-2">
             <button class="btn btn-primary flex-1 py-3" onclick="createPush(false)">💾 Сохранить</button>
             <button class="btn btn-success flex-1 py-3" onclick="createPush(true)">📨 Отправить всем</button>
@@ -382,15 +388,24 @@ function clearMedia(){
 
 async function createPush(send){
   const name=document.getElementById('pushName').value,text=document.getElementById('pushText').value;
-  const type=document.getElementById('pushType').value,time=type==='daily'?document.getElementById('pushTime').value:null;
+  const timing=document.querySelector('input[name="pushTiming"]:checked')?.value||'now';
+  const scheduleAt=timing==='scheduled'?document.getElementById('pushScheduleAt').value:null;
   const mediaType=uploadedMedia.type||null;
   const mediaUrl=uploadedMedia.data||null;
   if(!name||!text){alert('Заполните название и текст');return}
-  const r=await P('/admin/push/templates',{name,text,scheduleType:type,sendTime:time,mediaType:mediaType,mediaFileId:mediaUrl});
+  if(timing==='scheduled'&&!scheduleAt){alert('Укажите время отправки');return}
+  const r=await P('/admin/push/templates',{name,text,scheduleType:timing==='scheduled'?'scheduled':'manual',sendTime:scheduleAt,mediaType:mediaType,mediaFileId:mediaUrl});
   if(r.id){
+    if(send&&timing==='now'){
+      var sr=await P('/admin/push/send/'+r.id,{});
+      alert('📨 Отправлено: '+(sr.sent||0)+' пользователям');
+    } else if(timing==='scheduled'){
+      alert('📅 Пуш запланирован на '+new Date(scheduleAt).toLocaleString('ru'));
+    } else {
+      alert('✅ Шаблон сохранён!');
+    }
     document.getElementById('pushName').value='';document.getElementById('pushText').value='';
-    clearMedia();
-    loadPushTemplates();alert('✅ Шаблон сохранён!')
+    clearMedia();loadPushTemplates()
   } else alert('❌ '+(r.error||'Ошибка'))}
 
 async function loadPushTemplates(){
@@ -470,7 +485,11 @@ function renderSeqs(){
     html+='<div class="mb-2" id="seqmedia-'+s.id+'">';
     if(s.media_url||s.media_file_id){
       html+='<div class="relative mb-2">';
-      html+='<img src="'+esc(s.media_url||'')+'" class="w-full rounded-lg" style="max-height:300px;object-fit:contain;background:#111" onerror="this.style.display=&quot;none&quot;">';
+      if(s.media_url&&!s.media_url.startsWith('tg://')){
+        html+='<img src="'+esc(s.media_url)+'" class="w-full rounded-lg" style="max-height:300px;object-fit:contain;background:#111" onerror="this.style.display=&quot;none&quot;">';
+      } else {
+        html+='<div class="w-full rounded-lg p-4 text-center" style="background:#111;border:1px solid rgba(255,255,255,0.1)"><p class="text-green-400 text-sm font-medium">📸 Фото прикреплено</p><p class="text-slate-500 text-[10px] mt-1">Загружено в Telegram (file_id)</p></div>';
+      }
       html+='<button class="absolute top-2 right-2 z-10 w-9 h-9 rounded-full bg-red-600 text-white text-lg flex items-center justify-center shadow-lg cursor-pointer" style="pointer-events:auto" onclick="event.stopPropagation();clearSeqImg('+s.id+')">✕</button>';
       html+='</div>';
     }
@@ -494,7 +513,7 @@ function renderSeqs(){
 
     // Настройки
     html+='<div class="flex gap-2 mt-2 flex-wrap items-center">';
-    html+='<input class="flex-1 min-w-[160px] text-[11px] bg-black/20 border border-white/8 rounded-lg px-2 py-1.5 text-slate-400" placeholder="URL фото" value="'+(s.media_url||'')+'" id="seqimg-'+s.id+'" oninput="markSeqDirty('+s.id+')">';
+    html+='<input class="flex-1 min-w-[160px] text-[11px] bg-black/20 border border-white/8 rounded-lg px-2 py-1.5 text-slate-400" placeholder="URL фото" value="'+(s.media_file_id?'tg://file_id/'+esc(s.media_file_id):esc(s.media_url||''))+'" id="seqimg-'+s.id+'" oninput="markSeqDirty('+s.id+')">';
     html+='<div class="flex items-center gap-1 text-[11px] text-slate-500"><span>⏱</span><input type="number" class="w-16 bg-black/20 border border-white/8 rounded px-1.5 py-1 text-slate-400 text-center" value="'+s.delay_minutes+'" id="seqdelay-'+s.id+'" oninput="markSeqDirty('+s.id+')"><span>мин</span></div>';
     html+='<div class="flex items-center gap-1 text-[11px] text-slate-500"><span>🕐</span><input type="number" class="w-10 bg-black/20 border border-white/8 rounded px-1 py-1 text-slate-400 text-center" value="'+s.allow_hour_from+'" id="seqhfrom-'+s.id+'" min="0" max="23" oninput="markSeqDirty('+s.id+')"><span>–</span><input type="number" class="w-10 bg-black/20 border border-white/8 rounded px-1 py-1 text-slate-400 text-center" value="'+s.allow_hour_to+'" id="seqhto-'+s.id+'" min="0" max="23" oninput="markSeqDirty('+s.id+')"></div>';
     html+='<button class="btn btn-primary text-[11px] hidden" id="seqsave-'+s.id+'" onclick="saveSeq('+s.id+')" style="padding:4px 12px">💾 Сохранить</button>';

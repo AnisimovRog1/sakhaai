@@ -58,7 +58,7 @@ export function Home({ user, onCreditsUpdate }: Props) {
   const [selectedPkg, setSelectedPkg] = useState<typeof PACKAGES[0] | null>(null);
   const [showPayment, setShowPayment] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
-  const { lang, setLang, t } = useLang();
+  const { t } = useLang();
 
   // Обновляем баланс при входе на главный экран
   useEffect(() => {
@@ -88,32 +88,6 @@ export function Home({ user, onCreditsUpdate }: Props) {
       <div className="space-y-4">
 
         {/* Header */}
-        {/* Переключатель языка */}
-        <div className="flex justify-center pb-1">
-          <div className="flex bg-white/[0.08] border border-white/[0.12] rounded-xl p-1 gap-1">
-            <button
-              onClick={() => setLang('ru')}
-              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                lang === 'ru'
-                  ? 'bg-gradient-to-r from-violet-600 to-cyan-500 text-white shadow-md'
-                  : 'text-slate-400'
-              }`}
-            >
-              Русский
-            </button>
-            <button
-              onClick={() => setLang('sah')}
-              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                lang === 'sah'
-                  ? 'bg-gradient-to-r from-violet-600 to-cyan-500 text-white shadow-md'
-                  : 'text-slate-400'
-              }`}
-            >
-              Сахалыы
-            </button>
-          </div>
-        </div>
-
         <div className="flex items-center justify-between">
           <div>
             <p className="text-blue-200/70 text-sm font-medium tracking-wide">{t('home.welcome')}</p>

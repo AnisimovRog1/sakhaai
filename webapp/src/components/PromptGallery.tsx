@@ -7,9 +7,8 @@ type Props = {
 };
 
 // Полноэкранный просмотр картинки с bottom sheet
-function FullscreenViewer({ tpl, lang, onClose, onUse, useLabel }: {
+function FullscreenViewer({ tpl, onClose, onUse, useLabel }: {
   tpl: PromptTemplate;
-  lang: string;
   onClose: () => void;
   onUse: () => void;
   useLabel: string;
@@ -26,7 +25,7 @@ function FullscreenViewer({ tpl, lang, onClose, onUse, useLabel }: {
       {/* Картинка на весь экран без зазоров */}
       <img
         src={tpl.previewUrl}
-        alt={lang === 'sah' ? tpl.label.sah : tpl.label.ru}
+        alt={tpl.label.ru}
         className="absolute w-full h-full object-cover"
         style={{ top: '-30px', left: 0, right: 0, bottom: 0 }}
       />
@@ -51,7 +50,7 @@ function FullscreenViewer({ tpl, lang, onClose, onUse, useLabel }: {
           <div className="w-10 h-1 rounded-full bg-white/30 mx-auto -mt-6 mb-2" />
 
           <p className="text-white text-sm font-bold">
-            {lang === 'sah' ? tpl.label.sah : tpl.label.ru}
+            {tpl.label.ru}
           </p>
           <p className="text-white/80 text-xs leading-snug line-clamp-4">
             {tpl.prompt}
@@ -112,14 +111,14 @@ export function PromptGallery({ onSelectTemplate }: Props) {
           >
             <img
               src={tpl.previewUrl}
-              alt={lang === 'sah' ? tpl.label.sah : tpl.label.ru}
+              alt={tpl.label.ru}
               loading={i < 4 ? 'eager' : 'lazy'}
               className="w-full aspect-[3/4] object-cover"
             />
 
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent p-2.5 pt-6">
               <p className="text-white text-xs font-bold leading-tight">
-                {lang === 'sah' ? tpl.label.sah : tpl.label.ru}
+                {tpl.label.ru}
               </p>
             </div>
           </div>
@@ -130,7 +129,6 @@ export function PromptGallery({ onSelectTemplate }: Props) {
       {selectedTpl && (
         <FullscreenViewer
           tpl={selectedTpl}
-          lang={lang}
           onClose={() => setSelectedTpl(null)}
           onUse={() => handleUse(selectedTpl)}
           useLabel={t('image.useTemplate')}

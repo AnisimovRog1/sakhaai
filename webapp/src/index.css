@@ -109,26 +109,52 @@ p { margin: 0; }
 @media (min-width: 768px) { body { font-size: 17px; } }
 @media (min-width: 1024px) { body { font-size: 18px; } }
 
-/* ─── Responsive spacing per screen size ─── */
+/* ─── Responsive spacing per device height ─── */
 
-/* iPhone SE, маленькие телефоны (≤375px, высота ≤700px) */
-@media (max-height: 700px) {
+/* iPhone SE 3 (667px) */
+@media (max-height: 680px) {
+  .home-balance { margin-top: 1.5vh !important; }
+  .home-packages { margin-top: 1.5vh !important; }
+  .home-pay { margin-top: 1.5vh !important; }
+}
+
+/* Galaxy Z Flip, Galaxy A (700-759px) */
+@media (min-height: 681px) and (max-height: 759px) {
   .home-balance { margin-top: 2vh !important; }
   .home-packages { margin-top: 2vh !important; }
   .home-pay { margin-top: 2vh !important; }
 }
 
-/* iPhone 13/14 стандарт (700-850px) — дефолт, 4vh уже стоит */
+/* Samsung S серии, Xiaomi, Redmi, Poco, Huawei (760-819px) */
+@media (min-height: 760px) and (max-height: 819px) {
+  .home-balance { margin-top: 3vh !important; }
+  .home-packages { margin-top: 3vh !important; }
+  .home-pay { margin-top: 3vh !important; }
+}
 
-/* iPhone 14 Pro Max, большие телефоны (850-950px) */
-@media (min-height: 850px) {
+/* iPhone X/XS (812px), iPhone 12-16, 14 Pro, 15 Pro (820-859px) */
+@media (min-height: 820px) and (max-height: 859px) {
+  .home-balance { margin-top: 4vh !important; }
+  .home-packages { margin-top: 4vh !important; }
+  .home-pay { margin-top: 4vh !important; }
+}
+
+/* iPhone XR/11 (896px), Samsung Ultra (860-929px) */
+@media (min-height: 860px) and (max-height: 929px) {
   .home-balance { margin-top: 5vh !important; }
   .home-packages { margin-top: 5vh !important; }
   .home-pay { margin-top: 5vh !important; }
 }
 
-/* iPad, планшеты (950px+) */
-@media (min-height: 950px) {
+/* iPhone 14-17 Pro Max (930-960px) */
+@media (min-height: 930px) and (max-height: 969px) {
+  .home-balance { margin-top: 5.5vh !important; }
+  .home-packages { margin-top: 5.5vh !important; }
+  .home-pay { margin-top: 5.5vh !important; }
+}
+
+/* iPad, планшеты (970px+) */
+@media (min-height: 970px) {
   .home-balance { margin-top: 6vh !important; }
   .home-packages { margin-top: 6vh !important; }
   .home-pay { margin-top: 6vh !important; }

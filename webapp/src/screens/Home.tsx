@@ -82,7 +82,7 @@ export function Home({ user, onCreditsUpdate }: Props) {
   }
 
   return (
-    <div className="flex flex-col justify-between px-5 md:px-8" style={{ minHeight: 'calc(var(--tg-viewport-height, 100vh) - var(--safe-top, 0px) - 8rem)' }}>
+    <div className="flex flex-col px-5 md:px-8" style={{ minHeight: 'calc(var(--tg-viewport-height, 100vh) - var(--safe-top, 0px) - 8rem)' }}>
 
       {/* ─── Top content ─── */}
       <div className="space-y-4">
@@ -103,7 +103,7 @@ export function Home({ user, onCreditsUpdate }: Props) {
         </div>
 
         {/* Balance Card — флаг Якутии */}
-        <div className="relative rounded-2xl p-5 overflow-hidden shadow-xl mt-10 glow-animate">
+        <div className="relative rounded-2xl p-5 overflow-hidden shadow-xl mt-[120px] glow-animate">
           <div className="absolute inset-0 bg-gradient-to-b from-[#1a6bc4] via-[#155da8] to-[#0e4a8a]" />
           <div className="absolute -top-4 -right-4 w-24 h-24 rounded-full bg-white/[0.12] blur-xl" />
           <div className="absolute top-3 right-4 w-10 h-10 rounded-full bg-white/[0.15] shadow-[0_0_20px_rgba(255,255,255,0.2)]" />
@@ -136,7 +136,7 @@ export function Home({ user, onCreditsUpdate }: Props) {
         </div>
 
         {/* Packages */}
-        <div className="space-y-3 mt-8">
+        <div className="space-y-3 mt-24">
           <p className="text-white text-base font-bold text-center">{t('home.buy')}</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {PACKAGES.map((pkg) => {
@@ -170,7 +170,7 @@ export function Home({ user, onCreditsUpdate }: Props) {
       </div>
 
       {/* ─── Payment Button ─── */}
-      <div className="pt-4 pb-1">
+      <div className="mt-auto pt-3 pb-1">
         <button
           onClick={handlePay}
           disabled={!selectedPkg}
@@ -185,7 +185,7 @@ export function Home({ user, onCreditsUpdate }: Props) {
       </div>
 
       {/* ─── Support Button ─── */}
-      <div className="pb-3">
+      <div className="pb-3 pt-2">
         <button
           onClick={() => window.Telegram?.WebApp?.openTelegramLink?.('https://t.me/UraanxAI_support')}
           className="w-full py-3 rounded-2xl text-sm font-semibold text-slate-400 bg-white/[0.04] border border-white/[0.08] active:bg-white/[0.08] transition-all flex items-center justify-center gap-2"

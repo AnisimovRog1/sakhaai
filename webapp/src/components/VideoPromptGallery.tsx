@@ -109,7 +109,7 @@ function FullscreenViewer({ tpl, onClose, onUse, useLabel }: {
         className={`absolute bottom-0 left-0 right-0 z-10 transition-transform duration-300 ease-out ${sheetOpen ? 'translate-y-0' : 'translate-y-full'}`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="bg-gradient-to-t from-black via-black/95 to-transparent px-4 pt-10 space-y-3" style={{ paddingBottom: 'calc(2rem + var(--safe-bottom, 0px))' }}>
+        <div className="bg-gradient-to-t from-black via-black/95 to-transparent px-4 pt-10 space-y-3" style={{ paddingBottom: 'calc(5rem + var(--safe-bottom, 0px))' }}>
           <div className="w-10 h-1 rounded-full bg-white/30 mx-auto -mt-6 mb-2" />
 
           <p className="text-white text-sm font-bold">

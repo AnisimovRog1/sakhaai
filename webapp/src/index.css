@@ -101,3 +101,7 @@ p { margin: 0; }
 .glow-animate {
   animation: glow-pulse 3s ease-in-out infinite;
 }
+
+/* Responsive typography */
+@media (min-width: 768px) { body { font-size: 17px; } }
+@media (min-width: 1024px) { body { font-size: 18px; } }

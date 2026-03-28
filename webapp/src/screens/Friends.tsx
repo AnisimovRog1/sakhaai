@@ -52,7 +52,7 @@ export function Friends({ user }: Props) {
   }
 
   return (
-    <div className="p-5 pb-28 space-y-5">
+    <div className="p-5 md:p-8 pb-28 space-y-5">
 
       {/* Header */}
       <div>
@@ -63,7 +63,7 @@ export function Friends({ user }: Props) {
       {/* Награды */}
       <div className="bg-white/[0.08] border border-white/[0.12] rounded-2xl p-5 space-y-4 backdrop-blur-md">
         <p className="text-white text-sm font-bold uppercase tracking-wider">{t('friends.rewards')}</p>
-        <div className="grid grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
           {Object.entries(REWARDS).map(([pkg, cr]) => (
             <div key={pkg} className="bg-white/[0.07] border border-white/[0.10] rounded-xl px-4 py-3 flex items-center justify-between">
               <span className="text-white text-sm font-bold">{PACKAGE_LABELS[pkg]}</span>

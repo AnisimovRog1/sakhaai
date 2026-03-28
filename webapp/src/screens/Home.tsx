@@ -82,7 +82,7 @@ export function Home({ user, onCreditsUpdate }: Props) {
   }
 
   return (
-    <div className="flex flex-col justify-between px-5" style={{ minHeight: 'calc(var(--tg-viewport-height, 100vh) - var(--safe-top, 0px) - 8rem)' }}>
+    <div className="flex flex-col justify-between px-5 md:px-8" style={{ minHeight: 'calc(var(--tg-viewport-height, 100vh) - var(--safe-top, 0px) - 8rem)' }}>
 
       {/* ─── Top content ─── */}
       <div className="space-y-4">
@@ -140,7 +140,7 @@ export function Home({ user, onCreditsUpdate }: Props) {
           <div className="relative space-y-3">
             <p className="text-blue-100/90 text-[10px] font-semibold uppercase tracking-[0.15em]">{t('home.balance')}</p>
             <div className="flex items-baseline gap-2">
-              <p className="text-4xl font-extrabold text-white drop-shadow-lg">{user.credits.toLocaleString('ru')}</p>
+              <p className="text-4xl md:text-5xl font-extrabold text-white drop-shadow-lg">{user.credits.toLocaleString('ru')}</p>
               <span className="text-base font-medium text-blue-100/80">кр.</span>
             </div>
             <div className="space-y-2">
@@ -164,7 +164,7 @@ export function Home({ user, onCreditsUpdate }: Props) {
         {/* Packages */}
         <div className="space-y-3 mt-2">
           <p className="text-white text-base font-bold text-center">{t('home.buy')}</p>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {PACKAGES.map((pkg) => {
               const sel = selectedPkg?.key === pkg.key;
               return (

@@ -149,7 +149,7 @@ export function BottomNav({ current, onNavigate }: Props) {
   const { t } = useLang();
   return (
     <nav className="fixed bottom-0 left-0 right-0 w-full bg-[#070b14]/95 backdrop-blur-xl border-t border-white/[0.08]">
-      <div className="flex max-w-lg mx-auto">
+      <div className="flex max-w-lg md:max-w-2xl lg:max-w-4xl mx-auto">
         {items.map(({ name, labelKey, Icon }) => {
           const label = t(labelKey);
           const active = current === name;

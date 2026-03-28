@@ -89,8 +89,8 @@ export function App() {
       undefined;
 
     if (!initData) {
-      setError('Открой приложение через Telegram-бота @UraanxAI_bot');
-      setLoading(false);
+      // Не в Telegram — редирект на лендинг (серверный HTML)
+      window.location.href = '/landing';
       return;
     }
 
@@ -169,7 +169,7 @@ export function App() {
         />
       ) : (
         <div className="flex-1 overflow-y-auto" style={{ paddingTop: 'calc(var(--safe-top, 0px) + 4rem)', paddingBottom: 'calc(5rem + var(--safe-bottom, 0px))' }}>
-          <div className="max-w-lg mx-auto">
+          <div className="max-w-lg md:max-w-2xl lg:max-w-4xl mx-auto">
             <div style={{ display: screen.name === 'home' ? 'block' : 'none' }}>
               <Home user={user} onCreditsUpdate={(c) => setUser({ ...user, credits: c })} />
             </div>

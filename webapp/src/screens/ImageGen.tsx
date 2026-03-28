@@ -475,7 +475,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
               <p className="text-slate-300 text-sm">{t('image.noHistory')}</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
               {history.map((item) => (
                 <div key={item.id} className="relative group">
                   <img

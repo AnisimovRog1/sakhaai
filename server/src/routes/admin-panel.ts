@@ -490,8 +490,7 @@ function renderSeqs(){
       if(s.media_url&&!s.media_url.startsWith('tg://')){
         html+='<img src="'+esc(s.media_url)+'" class="w-full rounded-lg" style="max-height:300px;object-fit:contain;background:#111">';
       } else if(s.media_file_id){
-        html+='<img id="seqpreview-'+s.id+'" class="w-full rounded-lg" style="max-height:300px;object-fit:contain;background:#111;display:none"><div id="seqloading-'+s.id+'" class="w-full rounded-lg p-4 text-center" style="background:#111;border:1px solid rgba(255,255,255,0.1)"><p class="text-cyan-400 text-sm">⏳ Загрузка фото...</p></div>';
-        html+='<script>G("/admin/file-url/'+esc(s.media_file_id)+'").then(function(d){if(d&&d.url){var img=document.getElementById("seqpreview-'+s.id+'");if(img){img.src=d.url;img.style.display="block"}var ld=document.getElementById("seqloading-'+s.id+'");if(ld)ld.remove()}}).catch(function(){})<\/script>';
+        html+='<img id="seqpreview-'+s.id+'" data-fileid="'+esc(s.media_file_id)+'" class="w-full rounded-lg seqimg-lazy" style="max-height:300px;object-fit:contain;background:#111;display:none"><div id="seqloading-'+s.id+'" class="w-full rounded-lg p-4 text-center" style="background:#111;border:1px solid rgba(255,255,255,0.1)"><p class="text-cyan-400 text-sm">⏳ Загрузка фото...</p></div>';
       }
       html+='<button class="absolute top-2 right-2 z-10 w-9 h-9 rounded-full bg-red-600 text-white text-lg flex items-center justify-center shadow-lg cursor-pointer" style="pointer-events:auto" onclick="event.stopPropagation();clearSeqImg('+s.id+')">✕</button>';
       html+='</div>';
@@ -527,6 +526,13 @@ function renderSeqs(){
   });
   html+='</div>';
   el.innerHTML=html;
+  // Загрузить превью фото для file_id
+  document.querySelectorAll('.seqimg-lazy').forEach(function(img){
+    var fid=img.getAttribute('data-fileid');if(!fid)return;
+    G('/admin/file-url/'+fid).then(function(d){
+      if(d&&d.url){img.src=d.url;img.style.display='block';var ld=document.getElementById('seqloading-'+img.id.replace('seqpreview-',''));if(ld)ld.remove()}
+    }).catch(function(){});
+  });
 }
 
 function esc(s){var d=document.createElement('div');d.textContent=s||'';return d.innerHTML}

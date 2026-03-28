@@ -11,7 +11,7 @@ const IMAGE_COST = 79;
 
 // POST /image/generate
 imageRouter.post('/generate', async (req: Request, res: Response) => {
-  const { prompt } = req.body;
+  const { prompt, model } = req.body;
   if (!prompt?.trim()) {
     res.status(400).json({ error: 'Промпт обязателен' });
     return;
@@ -29,7 +29,7 @@ imageRouter.post('/generate', async (req: Request, res: Response) => {
   if (creditsLeft === null) return;
 
   try {
-    const result = await generateImage(prompt);
+    const result = await generateImage(prompt, model);
 
     // Автосохранение в историю
     await saveGeneration(req.userId!, 'image', prompt, result.imageUrl, IMAGE_COST).catch(console.error);

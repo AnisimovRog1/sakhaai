@@ -85,7 +85,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
     setError(null);
     setImageUrl(null);
     try {
-      const result = await api.generateImage(prompt.trim());
+      const result = await api.generateImage(prompt.trim(), model);
       setImageUrl(result.imageUrl);
       onCreditsUpdate(result.creditsLeft);
       loadHistory();

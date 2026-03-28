@@ -136,7 +136,7 @@ export function Home({ user, onCreditsUpdate }: Props) {
         </div>
 
         {/* Packages */}
-        <div className="space-y-3 mt-[140px]">
+        <div className="space-y-3 mt-[420px]">
           <p className="text-white text-base font-bold text-center">{t('home.buy')}</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {PACKAGES.map((pkg) => {

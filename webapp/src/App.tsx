@@ -42,9 +42,11 @@ const OVERLAYS: Record<string, string> = {
   friends:  'bg-gradient-to-b from-amber-950/15 via-[#070b14]/35 to-[#070b14]/95',
 };
 
-// Предзагрузка только home фона (самый первый экран)
-const _preHome = new Image();
-_preHome.src = BG.home;
+// Предзагрузка ВСЕХ фонов при загрузке модуля
+Object.values(BG).forEach(src => {
+  const img = new Image();
+  img.src = src;
+});
 
 export function App() {
   const [user, setUser] = useState<User | null>(null);

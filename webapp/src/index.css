@@ -17,10 +17,11 @@ html, body, #root {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  touch-action: pan-x pan-y;
+  touch-action: pan-y;
   -webkit-text-size-adjust: 100%;
   overscroll-behavior: none;
-  overscroll-behavior-y: none;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 body {

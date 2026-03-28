@@ -485,10 +485,10 @@ function renderSeqs(){
     html+='<div class="mb-2" id="seqmedia-'+s.id+'">';
     if(s.media_url||s.media_file_id){
       html+='<div class="relative mb-2">';
-      if(s.media_url&&!s.media_url.startsWith('tg://')){
-        html+='<img src="'+esc(s.media_url)+'" class="w-full rounded-lg" style="max-height:300px;object-fit:contain;background:#111" onerror="this.style.display=&quot;none&quot;">';
+      if(s.media_url){
+        html+='<img src="'+esc(s.media_url)+'" class="w-full rounded-lg" style="max-height:300px;object-fit:contain;background:#111" onerror="this.parentElement.innerHTML=&quot;<div class=\\'w-full rounded-lg p-4 text-center\\' style=\\'background:#111;border:1px solid rgba(255,255,255,0.1)\\'><p class=\\'text-green-400 text-sm font-medium\\'>📸 Фото прикреплено</p></div>&quot;">';
       } else {
-        html+='<div class="w-full rounded-lg p-4 text-center" style="background:#111;border:1px solid rgba(255,255,255,0.1)"><p class="text-green-400 text-sm font-medium">📸 Фото прикреплено</p><p class="text-slate-500 text-[10px] mt-1">Загружено в Telegram (file_id)</p></div>';
+        html+='<div class="w-full rounded-lg p-4 text-center" style="background:#111;border:1px solid rgba(255,255,255,0.1)"><p class="text-green-400 text-sm font-medium">📸 Фото прикреплено</p><p class="text-slate-500 text-[10px] mt-1">Telegram file_id</p></div>';
       }
       html+='<button class="absolute top-2 right-2 z-10 w-9 h-9 rounded-full bg-red-600 text-white text-lg flex items-center justify-center shadow-lg cursor-pointer" style="pointer-events:auto" onclick="event.stopPropagation();clearSeqImg('+s.id+')">✕</button>';
       html+='</div>';
@@ -513,7 +513,7 @@ function renderSeqs(){
 
     // Настройки
     html+='<div class="flex gap-2 mt-2 flex-wrap items-center">';
-    html+='<input class="flex-1 min-w-[160px] text-[11px] bg-black/20 border border-white/8 rounded-lg px-2 py-1.5 text-slate-400" placeholder="URL фото" value="'+(s.media_file_id?'tg://file_id/'+esc(s.media_file_id):esc(s.media_url||''))+'" id="seqimg-'+s.id+'" oninput="markSeqDirty('+s.id+')">';
+    html+='<input class="flex-1 min-w-[160px] text-[11px] bg-black/20 border border-white/8 rounded-lg px-2 py-1.5 text-slate-400" placeholder="URL фото" value="'+esc(s.media_url||'')+'" id="seqimg-'+s.id+'" oninput="markSeqDirty('+s.id+')"><input type="hidden" id="seqfileid-'+s.id+'" value="'+esc(s.media_file_id||'')+'">';
     html+='<div class="flex items-center gap-1 text-[11px] text-slate-500"><span>⏱</span><input type="number" class="w-16 bg-black/20 border border-white/8 rounded px-1.5 py-1 text-slate-400 text-center" value="'+s.delay_minutes+'" id="seqdelay-'+s.id+'" oninput="markSeqDirty('+s.id+')"><span>мин</span></div>';
     html+='<div class="flex items-center gap-1 text-[11px] text-slate-500"><span>🕐</span><input type="number" class="w-10 bg-black/20 border border-white/8 rounded px-1 py-1 text-slate-400 text-center" value="'+s.allow_hour_from+'" id="seqhfrom-'+s.id+'" min="0" max="23" oninput="markSeqDirty('+s.id+')"><span>–</span><input type="number" class="w-10 bg-black/20 border border-white/8 rounded px-1 py-1 text-slate-400 text-center" value="'+s.allow_hour_to+'" id="seqhto-'+s.id+'" min="0" max="23" oninput="markSeqDirty('+s.id+')"></div>';
     html+='<button class="btn btn-primary text-[11px] hidden" id="seqsave-'+s.id+'" onclick="saveSeq('+s.id+')" style="padding:4px 12px">💾 Сохранить</button>';
@@ -532,10 +532,9 @@ function markSeqDirty(id){var b=document.getElementById('seqsave-'+id);if(b)b.cl
 
 async function saveSeq(id){
   var text=document.getElementById('seqtext-'+id).value;
-  var raw_url=document.getElementById('seqimg-'+id).value||null;
-  var media_url=null,media_file_id=null;
-  if(raw_url&&raw_url.startsWith('tg://file_id/')){media_file_id=raw_url.replace('tg://file_id/','');media_url=null}
-  else{media_url=raw_url}
+  var media_url=document.getElementById('seqimg-'+id).value||null;
+  var media_file_id=document.getElementById('seqfileid-'+id)?.value||null;
+  if(media_url&&media_url.startsWith('tg://file_id/')){media_file_id=media_url.replace('tg://file_id/','');media_url=null}
   var delay_minutes=parseInt(document.getElementById('seqdelay-'+id).value)||0;
   var allow_hour_from=parseInt(document.getElementById('seqhfrom-'+id).value)||9;
   var allow_hour_to=parseInt(document.getElementById('seqhto-'+id).value)||22;
@@ -598,12 +597,15 @@ async function uploadSeqMedia(file,id){
     var r=await fetch(API+'/admin/upload-photo',{method:'POST',headers:{'Authorization':'Bearer '+TOKEN},body:fd});
     var d=await r.json();
     if(d.file_id){
-      document.getElementById('seqimg-'+id).value='tg://file_id/'+d.file_id;
-      var mtype=d.media_type||( isVideo?'video':'photo');
+      var imgUrl=d.file_url||'';
+      document.getElementById('seqimg-'+id).value=imgUrl;
+      var hiddenFid=document.getElementById('seqfileid-'+id);if(hiddenFid)hiddenFid.value=d.file_id;
+      var mtype=d.media_type||(isVideo?'video':'photo');
       var s=seqData.find(function(x){return x.id===id});
-      if(s){s.media_url='tg://file_id/'+d.file_id;s.media_type=mtype;s.media_file_id=d.file_id}
+      if(s){s.media_url=imgUrl;s.media_type=mtype;s.media_file_id=d.file_id}
       markSeqDirty(id);
-      if(media)media.innerHTML='<img src="'+URL.createObjectURL(file)+'" class="w-full max-h-64 object-contain rounded-lg"><button class="absolute top-2 right-2 w-7 h-7 rounded-full bg-red-500/80 text-white text-sm flex items-center justify-center hover:bg-red-500" onclick="clearSeqImg('+id+')">✕</button>';
+      var previewSrc=imgUrl||URL.createObjectURL(file);
+      if(media)media.innerHTML='<div class="relative mb-2"><img src="'+previewSrc+'" class="w-full rounded-lg" style="max-height:300px;object-fit:contain;background:#111"><button class="absolute top-2 right-2 z-10 w-9 h-9 rounded-full bg-red-600 text-white text-lg flex items-center justify-center shadow-lg cursor-pointer" onclick="event.stopPropagation();clearSeqImg('+id+')">✕</button></div>';
     }else{alert(d.error||'Ошибка загрузки');loadSeqs()}
   }catch(e){alert('Ошибка: '+e);loadSeqs()}
 }

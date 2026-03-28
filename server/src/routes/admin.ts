@@ -488,6 +488,17 @@ adminRouter.post('/upload-photo', upload.single('photo'), async (req: Request, r
       fileId = data.result.photo[data.result.photo.length - 1].file_id;
       mediaType = 'photo';
     }
-    res.json({ file_id: fileId, media_type: mediaType });
+
+    // Получаем прямой URL файла через getFile
+    let fileUrl = '';
+    try {
+      const fileRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${fileId}`);
+      const fileData = await fileRes.json() as any;
+      if (fileData.ok && fileData.result.file_path) {
+        fileUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${fileData.result.file_path}`;
+      }
+    } catch { /* fallback — без URL */ }
+
+    res.json({ file_id: fileId, media_type: mediaType, file_url: fileUrl });
   } catch (err: any) { res.status(500).json({ error: err.message }); }
 });

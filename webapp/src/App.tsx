@@ -89,8 +89,14 @@ export function App() {
       undefined;
 
     if (!initData) {
-      // Не в Telegram — редирект на лендинг (серверный HTML)
-      window.location.href = '/landing';
+      const isTelegram = !!(window.Telegram?.WebApp?.platform) ||
+                         window.location.hash.includes('tgWebAppData');
+      if (!isTelegram) {
+        window.location.href = '/landing';
+        return;
+      }
+      setError('Открой приложение через Telegram-бота @UraanxAI_bot');
+      setLoading(false);
       return;
     }
 
@@ -203,6 +209,7 @@ declare global {
       WebApp?: {
         initData: string;
         initDataUnsafe?: { start_param?: string; user?: { photo_url?: string } };
+        platform?: string;
         viewportHeight?: number;
         ready: () => void;
         expand: () => void;

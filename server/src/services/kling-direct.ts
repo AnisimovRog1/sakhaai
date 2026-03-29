@@ -13,7 +13,7 @@ const tempFiles = new Map<string, { buffer: Buffer; mime: string; createdAt: num
 setInterval(() => {
   const now = Date.now();
   for (const [id, file] of tempFiles) {
-    if (now - file.createdAt > 15 * 60 * 1000) tempFiles.delete(id);
+    if (now - file.createdAt > 60 * 60 * 1000) tempFiles.delete(id);
   }
 }, 60_000);
 
@@ -111,7 +111,6 @@ export async function submitMotionControlDirect(
     video_url: httpVideoUrl,
     character_orientation: characterOrientation,
     mode: mode === '1080p' ? 'pro' : 'std',
-    model_name: 'kling-v2-6',
   });
 
   const taskId = result.data?.task_id;

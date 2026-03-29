@@ -13,6 +13,7 @@ import { paymentRouter } from './routes/payment';
 import { generationsRouter } from './routes/generations';
 import { adminRouter } from './routes/admin';
 import { adminPanelRouter } from './routes/admin-panel';
+import { serveTempFile } from './services/kling-direct';
 import { processHeldReferrals } from './services/referral';
 import { seedPushData } from './db/migrate';
 import { LANDING_HTML } from './landing';
@@ -54,6 +55,16 @@ app.use('/panel', adminPanelRouter);
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'sakhaai-server' });
+});
+
+// Временные файлы для Kling API (data URL → HTTP URL)
+app.get('/tmp-upload/:id', (req, res) => {
+  const fileId = req.params.id.replace(/\.[^.]+$/, ''); // убрать расширение
+  const file = serveTempFile(fileId);
+  if (!file) { res.status(404).send('Not found'); return; }
+  res.setHeader('Content-Type', file.mime);
+  res.setHeader('Content-Length', file.buffer.length);
+  res.send(file.buffer);
 });
 
 // Лендинг (перенесён с / на /landing — корень теперь отдаёт SPA)

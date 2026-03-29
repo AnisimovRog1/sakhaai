@@ -2,49 +2,20 @@
 // Используется для motion-control — быстрее и надёжнее
 
 import jwt from 'jsonwebtoken';
-import crypto from 'crypto';
 
 const BASE_URL = 'https://api-singapore.klingai.com';
 
-// ─── Временное хранилище файлов (в памяти сервера) ─────────
-// Kling скачивает файлы по HTTP URL → мы храним их временно и отдаём
-const tempFiles = new Map<string, { buffer: Buffer; mime: string; createdAt: number }>();
+// Конвертация data: URL → чистый base64 (без префикса data:...;base64,)
+// Kling принимает: HTTP URL или raw base64. НЕ принимает data: URL с префиксом.
+function prepareFileUrl(url: string): string {
+  if (!url.startsWith('data:')) return url; // HTTP URL — пропускаем
 
-// Автоочистка: удаляем файлы старше 10 минут каждые 2 минуты
-setInterval(() => {
-  const now = Date.now();
-  for (const [id, file] of tempFiles) {
-    if (now - file.createdAt > 10 * 60 * 1000) tempFiles.delete(id);
-  }
-}, 2 * 60 * 1000);
-
-// Отдать файл по HTTP (вызывается из Express роута)
-export function serveTempFile(id: string): { buffer: Buffer; mime: string } | null {
-  return tempFiles.get(id) || null;
-}
-
-// Конвертация data: URL → временный HTTP URL на нашем сервере
-function dataUrlToTempUrl(dataUrl: string): string {
-  if (!dataUrl.startsWith('data:')) return dataUrl; // уже HTTP — пропускаем
-
-  const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+  const match = url.match(/^data:[^;]+;base64,(.+)$/);
   if (!match) throw new Error('Некорректный data URL');
 
-  const [, mimeType, base64Data] = match;
-  const buffer = Buffer.from(base64Data, 'base64');
-  const ext = mimeType.split('/')[1] || 'bin';
-  const id = crypto.randomUUID();
-
-  tempFiles.set(id, { buffer, mime: mimeType, createdAt: Date.now() });
-
-  // Публичный URL нашего сервера
-  const serverUrl = process.env.RAILWAY_PUBLIC_DOMAIN
-    ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
-    : process.env.VITE_API_URL || 'https://sakhaai-production.up.railway.app';
-
-  const url = `${serverUrl}/tmp-upload/${id}.${ext}`;
-  console.log(`[kling-direct] temp file: ${url} (${(buffer.length / 1024).toFixed(0)} KB)`);
-  return url;
+  const base64 = match[1];
+  console.log(`[kling-direct] converted data URL → raw base64 (${(base64.length / 1024).toFixed(0)} KB)`);
+  return base64;
 }
 
 // ─── JWT авторизация ───────────────────────────────────────
@@ -104,13 +75,13 @@ export async function submitMotionControlDirect(
 ): Promise<{ taskId: string }> {
   console.log('[kling-direct] submitting motion-control, orientation:', characterOrientation, 'mode:', mode || 'std');
 
-  // Конвертировать data URL → HTTP URL на нашем сервере (бесплатно)
-  const httpImageUrl = dataUrlToTempUrl(imageUrl);
-  const httpVideoUrl = dataUrlToTempUrl(videoUrl);
+  // data: URL → raw base64 (без префикса), HTTP URL → как есть
+  const preparedImage = prepareFileUrl(imageUrl);
+  const preparedVideo = prepareFileUrl(videoUrl);
 
   const result = await klingRequest('POST', '/v1/videos/motion-control', {
-    image_url: httpImageUrl,
-    video_url: httpVideoUrl,
+    image_url: preparedImage,
+    video_url: preparedVideo,
     character_orientation: characterOrientation,
     mode: mode === '1080p' ? 'pro' : 'std',
     model_name: 'kling-v3',

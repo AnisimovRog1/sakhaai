@@ -116,8 +116,8 @@ videoRouter.get('/motion-status/:requestId', async (req: Request, res: Response)
   if (!meta) { res.status(404).json({ error: 'Запрос не найден' }); return; }
   if (String(meta.user_id) !== String(req.userId)) { res.status(403).json({ error: 'Нет доступа' }); return; }
 
-  // Старше 30 мин — удалить, рефанд
-  if (Date.now() - new Date(meta.created_at).getTime() > 30 * 60 * 1000) {
+  // Старше 60 мин — удалить, рефанд (Kling генерит motion-control до 36 мин)
+  if (Date.now() - new Date(meta.created_at).getTime() > 60 * 60 * 1000) {
     await addCredits(Number(meta.user_id), meta.cost, 'motion', 'Рефанд: таймаут motion-control').catch(console.error);
     await pool.query('DELETE FROM pending_motion WHERE request_id = $1', [requestId]);
     res.status(410).json({ error: 'Генерация истекла. Кредиты возвращены.' });

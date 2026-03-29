@@ -84,7 +84,7 @@ export async function submitMotionControlDirect(
     video_url: preparedVideo,
     character_orientation: characterOrientation,
     mode: mode === '1080p' ? 'pro' : 'std',
-    model_name: 'kling-v3',
+    model_name: 'kling-v2-6',
   });
 
   const taskId = result.data?.task_id;

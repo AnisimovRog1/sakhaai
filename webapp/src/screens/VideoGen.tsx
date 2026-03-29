@@ -3,6 +3,7 @@ import { api } from '../api/client';
 import type { User } from '../types';
 import { useLang } from '../LangContext';
 import { VideoPromptGallery } from '../components/VideoPromptGallery';
+import { GenerationViewer } from '../components/GenerationViewer';
 
 type HistoryItem = { id: number; type: string; prompt: string | null; resultUrl: string; cost: number; createdAt: string };
 
@@ -243,6 +244,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
 
   useEffect(() => {
@@ -960,8 +962,8 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
             </div>
           ) : (
             <div className="space-y-2">
-              {history.map((item) => (
-                <div key={item.id} className="bg-white/[0.08] border border-white/[0.12] rounded-xl p-3 flex items-center gap-3">
+              {history.map((item, i) => (
+                <div key={item.id} className="bg-white/[0.08] border border-white/[0.12] rounded-xl p-3 flex items-center gap-3 active:bg-white/[0.12] transition-colors" onClick={() => setViewerIndex(i)}>
                   <div className="w-10 h-10 rounded-lg bg-violet-500/15 border border-violet-500/20 flex items-center justify-center flex-shrink-0">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                       <polygon points="5 3 19 12 5 21 5 3"/>
@@ -971,24 +973,25 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
                     <p className="text-white text-sm font-semibold truncate">{item.prompt || item.type}</p>
                     <p className="text-slate-400 text-xs">{new Date(item.createdAt).toLocaleDateString('ru')} · {item.cost} кр.</p>
                   </div>
-                  <a
-                    href={item.resultUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="w-8 h-8 rounded-lg bg-white/[0.08] flex items-center justify-center flex-shrink-0"
-                  >
+                  <div className="w-8 h-8 rounded-lg bg-white/[0.08] flex items-center justify-center flex-shrink-0">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
-                      <polyline points="15 3 21 3 21 9"/>
-                      <line x1="10" y1="14" x2="21" y2="3"/>
+                      <polyline points="6 9 12 15 18 9"/>
                     </svg>
-                  </a>
+                  </div>
                 </div>
               ))}
             </div>
           )
         )}
       </div>
+
+      {viewerIndex !== null && (
+        <GenerationViewer
+          items={history}
+          startIndex={viewerIndex}
+          onClose={() => setViewerIndex(null)}
+        />
+      )}
 
     </div>
   );

@@ -3,6 +3,7 @@ import { api } from '../api/client';
 import type { User } from '../types';
 import { useLang } from '../LangContext';
 import { PromptGallery } from '../components/PromptGallery';
+import { GenerationViewer } from '../components/GenerationViewer';
 
 type HistoryItem = { id: number; type: string; prompt: string | null; resultUrl: string; cost: number; createdAt: string };
 
@@ -48,6 +49,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
 
   useEffect(() => {
     loadHistory();
@@ -476,8 +478,8 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-              {history.map((item) => (
-                <div key={item.id} className="relative group">
+              {history.map((item, i) => (
+                <div key={item.id} className="relative group" onClick={() => setViewerIndex(i)}>
                   <img
                     src={item.resultUrl}
                     alt={item.prompt || 'Генерация'}
@@ -493,6 +495,14 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
           )
         )}
       </div>
+
+      {viewerIndex !== null && (
+        <GenerationViewer
+          items={history}
+          startIndex={viewerIndex}
+          onClose={() => setViewerIndex(null)}
+        />
+      )}
 
     </div>
   );

@@ -78,8 +78,7 @@ videoRouter.post('/motion', async (req: Request, res: Response) => {
   const isMotionControl = !!(imageUrl && videoUrl);
   const dur = isMotionControl ? 5 : ([5, 10].includes(Number(duration)) ? Number(duration) : 5);
   const costType = isMotionControl ? 'motion-control' as const : 'motion' as const;
-  const effectiveMode = isMotionControl ? '720p' : mode; // motion-control только standard
-  const cost = calcVideoCost(dur, costType, model, effectiveMode);
+  const cost = calcVideoCost(dur, costType, model, mode);
 
   const creditsLeft = await charge(req, res, 'motion', cost);
   if (creditsLeft === null) return;
@@ -88,7 +87,7 @@ videoRouter.post('/motion', async (req: Request, res: Response) => {
     let result;
     if (isMotionControl) {
       const orient = characterOrientation === 'image' ? 'image' as const : 'video' as const;
-      result = await generateMotionControl(imageUrl, videoUrl, orient, model);
+      result = await generateMotionControl(imageUrl, videoUrl, orient, model, mode);
     } else {
       result = await generateMotion(imageUrl, prompt, dur, model, mode);
     }

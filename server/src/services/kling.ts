@@ -37,13 +37,14 @@ function getMotionEndpoint(model: string, mode: string): string {
   return map[model]?.[tier] || 'fal-ai/kling-video/v3/standard/image-to-video';
 }
 
-function getMotionControlEndpoint(model: string): string {
-  const map: Record<string, string> = {
-    'video-3.0':       'fal-ai/kling-video/v3/standard/motion-control',
-    'video-2.6':       'fal-ai/kling-video/v2.6/standard/motion-control',
-    'video-2.5-turbo': 'fal-ai/kling-video/v2.5-turbo/standard/motion-control',
+function getMotionControlEndpoint(model: string, mode: string): string {
+  const tier = mode === '1080p' ? 'pro' : 'standard';
+  const map: Record<string, Record<string, string>> = {
+    'video-3.0':       { standard: 'fal-ai/kling-video/v3/standard/motion-control',       pro: 'fal-ai/kling-video/v3/pro/motion-control' },
+    'video-2.6':       { standard: 'fal-ai/kling-video/v2.6/standard/motion-control',     pro: 'fal-ai/kling-video/v2.6/pro/motion-control' },
+    'video-2.5-turbo': { standard: 'fal-ai/kling-video/v2.5-turbo/standard/motion-control', pro: 'fal-ai/kling-video/v2.5-turbo/pro/motion-control' },
   };
-  return map[model] || 'fal-ai/kling-video/v3/standard/motion-control';
+  return map[model]?.[tier] || `fal-ai/kling-video/v3/${tier}/motion-control`;
 }
 
 // Текст → Видео
@@ -59,6 +60,7 @@ export async function generateVideo(
   if (!process.env.FAL_KEY) throw new Error('FAL_KEY не задан');
 
   const endpoint = getVideoEndpoint(model || 'video-3.0', mode || '720p');
+  console.log('[generateVideo] endpoint:', endpoint);
 
   const input: Record<string, any> = {
     prompt,
@@ -74,10 +76,13 @@ export async function generateVideo(
   });
 
   const data = result.data as any;
-  return {
-    videoUrl: data.video?.url ?? '',
-    taskId: result.requestId ?? '',
-  };
+  console.log('[generateVideo] data keys:', Object.keys(data));
+  const videoUrl = data.video?.url;
+  if (!videoUrl) {
+    console.error('[generateVideo] пустой videoUrl, data:', JSON.stringify(data).substring(0, 500));
+    throw new Error('Видео не сгенерировано. Попробуйте другой промпт.');
+  }
+  return { videoUrl, taskId: result.requestId ?? '' };
 }
 
 // Конвертация data URL → fal.ai hosted URL
@@ -110,21 +115,27 @@ export async function generateMotion(
 
   const hostedUrl = await ensureHttpUrl(imageUrl);
   const endpoint = getMotionEndpoint(model || 'video-3.0', mode || '720p');
+  console.log('[generateMotion] endpoint:', endpoint);
+
+  const input: Record<string, any> = {
+    start_image_url: hostedUrl,
+    duration,
+  };
+  if (prompt?.trim()) input.prompt = prompt.trim();
 
   const result = await fal.subscribe(endpoint as any, {
-    input: {
-      image_url: hostedUrl,
-      prompt: prompt ?? '',
-      duration,
-    },
+    input,
     timeout: FAL_TIMEOUT,
   });
 
   const data = result.data as any;
-  return {
-    videoUrl: data.video?.url ?? '',
-    taskId: result.requestId ?? '',
-  };
+  console.log('[generateMotion] data keys:', Object.keys(data));
+  const videoUrl = data.video?.url;
+  if (!videoUrl) {
+    console.error('[generateMotion] пустой videoUrl, data:', JSON.stringify(data).substring(0, 500));
+    throw new Error('Видео не сгенерировано. Попробуйте другое фото или промпт.');
+  }
+  return { videoUrl, taskId: result.requestId ?? '' };
 }
 
 // Motion Control — персонаж из фото повторяет движения из видео
@@ -132,13 +143,18 @@ export async function generateMotionControl(
   imageUrl: string,
   videoUrl: string,
   characterOrientation: 'video' | 'image',
-  model?: string
+  model?: string,
+  mode?: string
 ): Promise<VideoGenResult> {
   if (!process.env.FAL_KEY) throw new Error('FAL_KEY не задан');
 
-  const hostedImageUrl = await ensureHttpUrl(imageUrl);
-  const hostedVideoUrl = await ensureHttpUrl(videoUrl);
-  const endpoint = getMotionControlEndpoint(model || 'video-3.0');
+  // Параллельный upload фото и видео
+  const [hostedImageUrl, hostedVideoUrl] = await Promise.all([
+    ensureHttpUrl(imageUrl),
+    ensureHttpUrl(videoUrl),
+  ]);
+  const endpoint = getMotionControlEndpoint(model || 'video-3.0', mode || '720p');
+  console.log('[generateMotionControl] endpoint:', endpoint, 'orientation:', characterOrientation);
 
   const result = await fal.subscribe(endpoint as any, {
     input: {
@@ -150,10 +166,13 @@ export async function generateMotionControl(
   });
 
   const data = result.data as any;
-  return {
-    videoUrl: data.video?.url ?? '',
-    taskId: result.requestId ?? '',
-  };
+  console.log('[generateMotionControl] data keys:', Object.keys(data));
+  const vidUrl = data.video?.url;
+  if (!vidUrl) {
+    console.error('[generateMotionControl] пустой videoUrl, data:', JSON.stringify(data).substring(0, 500));
+    throw new Error('Видео не сгенерировано. Попробуйте другое фото/видео.');
+  }
+  return { videoUrl: vidUrl, taskId: result.requestId ?? '' };
 }
 
 // TTS — текст в речь (Kling TTS v1)
@@ -174,7 +193,12 @@ export async function generateTTS(
   });
 
   const data = result.data as any;
-  return { audioUrl: data.audio?.url ?? '' };
+  const audioUrl = data.audio?.url;
+  if (!audioUrl) {
+    console.error('[generateTTS] пустой audioUrl, data:', JSON.stringify(data).substring(0, 500));
+    throw new Error('Аудио не сгенерировано. Попробуйте другой текст.');
+  }
+  return { audioUrl };
 }
 
 // Avatar — говорящая аватарка (Kling Avatar v2 Pro)
@@ -186,6 +210,7 @@ export async function generateAvatar(
   if (!process.env.FAL_KEY) throw new Error('FAL_KEY не задан');
 
   const hostedImageUrl = await ensureHttpUrl(imageUrl);
+  console.log('[generateAvatar] starting avatar generation');
 
   const input: Record<string, any> = {
     image_url: hostedImageUrl,
@@ -199,8 +224,11 @@ export async function generateAvatar(
   });
 
   const data = result.data as any;
-  return {
-    videoUrl: data.video?.url ?? '',
-    taskId: result.requestId ?? '',
-  };
+  console.log('[generateAvatar] data keys:', Object.keys(data));
+  const videoUrl = data.video?.url;
+  if (!videoUrl) {
+    console.error('[generateAvatar] пустой videoUrl, data:', JSON.stringify(data).substring(0, 500));
+    throw new Error('Видео не сгенерировано. Попробуйте другое фото.');
+  }
+  return { videoUrl, taskId: result.requestId ?? '' };
 }

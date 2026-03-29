@@ -95,9 +95,11 @@ const EMOTION_KEYS: { id: Emotion; key: 'video.emotion.neutral' | 'video.emotion
 function calcVideoCost(tab: Tab, durationStr: VideoLength, model: VideoModel, mode: VideoMode, audio: boolean, motionControl: boolean = false): number {
   if (tab === 'avatar') return 1150;
 
-  // Motion-control: фикс. цена, всегда 5с, всегда standard (720p)
+  // Motion-control: 5с, baseRate 0.168, поддерживает 720p/1080p
   if (motionControl) {
-    return Math.ceil(5 * 0.168 * 2 * 1000); // 1680
+    let baseRate = 0.168;
+    if (mode === '1080p') baseRate *= 1.5;
+    return Math.ceil(5 * baseRate * 2 * 1000);
   }
 
   const dur = parseInt(durationStr);
@@ -266,7 +268,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
 
   function loadHistory() {
     setHistoryLoading(true);
-    api.getGenerations('video', 20).then(setHistory).catch(console.error).finally(() => setHistoryLoading(false));
+    api.getGenerations('video', 20).then(items => setHistory(items.filter(i => i.resultUrl))).catch(console.error).finally(() => setHistoryLoading(false));
   }
 
   const isMotionControl = tab === 'motion' && motionVideo !== null && motionImage !== null;
@@ -312,7 +314,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
             characterOrientation: motionOrient,
             prompt: prompt.trim() || undefined,
             model: videoModel,
-            mode: '720p', // motion-control только standard
+            mode: videoMode,
           });
         } else {
           result = await api.generateMotion({
@@ -724,55 +726,43 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
             />
           </div>
 
-          {/* Motion Settings — для обычного motion (image-to-video) */}
-          {!isMotionControl && (
-            <>
-              <button
-                onClick={() => setShowSettings(!showSettings)}
-                className="flex items-center gap-2 bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md px-4 py-2.5 text-sm text-white font-medium"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2m-9-11h2m18 0h2m-4.2-5.8l-1.4 1.4M6.6 17.4l-1.4 1.4m0-12.8l1.4 1.4m10.8 10.8l1.4 1.4"/>
-                </svg>
-                {videoMode} · {videoLength}
-                <IconChevron open={showSettings} />
-              </button>
-              {showSettings && (
-                <div className="bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md p-4 space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-white text-xs font-semibold">Качество</label>
-                    <PillSelector
-                      options={[
-                        { id: '720p' as VideoMode, label: '720p' },
-                        { id: '1080p' as VideoMode, label: '1080p' },
-                      ]}
-                      value={videoMode}
-                      onChange={setVideoMode}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-white text-xs font-semibold">Длительность</label>
-                    <PillSelector
-                      options={[
-                        { id: '5s' as VideoLength, label: '5 сек' },
-                        { id: '10s' as VideoLength, label: '10 сек' },
-                      ]}
-                      value={videoLength}
-                      onChange={setVideoLength}
-                    />
-                  </div>
+          {/* Motion Settings — качество для motion и motion-control */}
+          <button
+            onClick={() => setShowSettings(!showSettings)}
+            className="flex items-center gap-2 bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md px-4 py-2.5 text-sm text-white font-medium"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2m-9-11h2m18 0h2m-4.2-5.8l-1.4 1.4M6.6 17.4l-1.4 1.4m0-12.8l1.4 1.4m10.8 10.8l1.4 1.4"/>
+            </svg>
+            {videoMode}{!isMotionControl ? ` · ${videoLength}` : ''}
+            <IconChevron open={showSettings} />
+          </button>
+          {showSettings && (
+            <div className="bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md p-4 space-y-4">
+              <div className="space-y-2">
+                <label className="text-white text-xs font-semibold">Качество</label>
+                <PillSelector
+                  options={[
+                    { id: '720p' as VideoMode, label: '720p' },
+                    { id: '1080p' as VideoMode, label: '1080p' },
+                  ]}
+                  value={videoMode}
+                  onChange={setVideoMode}
+                />
+              </div>
+              {!isMotionControl && (
+                <div className="space-y-2">
+                  <label className="text-white text-xs font-semibold">Длительность</label>
+                  <PillSelector
+                    options={[
+                      { id: '5s' as VideoLength, label: '5 сек' },
+                      { id: '10s' as VideoLength, label: '10 сек' },
+                    ]}
+                    value={videoLength}
+                    onChange={setVideoLength}
+                  />
                 </div>
               )}
-            </>
-          )}
-
-          {/* Motion-control info */}
-          {isMotionControl && (
-            <div className="bg-white/[0.06] border border-white/[0.10] rounded-xl px-4 py-3 flex items-center gap-2">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/>
-              </svg>
-              <span className="text-slate-300 text-xs">720p · Длительность определяется видео</span>
             </div>
           )}
         </>

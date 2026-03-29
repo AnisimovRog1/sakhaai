@@ -73,6 +73,8 @@ async function klingRequest(method: 'GET' | 'POST', path: string, body?: any): P
     'Content-Type': 'application/json',
   };
 
+  if (body) console.log(`[kling-direct] ${method} ${path} body:`, JSON.stringify(body).substring(0, 500));
+
   const res = await fetch(url, {
     method,
     headers,
@@ -81,6 +83,7 @@ async function klingRequest(method: 'GET' | 'POST', path: string, body?: any): P
 
   const data: any = await res.json();
   console.log(`[kling-direct] ${method} ${path} → ${res.status}, code: ${data.code}`);
+  console.log(`[kling-direct] response:`, JSON.stringify(data).substring(0, 500));
 
   if (!res.ok || data.code !== 0) {
     console.error('[kling-direct] error:', JSON.stringify(data).substring(0, 500));
@@ -96,7 +99,8 @@ export async function submitMotionControlDirect(
   imageUrl: string,
   videoUrl: string,
   characterOrientation: 'video' | 'image',
-  mode?: string
+  mode?: string,
+  prompt?: string
 ): Promise<{ taskId: string }> {
   console.log('[kling-direct] submitting motion-control, orientation:', characterOrientation, 'mode:', mode || 'std');
 
@@ -106,12 +110,16 @@ export async function submitMotionControlDirect(
   console.log('[kling-direct] image_url:', httpImageUrl.substring(0, 80));
   console.log('[kling-direct] video_url:', httpVideoUrl.substring(0, 80));
 
-  const result = await klingRequest('POST', '/v1/videos/motion-control', {
+  const body: Record<string, any> = {
     image_url: httpImageUrl,
     video_url: httpVideoUrl,
     character_orientation: characterOrientation,
     mode: mode === '1080p' ? 'pro' : 'std',
-  });
+    model_name: 'kling-v2-6',
+  };
+  if (prompt?.trim()) body.prompt = prompt.trim();
+
+  const result = await klingRequest('POST', '/v1/videos/motion-control', body);
 
   const taskId = result.data?.task_id;
   if (!taskId) {
@@ -147,6 +155,10 @@ export async function checkMotionStatusDirect(taskId: string): Promise<{
   if (status === 'failed') {
     console.error('[kling-direct] task failed:', task?.task_status_msg);
     return { status: 'failed', errorMsg: task?.task_status_msg || 'Ошибка генерации' };
+  }
+
+  if (status === 'submitted') {
+    console.log(`[kling-direct] task ${taskId} still submitted, full task:`, JSON.stringify(task).substring(0, 500));
   }
 
   return { status };

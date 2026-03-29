@@ -89,7 +89,7 @@ videoRouter.post('/motion', async (req: Request, res: Response) => {
     if (isMotionControl) {
       // ASYNC: submit в Kling direct API, вернуть taskId сразу
       const orient = characterOrientation === 'image' ? 'image' as const : 'video' as const;
-      const { taskId } = await submitMotionControlDirect(imageUrl, videoUrl, orient, mode);
+      const { taskId } = await submitMotionControlDirect(imageUrl, videoUrl, orient, mode, prompt);
       await pool.query(
         `INSERT INTO pending_motion (request_id, user_id, cost, endpoint, prompt) VALUES ($1, $2, $3, $4, $5)`,
         [taskId, req.userId!, cost, 'kling-direct', prompt || null]
@@ -116,8 +116,8 @@ videoRouter.get('/motion-status/:requestId', async (req: Request, res: Response)
   if (!meta) { res.status(404).json({ error: 'Запрос не найден' }); return; }
   if (String(meta.user_id) !== String(req.userId)) { res.status(403).json({ error: 'Нет доступа' }); return; }
 
-  // Старше 90 мин — удалить, рефанд (fal.ai может генерить до 60 мин)
-  if (Date.now() - new Date(meta.created_at).getTime() > 90 * 60 * 1000) {
+  // Старше 30 мин — удалить, рефанд
+  if (Date.now() - new Date(meta.created_at).getTime() > 30 * 60 * 1000) {
     await addCredits(Number(meta.user_id), meta.cost, 'motion', 'Рефанд: таймаут motion-control').catch(console.error);
     await pool.query('DELETE FROM pending_motion WHERE request_id = $1', [requestId]);
     res.status(410).json({ error: 'Генерация истекла. Кредиты возвращены.' });

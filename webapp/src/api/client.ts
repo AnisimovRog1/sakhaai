@@ -111,10 +111,16 @@ export const api = {
     model?: string;
     mode?: string;
   }) =>
-    request<{ videoUrl: string; creditsLeft: number; cost: number }>('/video/motion', {
+    request<{ videoUrl?: string; requestId?: string; creditsLeft: number; cost: number; async?: boolean }>('/video/motion', {
       method: 'POST',
       body: JSON.stringify(params),
     }),
+
+  checkMotionStatus: (requestId: string) =>
+    request<{ status: string; queuePosition?: number }>(`/video/motion-status/${requestId}`),
+
+  getMotionResult: (requestId: string) =>
+    request<{ videoUrl: string; cost: number }>(`/video/motion-result/${requestId}`),
 
   generateAvatar: (params: {
     imageUrl: string;

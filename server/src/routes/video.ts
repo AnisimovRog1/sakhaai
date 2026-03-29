@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth';
-import { generateVideo, generateMotion, generateMotionControl, generateAvatar, generateTTS } from '../services/kling';
+import { generateVideo, generateMotion, submitMotionControl, checkQueueStatus, getQueueResult, generateAvatar, generateTTS } from '../services/kling';
 import { deduct, addCredits, TxType } from '../services/balance';
 import { saveGeneration } from '../services/generations';
 
@@ -70,6 +70,9 @@ videoRouter.post('/generate', async (req: Request, res: Response) => {
   }
 });
 
+// Хранилище pending motion-control запросов (requestId → meta)
+const pendingMotion = new Map<string, { userId: number; cost: number; endpoint: string; prompt: string | null }>();
+
 // POST /video/motion — картинка → видео (image-to-video) ИЛИ motion control (image + video)
 videoRouter.post('/motion', async (req: Request, res: Response) => {
   const { imageUrl, videoUrl, characterOrientation, prompt, duration, model, mode } = req.body;
@@ -84,19 +87,58 @@ videoRouter.post('/motion', async (req: Request, res: Response) => {
   if (creditsLeft === null) return;
 
   try {
-    let result;
     if (isMotionControl) {
+      // ASYNC: submit в очередь, вернуть requestId сразу
       const orient = characterOrientation === 'image' ? 'image' as const : 'video' as const;
-      result = await generateMotionControl(imageUrl, videoUrl, orient, model, mode);
+      const { requestId, endpoint } = await submitMotionControl(imageUrl, videoUrl, orient, model, mode);
+      pendingMotion.set(requestId, { userId: req.userId!, cost, endpoint, prompt: prompt || null });
+      res.json({ requestId, creditsLeft, cost, async: true });
     } else {
-      result = await generateMotion(imageUrl, prompt, dur, model, mode);
+      // Обычный motion (image-to-video) — синхронный, быстрый
+      const result = await generateMotion(imageUrl, prompt, dur, model, mode);
+      await saveGeneration(req.userId!, 'motion', prompt || null, result.videoUrl, cost).catch(console.error);
+      res.json({ ...result, creditsLeft, cost });
     }
-    await saveGeneration(req.userId!, 'motion', prompt || null, result.videoUrl, cost).catch(console.error);
-    res.json({ ...result, creditsLeft, cost });
   } catch (e: any) {
     await addCredits(req.userId!, cost, 'motion', `Рефанд: ошибка motion`).catch(console.error);
     console.error('[motion] error + refund:', e?.message, e?.body || '');
     res.status(500).json({ error: e.message ?? 'Ошибка генерации' });
+  }
+});
+
+// GET /video/motion-status/:requestId — проверить статус генерации
+videoRouter.get('/motion-status/:requestId', async (req: Request, res: Response) => {
+  const { requestId } = req.params;
+  const meta = pendingMotion.get(requestId);
+  if (!meta) { res.status(404).json({ error: 'Запрос не найден' }); return; }
+  if (meta.userId !== req.userId) { res.status(403).json({ error: 'Нет доступа' }); return; }
+
+  try {
+    const status = await checkQueueStatus(meta.endpoint, requestId);
+    res.json(status);
+  } catch (e: any) {
+    console.error('[motion-status] error:', e?.message);
+    res.status(500).json({ error: e.message ?? 'Ошибка проверки статуса' });
+  }
+});
+
+// GET /video/motion-result/:requestId — забрать готовое видео
+videoRouter.get('/motion-result/:requestId', async (req: Request, res: Response) => {
+  const { requestId } = req.params;
+  const meta = pendingMotion.get(requestId);
+  if (!meta) { res.status(404).json({ error: 'Запрос не найден' }); return; }
+  if (meta.userId !== req.userId) { res.status(403).json({ error: 'Нет доступа' }); return; }
+
+  try {
+    const result = await getQueueResult(meta.endpoint, requestId);
+    await saveGeneration(meta.userId, 'motion', meta.prompt, result.videoUrl, meta.cost).catch(console.error);
+    pendingMotion.delete(requestId);
+    res.json({ videoUrl: result.videoUrl, cost: meta.cost });
+  } catch (e: any) {
+    await addCredits(meta.userId, meta.cost, 'motion', `Рефанд: ошибка motion-control`).catch(console.error);
+    pendingMotion.delete(requestId);
+    console.error('[motion-result] error + refund:', e?.message);
+    res.status(500).json({ error: e.message ?? 'Ошибка получения результата' });
   }
 });
 

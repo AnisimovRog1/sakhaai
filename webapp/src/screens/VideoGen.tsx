@@ -257,6 +257,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [motionStatus, setMotionStatus] = useState<string | null>(null); // polling status text
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
@@ -289,15 +290,41 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
     reader.readAsDataURL(file);
   }
 
+  // Polling для motion-control: проверяем статус каждые 10 сек
+  async function pollMotionResult(requestId: string) {
+    setMotionStatus('В очереди...');
+    for (let i = 0; i < 120; i++) { // макс 20 мин (120 × 10с)
+      await new Promise(r => setTimeout(r, 10_000));
+      try {
+        const status = await api.checkMotionStatus(requestId);
+        if (status.status === 'COMPLETED') {
+          setMotionStatus('Загружаю результат...');
+          const result = await api.getMotionResult(requestId);
+          return result.videoUrl;
+        } else if (status.status === 'IN_QUEUE') {
+          setMotionStatus(`В очереди${status.queuePosition ? ` (позиция ${status.queuePosition})` : ''}...`);
+        } else {
+          setMotionStatus('Генерирую видео...');
+        }
+      } catch {
+        // Ошибка при проверке статуса — попробуем ещё
+      }
+    }
+    throw new Error('Генерация заняла слишком много времени');
+  }
+
   async function generate() {
     if (!canGenerate) return;
     setLoading(true);
     setError(null);
     setVideoUrl(null);
+    setMotionStatus(null);
     try {
-      let result: { videoUrl: string; creditsLeft: number };
+      let videoResult: string | undefined;
+      let creditsLeft: number | undefined;
+
       if (tab === 'video') {
-        result = await api.generateVideo({
+        const r = await api.generateVideo({
           prompt: prompt.trim(),
           model: videoModel,
           duration: parseInt(videoLength),
@@ -306,9 +333,12 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
           generateAudio: nativeAudio,
           startImageUrl: startFrame || undefined,
         });
+        videoResult = r.videoUrl;
+        creditsLeft = r.creditsLeft;
       } else if (tab === 'motion') {
         if (motionImage && motionVideo) {
-          result = await api.generateMotion({
+          // Motion-control: async с polling
+          const r = await api.generateMotion({
             imageUrl: motionImage,
             videoUrl: motionVideo,
             characterOrientation: motionOrient,
@@ -316,18 +346,27 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
             model: videoModel,
             mode: videoMode,
           });
+          creditsLeft = r.creditsLeft;
+          if (r.async && r.requestId) {
+            setMotionStatus('Отправлено в очередь...');
+            videoResult = await pollMotionResult(r.requestId);
+          } else {
+            videoResult = r.videoUrl;
+          }
         } else {
-          result = await api.generateMotion({
+          const r = await api.generateMotion({
             imageUrl: motionImage || '',
             prompt: prompt.trim() || undefined,
             duration: parseInt(videoLength),
             model: videoModel,
             mode: videoMode,
           });
+          videoResult = r.videoUrl;
+          creditsLeft = r.creditsLeft;
         }
       } else {
         const voiceConfig = VOICES.find(v => v.name === selectedVoice);
-        result = await api.generateAvatar({
+        const r = await api.generateAvatar({
           imageUrl: avatarImage || '',
           text: speechText.trim(),
           voiceId: voiceConfig?.voiceId || 'oversea_male1',
@@ -335,14 +374,18 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
           emotion: emotion !== 'neutral' ? emotion : undefined,
           avatarPrompt: avatarPrompt?.trim() || undefined,
         });
+        videoResult = r.videoUrl;
+        creditsLeft = r.creditsLeft;
       }
-      setVideoUrl(result.videoUrl);
-      onCreditsUpdate(result.creditsLeft);
+
+      if (videoResult) setVideoUrl(videoResult);
+      if (creditsLeft !== undefined) onCreditsUpdate(creditsLeft);
       loadHistory();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Ошибка генерации');
     } finally {
       setLoading(false);
+      setMotionStatus(null);
     }
   }
 
@@ -976,7 +1019,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
               <rect x="2" y="6" width="14" height="12" rx="2"/><path d="M16 10l6-4v12l-6-4V10z"/>
             </svg>
           </div>
-          <p className="text-white text-sm font-semibold">{t('video.generating')}</p>
+          <p className="text-white text-sm font-semibold">{motionStatus || t('video.generating')}</p>
           <p className="text-slate-200 text-xs font-medium">{t(tab === 'motion' ? 'video.generatingTimeMotion' : 'video.generatingTime')}</p>
         </div>
       )}

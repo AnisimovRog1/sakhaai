@@ -139,13 +139,14 @@ export async function generateMotion(
 }
 
 // Motion Control — персонаж из фото повторяет движения из видео
-export async function generateMotionControl(
+// ASYNC: submit → poll → result (без таймаута, генерация может занимать 15+ мин)
+export async function submitMotionControl(
   imageUrl: string,
   videoUrl: string,
   characterOrientation: 'video' | 'image',
   model?: string,
   mode?: string
-): Promise<VideoGenResult> {
+): Promise<{ requestId: string; endpoint: string }> {
   if (!process.env.FAL_KEY) throw new Error('FAL_KEY не задан');
 
   // Параллельный upload фото и видео
@@ -154,25 +155,40 @@ export async function generateMotionControl(
     ensureHttpUrl(videoUrl),
   ]);
   const endpoint = getMotionControlEndpoint(model || 'video-3.0', mode || '720p');
-  console.log('[generateMotionControl] endpoint:', endpoint, 'orientation:', characterOrientation);
+  console.log('[submitMotionControl] endpoint:', endpoint, 'orientation:', characterOrientation);
 
-  const result = await fal.subscribe(endpoint as any, {
+  const submitted = await fal.queue.submit(endpoint as any, {
     input: {
       image_url: hostedImageUrl,
       video_url: hostedVideoUrl,
       character_orientation: characterOrientation,
     },
-    timeout: FAL_TIMEOUT,
   });
 
+  console.log('[submitMotionControl] requestId:', submitted.request_id);
+  return { requestId: submitted.request_id, endpoint };
+}
+
+// Проверить статус генерации в очереди
+export async function checkQueueStatus(endpoint: string, requestId: string): Promise<{ status: string; queuePosition?: number }> {
+  const s = await fal.queue.status(endpoint as any, { requestId, logs: false });
+  return {
+    status: s.status,
+    queuePosition: (s as any).queue_position,
+  };
+}
+
+// Забрать результат завершённой генерации
+export async function getQueueResult(endpoint: string, requestId: string): Promise<VideoGenResult> {
+  const result = await fal.queue.result(endpoint as any, { requestId });
   const data = result.data as any;
-  console.log('[generateMotionControl] data keys:', Object.keys(data));
-  const vidUrl = data.video?.url;
-  if (!vidUrl) {
-    console.error('[generateMotionControl] пустой videoUrl, data:', JSON.stringify(data).substring(0, 500));
+  console.log('[getQueueResult] data keys:', Object.keys(data));
+  const videoUrl = data.video?.url;
+  if (!videoUrl) {
+    console.error('[getQueueResult] пустой videoUrl, data:', JSON.stringify(data).substring(0, 500));
     throw new Error('Видео не сгенерировано. Попробуйте другое фото/видео.');
   }
-  return { videoUrl: vidUrl, taskId: result.requestId ?? '' };
+  return { videoUrl, taskId: requestId };
 }
 
 // TTS — текст в речь (Kling TTS v1)

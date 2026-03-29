@@ -7,7 +7,7 @@ export function setToken(t: string) {
   token = t;
 }
 
-// Базовая функция для запросов к серверу
+// Базовая функция для запросов к серверу (таймаут 11 мин — страховка на случай зависания)
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -17,17 +17,30 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: { ...headers, ...options?.headers },
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 660_000);
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Ошибка сервера' }));
-    throw new Error(err.error ?? 'Ошибка сервера');
+  try {
+    const res = await fetch(`${API_URL}${path}`, {
+      ...options,
+      headers: { ...headers, ...options?.headers },
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Ошибка сервера' }));
+      throw new Error(err.error ?? 'Ошибка сервера');
+    }
+
+    return res.json();
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'AbortError') {
+      throw new Error('Превышено время ожидания. Попробуйте ещё раз.');
+    }
+    throw e;
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  return res.json();
 }
 
 // ── Auth ──────────────────────────────

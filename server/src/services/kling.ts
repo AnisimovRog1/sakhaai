@@ -8,8 +8,8 @@ fal.config({
   credentials: process.env.FAL_KEY!,
 });
 
-// 8 минут — максимальное время ожидания генерации видео
-const FAL_TIMEOUT = 480_000;
+// 10 минут — максимальное время ожидания генерации видео (совпадает с Express)
+const FAL_TIMEOUT = 600_000;
 
 export type VideoGenResult = {
   videoUrl: string;
@@ -43,7 +43,7 @@ function getMotionControlEndpoint(model: string): string {
     'video-2.6':       'fal-ai/kling-video/v2.6/standard/motion-control',
     'video-2.5-turbo': 'fal-ai/kling-video/v2.5-turbo/standard/motion-control',
   };
-  return map[model] || 'fal-ai/kling-video/v2.6/standard/motion-control';
+  return map[model] || 'fal-ai/kling-video/v3/standard/motion-control';
 }
 
 // Текст → Видео
@@ -138,7 +138,7 @@ export async function generateMotionControl(
 
   const hostedImageUrl = await ensureHttpUrl(imageUrl);
   const hostedVideoUrl = await ensureHttpUrl(videoUrl);
-  const endpoint = getMotionControlEndpoint(model || 'video-2.6');
+  const endpoint = getMotionControlEndpoint(model || 'video-3.0');
 
   const result = await fal.subscribe(endpoint as any, {
     input: {

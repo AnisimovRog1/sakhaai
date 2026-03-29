@@ -76,9 +76,10 @@ videoRouter.post('/motion', async (req: Request, res: Response) => {
   if (!imageUrl) { res.status(400).json({ error: 'imageUrl обязателен' }); return; }
 
   const isMotionControl = !!(imageUrl && videoUrl);
-  const dur = [5, 10].includes(Number(duration)) ? Number(duration) : 5;
+  const dur = isMotionControl ? 5 : ([5, 10].includes(Number(duration)) ? Number(duration) : 5);
   const costType = isMotionControl ? 'motion-control' as const : 'motion' as const;
-  const cost = calcVideoCost(dur, costType, model, mode);
+  const effectiveMode = isMotionControl ? '720p' : mode; // motion-control только standard
+  const cost = calcVideoCost(dur, costType, model, effectiveMode);
 
   const creditsLeft = await charge(req, res, 'motion', cost);
   if (creditsLeft === null) return;

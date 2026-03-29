@@ -59,19 +59,42 @@ export function GenerationViewer({ items, startIndex, onClose }: Props) {
     else if (touchDeltaX.current < -60) next();
   }
 
-  function handleSave() {
-    if (!item) return;
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
+    if (!item || saving) return;
+    const fileName = isVideo ? 'uraanxai-video.mp4' : 'uraanxai-image.png';
+    const mimeType = isVideo ? 'video/mp4' : 'image/png';
+
+    setSaving(true);
+    try {
+      // Попробовать нативный share (iOS → "Сохранить в Фото")
+      const resp = await fetch(item.resultUrl);
+      const blob = await resp.blob();
+      const file = new File([blob], fileName, { type: mimeType });
+
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file] });
+        setSaving(false);
+        return;
+      }
+    } catch {
+      // share отменён или не поддерживается — fallback
+    }
+
+    // Fallback: Telegram downloadFile
     const tg = (window as any).Telegram?.WebApp;
     if (tg?.downloadFile) {
-      tg.downloadFile({ url: item.resultUrl, file_name: isVideo ? 'uraanxai-video.mp4' : 'uraanxai-image.png' });
+      tg.downloadFile({ url: item.resultUrl, file_name: fileName });
     } else {
       const a = document.createElement('a');
       a.href = item.resultUrl;
-      a.download = isVideo ? 'uraanxai-video.mp4' : 'uraanxai-image.png';
+      a.download = fileName;
       a.target = '_blank';
       a.rel = 'noreferrer';
       a.click();
     }
+    setSaving(false);
   }
 
   if (!item) return null;
@@ -86,7 +109,7 @@ export function GenerationViewer({ items, startIndex, onClose }: Props) {
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Media */}
+      {/* Media — object-cover на весь экран, сдвиг вверх чтобы закрыть gap Telegram header */}
       {isVideo ? (
         <video
           ref={videoRef}
@@ -94,13 +117,15 @@ export function GenerationViewer({ items, startIndex, onClose }: Props) {
           loop
           playsInline
           autoPlay
-          className="absolute w-full h-full object-contain"
+          className="absolute w-full h-full object-cover"
+          style={{ top: '-30px', left: 0, right: 0, bottom: 0 }}
         />
       ) : (
         <img
           src={item.resultUrl}
           alt={item.prompt || ''}
-          className="absolute w-full h-full object-contain"
+          className="absolute w-full h-full object-cover"
+          style={{ top: '-30px', left: 0, right: 0, bottom: 0 }}
         />
       )}
 
@@ -164,10 +189,15 @@ export function GenerationViewer({ items, startIndex, onClose }: Props) {
 
           <button
             onClick={handleSave}
-            className="w-full py-3.5 rounded-xl bg-gradient-to-r from-violet-600 to-cyan-500 text-white text-sm font-bold shadow-lg shadow-violet-500/25 active:scale-[0.97] transition-transform flex items-center justify-center gap-2"
+            disabled={saving}
+            className="w-full py-3.5 rounded-xl bg-gradient-to-r from-violet-600 to-cyan-500 text-white text-sm font-bold shadow-lg shadow-violet-500/25 active:scale-[0.97] transition-transform flex items-center justify-center gap-2 disabled:opacity-60"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Сохранить
+            {saving ? (
+              <svg className="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 3a9 9 0 019 9"/></svg>
+            ) : (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            )}
+            {saving ? 'Сохранение...' : 'Сохранить'}
           </button>
         </div>
       </div>

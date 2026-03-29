@@ -55,9 +55,16 @@ async function ensureHttpUrl(url: string): Promise<string> {
   const match = url.match(/^data:([^;]+);base64,(.+)$/);
   if (!match) throw new Error('Некорректный data URL');
   const [, mimeType, base64Data] = match;
-  const buffer = Buffer.from(base64Data, 'base64');
-  const blob = new Blob([buffer], { type: mimeType });
-  return fal.storage.upload(blob);
+  try {
+    const buffer = Buffer.from(base64Data, 'base64');
+    const file = new File([buffer], `upload.${mimeType.split('/')[1] || 'png'}`, { type: mimeType });
+    const hostedUrl = await fal.storage.upload(file);
+    console.log(`[ensureHttpUrl] uploaded: ${hostedUrl.substring(0, 80)}...`);
+    return hostedUrl;
+  } catch (err) {
+    console.error('[ensureHttpUrl] upload failed:', err);
+    throw new Error(`Ошибка загрузки файла: ${(err as Error).message}`);
+  }
 }
 
 // Картинка → Видео (Motion)

@@ -69,6 +69,7 @@ videoRouter.post('/motion', async (req: Request, res: Response) => {
     await saveGeneration(req.userId!, 'motion', prompt || null, result.videoUrl, cost).catch(console.error);
     res.json({ ...result, creditsLeft, cost });
   } catch (e: any) {
+    console.error('[motion] error:', e?.message, e?.body || '');
     res.status(500).json({ error: e.message ?? 'Ошибка генерации' });
   }
 });

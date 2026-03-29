@@ -761,9 +761,10 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
           <div className="space-y-2">
             <label className="text-white text-sm font-semibold">Описание <span className="text-white font-normal">(необязательно)</span></label>
             <textarea
+              ref={promptRef}
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Дополнительное описание движений..."
+              placeholder="Опишите сцену, окружение, стиль..."
               rows={3}
               className="w-full bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md p-4 text-sm font-medium resize-none outline-none placeholder-slate-400 text-white focus:border-violet-500/50 transition-colors"
             />

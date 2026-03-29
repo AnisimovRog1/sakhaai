@@ -95,9 +95,12 @@ app.get('*', (_req, res) => {
 // Запуск
 migrate()
   .then(() => {
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       console.log(`✅ Сервер запущен на порту ${PORT}`);
     });
+    // Таймаут 10 минут — видео-генерация через fal.ai может занимать 5+ минут
+    server.timeout = 600_000;
+    server.keepAliveTimeout = 620_000;
 
     // Планировщик: проверяем held-рефералы каждые 15 минут
     // Простой setInterval — без внешних зависимостей

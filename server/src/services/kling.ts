@@ -8,6 +8,9 @@ fal.config({
   credentials: process.env.FAL_KEY!,
 });
 
+// 8 минут — максимальное время ожидания генерации видео
+const FAL_TIMEOUT = 480_000;
+
 export type VideoGenResult = {
   videoUrl: string;
   taskId: string;
@@ -40,6 +43,7 @@ export async function generateVideo(prompt: string, duration: number = 5, model?
       duration,
       aspect_ratio: '9:16',
     },
+    timeout: FAL_TIMEOUT,
   });
 
   const data = result.data as any;
@@ -83,6 +87,7 @@ export async function generateMotion(
       prompt: prompt ?? '',
       duration,
     },
+    timeout: FAL_TIMEOUT,
   });
 
   const data = result.data as any;
@@ -109,6 +114,7 @@ export async function generateMotionControl(
       video_url: hostedVideoUrl,
       character_orientation: characterOrientation,
     },
+    timeout: FAL_TIMEOUT,
   });
 
   const data = result.data as any;
@@ -132,6 +138,7 @@ export async function generateTTS(
       voice_id: voiceId as any,
       voice_speed: voiceSpeed,
     },
+    timeout: FAL_TIMEOUT,
   });
 
   const data = result.data as any;
@@ -152,6 +159,7 @@ export async function generateAvatar(
       image_url: hostedImageUrl,
       audio_url: audioUrl,
     },
+    timeout: FAL_TIMEOUT,
   });
 
   const data = result.data as any;

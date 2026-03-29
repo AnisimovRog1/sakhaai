@@ -35,7 +35,7 @@ app.use(cors({
     callback(new Error(`CORS: origin ${origin} не разрешён`));
   },
 }));
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
 
 // Статические файлы (верификация UnitPay и т.д.)
 app.use(express.static(path.resolve(__dirname, '../public')));

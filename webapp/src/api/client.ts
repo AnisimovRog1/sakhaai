@@ -81,16 +81,23 @@ export const api = {
       body: JSON.stringify({ prompt, model, duration }),
     }),
 
-  generateMotion: (imageUrl: string, prompt?: string, duration?: number) =>
+  generateMotion: (params: {
+    imageUrl: string; videoUrl?: string;
+    characterOrientation?: 'video' | 'image';
+    prompt?: string; duration?: number;
+  }) =>
     request<{ videoUrl: string; creditsLeft: number; cost: number }>('/video/motion', {
       method: 'POST',
-      body: JSON.stringify({ imageUrl, prompt, duration }),
+      body: JSON.stringify(params),
     }),
 
-  generateAvatar: (imageUrl: string, audioUrl: string) =>
+  generateAvatar: (params: {
+    imageUrl: string; text: string;
+    voiceId: string; voiceSpeed?: number;
+  }) =>
     request<{ videoUrl: string; creditsLeft: number; cost: number }>('/video/avatar', {
       method: 'POST',
-      body: JSON.stringify({ imageUrl, audioUrl }),
+      body: JSON.stringify(params),
     }),
 
   generateTTS: (text: string, voiceId: string, voiceSpeed?: number) =>

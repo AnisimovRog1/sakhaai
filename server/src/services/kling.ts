@@ -67,7 +67,7 @@ async function ensureHttpUrl(url: string): Promise<string> {
   }
 }
 
-// Картинка → Видео (Motion)
+// Картинка → Видео (Image-to-Video)
 export async function generateMotion(
   imageUrl: string,
   prompt?: string,
@@ -79,9 +79,35 @@ export async function generateMotion(
 
   const result = await fal.subscribe(DEFAULT_MOTION_MODEL as any, {
     input: {
-      start_image_url: hostedUrl,
+      image_url: hostedUrl,
       prompt: prompt ?? '',
       duration,
+    },
+  });
+
+  const data = result.data as any;
+  return {
+    videoUrl: data.video?.url ?? '',
+    taskId: result.requestId ?? '',
+  };
+}
+
+// Motion Control — персонаж из фото повторяет движения из видео
+export async function generateMotionControl(
+  imageUrl: string,
+  videoUrl: string,
+  characterOrientation: 'video' | 'image'
+): Promise<VideoGenResult> {
+  if (!process.env.FAL_KEY) throw new Error('FAL_KEY не задан');
+
+  const hostedImageUrl = await ensureHttpUrl(imageUrl);
+  const hostedVideoUrl = await ensureHttpUrl(videoUrl);
+
+  const result = await fal.subscribe('fal-ai/kling-video/v3/pro/motion-control' as any, {
+    input: {
+      image_url: hostedImageUrl,
+      video_url: hostedVideoUrl,
+      character_orientation: characterOrientation,
     },
   });
 

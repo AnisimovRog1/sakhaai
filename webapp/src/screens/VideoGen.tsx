@@ -283,9 +283,28 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
       if (tab === 'video') {
         result = await api.generateVideo(prompt.trim(), videoModel, parseInt(videoLength));
       } else if (tab === 'motion') {
-        result = await api.generateMotion(motionImage || motionVideo || '', prompt.trim() || undefined, parseInt(videoLength));
+        if (motionImage && motionVideo) {
+          result = await api.generateMotion({
+            imageUrl: motionImage,
+            videoUrl: motionVideo,
+            characterOrientation: motionOrient,
+            prompt: prompt.trim() || undefined,
+          });
+        } else {
+          result = await api.generateMotion({
+            imageUrl: motionImage || '',
+            prompt: prompt.trim() || undefined,
+            duration: parseInt(videoLength),
+          });
+        }
       } else {
-        result = await api.generateAvatar(avatarImage || '', speechText.trim());
+        const voiceConfig = VOICES.find(v => v.name === selectedVoice);
+        result = await api.generateAvatar({
+          imageUrl: avatarImage || '',
+          text: speechText.trim(),
+          voiceId: voiceConfig?.voiceId || 'oversea_male1',
+          voiceSpeed: speechRate,
+        });
       }
       setVideoUrl(result.videoUrl);
       onCreditsUpdate(result.creditsLeft);

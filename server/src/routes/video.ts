@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth';
-import { generateVideo, generateMotion, generateAvatar, generateTTS } from '../services/kling';
+import { generateVideo, generateMotion, generateMotionControl, generateAvatar, generateTTS } from '../services/kling';
 import { deduct, addCredits, TxType } from '../services/balance';
 import { saveGeneration } from '../services/generations';
 
@@ -55,11 +55,12 @@ videoRouter.post('/generate', async (req: Request, res: Response) => {
   }
 });
 
-// POST /video/motion — картинка → видео
+// POST /video/motion — картинка → видео (image-to-video) ИЛИ motion control (image + video)
 videoRouter.post('/motion', async (req: Request, res: Response) => {
-  const { imageUrl, prompt, duration } = req.body;
+  const { imageUrl, videoUrl, characterOrientation, prompt, duration } = req.body;
   if (!imageUrl) { res.status(400).json({ error: 'imageUrl обязателен' }); return; }
 
+  const isMotionControl = !!(imageUrl && videoUrl);
   const dur = [5, 10].includes(Number(duration)) ? Number(duration) : 5;
   const cost = calcVideoCost(dur);
 
@@ -67,7 +68,13 @@ videoRouter.post('/motion', async (req: Request, res: Response) => {
   if (creditsLeft === null) return;
 
   try {
-    const result = await generateMotion(imageUrl, prompt, dur);
+    let result;
+    if (isMotionControl) {
+      const orient = characterOrientation === 'image' ? 'image' as const : 'video' as const;
+      result = await generateMotionControl(imageUrl, videoUrl, orient);
+    } else {
+      result = await generateMotion(imageUrl, prompt, dur);
+    }
     await saveGeneration(req.userId!, 'motion', prompt || null, result.videoUrl, cost).catch(console.error);
     res.json({ ...result, creditsLeft, cost });
   } catch (e: any) {
@@ -101,18 +108,23 @@ videoRouter.post('/tts', async (req: Request, res: Response) => {
   }
 });
 
-// POST /video/avatar — изображение + аудио → говорящий аватар
+// POST /video/avatar — изображение + текст → TTS → говорящий аватар
 videoRouter.post('/avatar', async (req: Request, res: Response) => {
-  const { imageUrl, audioUrl, text } = req.body;
-  const audio = audioUrl || text;
-  if (!imageUrl || !audio) { res.status(400).json({ error: 'imageUrl и audioUrl обязательны' }); return; }
+  const { imageUrl, text, voiceId, voiceSpeed } = req.body;
+  if (!imageUrl) { res.status(400).json({ error: 'imageUrl обязателен' }); return; }
+  if (!text?.trim()) { res.status(400).json({ error: 'Текст обязателен' }); return; }
 
   const creditsLeft = await charge(req, res, 'avatar', AVATAR_COST);
   if (creditsLeft === null) return;
 
   try {
-    const result = await generateAvatar(imageUrl, audio);
-    await saveGeneration(req.userId!, 'avatar', null, result.videoUrl, AVATAR_COST).catch(console.error);
+    // Шаг 1: TTS — текст → аудио URL
+    const ttsResult = await generateTTS(text.trim(), voiceId || 'oversea_male1', voiceSpeed ?? 1.0);
+    if (!ttsResult.audioUrl) throw new Error('TTS не вернул аудио');
+
+    // Шаг 2: Аватар — фото + аудио → видео
+    const result = await generateAvatar(imageUrl, ttsResult.audioUrl);
+    await saveGeneration(req.userId!, 'avatar', text.trim(), result.videoUrl, AVATAR_COST).catch(console.error);
     res.json({ ...result, creditsLeft, cost: AVATAR_COST });
   } catch (e: any) {
     await addCredits(req.userId!, AVATAR_COST, 'avatar', `Рефанд: ошибка avatar`).catch(console.error);

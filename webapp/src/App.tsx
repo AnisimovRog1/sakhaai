@@ -29,7 +29,7 @@ const BG: Record<string, string> = {
 // Разные оверлеи для каждого экрана — подчёркивают уникальность каждого фото
 const OVERLAYS: Record<string, string> = {
   // Ледяные скульптуры + Ленские столбы — лёгкий, максимально показываем красоту
-  home:     'bg-gradient-to-b from-transparent via-[#070b14]/30 to-[#070b14]/85',
+  home:     'bg-gradient-to-b from-transparent via-[#070b14]/20 to-[#070b14]/60',
   // Цветные столбы — лёгкий синий оттенок сверху, тёмный низ для контента
   chatList: 'bg-gradient-to-b from-indigo-950/20 via-[#070b14]/40 to-[#070b14]/90',
   // Маяк + северное сияние — потемнее для читаемости чата

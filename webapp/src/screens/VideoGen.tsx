@@ -290,32 +290,34 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
     reader.readAsDataURL(file);
   }
 
-  // Polling для motion-control: проверяем статус каждые 10 сек
+  // Polling для motion-control (Kling direct API)
   async function pollMotionResult(requestId: string) {
-    setMotionStatus('В очереди...');
+    setMotionStatus('Отправлено в Kling...');
     let errorCount = 0;
-    for (let i = 0; i < 180; i++) { // макс 30 мин (180 × 10с)
+    for (let i = 0; i < 360; i++) { // макс 60 мин
       await new Promise(r => setTimeout(r, 10_000));
       try {
-        const status = await api.checkMotionStatus(requestId);
-        errorCount = 0; // сбросить при успешной проверке
-        if (status.status === 'COMPLETED') {
-          setMotionStatus('Загружаю результат...');
-          const result = await api.getMotionResult(requestId);
+        const result = await api.checkMotionStatus(requestId);
+        errorCount = 0;
+
+        if (result.status === 'succeed' && result.videoUrl) {
           return result.videoUrl;
-        } else if (status.status === 'IN_QUEUE') {
-          setMotionStatus(`В очереди${status.queuePosition ? ` (позиция ${status.queuePosition})` : ''}...`);
-        } else {
-          const mins = Math.floor(i * 10 / 60);
-          const secs = (i * 10) % 60;
-          setMotionStatus(`Генерирую видео... ${mins}:${secs.toString().padStart(2, '0')}`);
         }
+        if (result.status === 'failed') {
+          throw new Error(result.errorMsg || 'Kling: ошибка генерации. Кредиты возвращены.');
+        }
+        // submitted / processing — показываем таймер
+        const mins = Math.floor(i * 10 / 60);
+        const secs = (i * 10) % 60;
+        const label = result.status === 'submitted' ? 'В очереди Kling' : 'Генерирую видео';
+        setMotionStatus(`${label}... ${mins}:${secs.toString().padStart(2, '0')}`);
       } catch (err) {
+        if (err instanceof Error && (err.message.includes('Kling') || err.message.includes('генерации'))) throw err;
         errorCount++;
         if (err instanceof Error && (err.message.includes('не найден') || err.message.includes('истекла'))) {
           throw new Error('Кредиты возвращены. Попробуйте ещё раз.');
         }
-        if (errorCount > 5) throw err; // 5 ошибок подряд — стоп
+        if (errorCount > 5) throw err;
       }
     }
     throw new Error('Генерация заняла слишком много времени. Кредиты возвращены.');

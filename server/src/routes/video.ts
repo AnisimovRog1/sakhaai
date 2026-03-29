@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth';
-import { generateVideo, generateMotion, submitMotionControl, checkQueueStatus, getQueueResult, generateAvatar, generateTTS } from '../services/kling';
+import { generateVideo, generateMotion, generateAvatar, generateTTS } from '../services/kling';
+import { submitMotionControlDirect, checkMotionStatusDirect } from '../services/kling-direct';
 import { deduct, addCredits, TxType } from '../services/balance';
 import { saveGeneration } from '../services/generations';
 import { pool } from '../db/pool';
@@ -86,16 +87,14 @@ videoRouter.post('/motion', async (req: Request, res: Response) => {
 
   try {
     if (isMotionControl) {
-      // ASYNC: submit в очередь, вернуть requestId сразу
+      // ASYNC: submit в Kling direct API, вернуть taskId сразу
       const orient = characterOrientation === 'image' ? 'image' as const : 'video' as const;
-      const { requestId, endpoint } = await submitMotionControl(imageUrl, videoUrl, orient, model, mode);
-      // Сохраняем в БД (переживает рестарт сервера)
+      const { taskId } = await submitMotionControlDirect(imageUrl, videoUrl, orient, mode);
       await pool.query(
         `INSERT INTO pending_motion (request_id, user_id, cost, endpoint, prompt) VALUES ($1, $2, $3, $4, $5)`,
-        [requestId, req.userId!, cost, endpoint, prompt || null]
+        [taskId, req.userId!, cost, 'kling-direct', prompt || null]
       );
-      console.log('[motion] submitted to queue:', requestId, 'endpoint:', endpoint);
-      res.json({ requestId, creditsLeft, cost, async: true });
+      res.json({ requestId: taskId, creditsLeft, cost, async: true });
     } else {
       // Обычный motion (image-to-video) — синхронный
       const result = await generateMotion(imageUrl, prompt, dur, model, mode);
@@ -115,10 +114,10 @@ videoRouter.get('/motion-status/:requestId', async (req: Request, res: Response)
   const row = await pool.query('SELECT * FROM pending_motion WHERE request_id = $1', [requestId]);
   const meta = row.rows[0];
   if (!meta) { res.status(404).json({ error: 'Запрос не найден' }); return; }
-  if (Number(meta.user_id) !== req.userId) { res.status(403).json({ error: 'Нет доступа' }); return; }
+  if (String(meta.user_id) !== String(req.userId)) { res.status(403).json({ error: 'Нет доступа' }); return; }
 
-  // Старше 30 мин — удалить, рефанд
-  if (Date.now() - new Date(meta.created_at).getTime() > 30 * 60 * 1000) {
+  // Старше 90 мин — удалить, рефанд (fal.ai может генерить до 60 мин)
+  if (Date.now() - new Date(meta.created_at).getTime() > 90 * 60 * 1000) {
     await addCredits(Number(meta.user_id), meta.cost, 'motion', 'Рефанд: таймаут motion-control').catch(console.error);
     await pool.query('DELETE FROM pending_motion WHERE request_id = $1', [requestId]);
     res.status(410).json({ error: 'Генерация истекла. Кредиты возвращены.' });
@@ -126,32 +125,29 @@ videoRouter.get('/motion-status/:requestId', async (req: Request, res: Response)
   }
 
   try {
-    const status = await checkQueueStatus(meta.endpoint, requestId);
-    res.json(status);
+    const result = await checkMotionStatusDirect(requestId);
+
+    // Если succeed — сохраняем генерацию, удаляем pending, возвращаем видео
+    if (result.status === 'succeed' && result.videoUrl) {
+      await saveGeneration(Number(meta.user_id), 'motion', meta.prompt, result.videoUrl, meta.cost).catch(console.error);
+      await pool.query('DELETE FROM pending_motion WHERE request_id = $1', [requestId]);
+      res.json({ status: 'succeed', videoUrl: result.videoUrl });
+      return;
+    }
+
+    // Если failed — рефанд, удаляем pending
+    if (result.status === 'failed') {
+      await addCredits(Number(meta.user_id), meta.cost, 'motion', 'Рефанд: ошибка motion-control').catch(console.error);
+      await pool.query('DELETE FROM pending_motion WHERE request_id = $1', [requestId]);
+      res.json({ status: 'failed', errorMsg: result.errorMsg || 'Ошибка генерации' });
+      return;
+    }
+
+    // processing / submitted — продолжаем ждать
+    res.json({ status: result.status });
   } catch (e: any) {
     console.error('[motion-status] error:', e?.message);
     res.status(500).json({ error: e.message ?? 'Ошибка проверки статуса' });
-  }
-});
-
-// GET /video/motion-result/:requestId — забрать готовое видео
-videoRouter.get('/motion-result/:requestId', async (req: Request, res: Response) => {
-  const { requestId } = req.params;
-  const row = await pool.query('SELECT * FROM pending_motion WHERE request_id = $1', [requestId]);
-  const meta = row.rows[0];
-  if (!meta) { res.status(404).json({ error: 'Запрос не найден' }); return; }
-  if (Number(meta.user_id) !== req.userId) { res.status(403).json({ error: 'Нет доступа' }); return; }
-
-  try {
-    const result = await getQueueResult(meta.endpoint, requestId);
-    await saveGeneration(Number(meta.user_id), 'motion', meta.prompt, result.videoUrl, meta.cost).catch(console.error);
-    await pool.query('DELETE FROM pending_motion WHERE request_id = $1', [requestId]);
-    res.json({ videoUrl: result.videoUrl, cost: meta.cost });
-  } catch (e: any) {
-    await addCredits(Number(meta.user_id), meta.cost, 'motion', `Рефанд: ошибка motion-control`).catch(console.error);
-    await pool.query('DELETE FROM pending_motion WHERE request_id = $1', [requestId]);
-    console.error('[motion-result] error + refund:', e?.message);
-    res.status(500).json({ error: e.message ?? 'Ошибка получения результата' });
   }
 });
 

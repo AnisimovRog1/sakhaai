@@ -117,10 +117,7 @@ export const api = {
     }),
 
   checkMotionStatus: (requestId: string) =>
-    request<{ status: string; queuePosition?: number }>(`/video/motion-status/${requestId}`),
-
-  getMotionResult: (requestId: string) =>
-    request<{ videoUrl: string; cost: number }>(`/video/motion-result/${requestId}`),
+    request<{ status: string; videoUrl?: string; errorMsg?: string }>(`/video/motion-status/${requestId}`),
 
   generateAvatar: (params: {
     imageUrl: string;

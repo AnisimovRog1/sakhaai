@@ -18,7 +18,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 660_000);
+  const timeoutId = setTimeout(() => controller.abort(), 960_000); // 16 мин
 
   try {
     const res = await fetch(`${API_URL}${path}`, {

@@ -8,8 +8,8 @@ fal.config({
   credentials: process.env.FAL_KEY!,
 });
 
-// 10 минут — максимальное время ожидания генерации видео (совпадает с Express)
-const FAL_TIMEOUT = 600_000;
+// 14 минут — motion-control может генерировать 10+ мин
+const FAL_TIMEOUT = 840_000;
 
 export type VideoGenResult = {
   videoUrl: string;

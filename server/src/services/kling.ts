@@ -16,33 +16,60 @@ export type VideoGenResult = {
   taskId: string;
 };
 
-// Маппинг UI моделей → fal.ai endpoints
-const VIDEO_MODEL_MAP: Record<string, string> = {
-  'video-3.0':       'fal-ai/kling-video/v3/standard/text-to-video',
-  'video-2.6':       'fal-ai/kling-video/v2.6/pro/text-to-video',
-  'video-2.5-turbo': 'fal-ai/kling-video/v2.5-turbo/pro/text-to-video',
-};
-const DEFAULT_VIDEO_MODEL = 'fal-ai/kling-video/v3/standard/text-to-video';
+// Маппинг UI моделей + mode → fal.ai endpoints
+function getVideoEndpoint(model: string, mode: string): string {
+  const tier = mode === '1080p' ? 'pro' : 'standard';
+  const map: Record<string, Record<string, string>> = {
+    'video-3.0':       { standard: 'fal-ai/kling-video/v3/standard/text-to-video',       pro: 'fal-ai/kling-video/v3/pro/text-to-video' },
+    'video-2.6':       { standard: 'fal-ai/kling-video/v2.6/standard/text-to-video',     pro: 'fal-ai/kling-video/v2.6/pro/text-to-video' },
+    'video-2.5-turbo': { standard: 'fal-ai/kling-video/v2.5-turbo/standard/text-to-video', pro: 'fal-ai/kling-video/v2.5-turbo/pro/text-to-video' },
+  };
+  return map[model]?.[tier] || 'fal-ai/kling-video/v3/standard/text-to-video';
+}
 
-const MOTION_MODEL_MAP: Record<string, string> = {
-  'video-3.0':       'fal-ai/kling-video/v3/standard/image-to-video',
-  'video-2.6':       'fal-ai/kling-video/v2.6/pro/image-to-video',
-  'video-2.5-turbo': 'fal-ai/kling-video/v2.5-turbo/pro/image-to-video',
-};
-const DEFAULT_MOTION_MODEL = 'fal-ai/kling-video/v3/standard/image-to-video';
+function getMotionEndpoint(model: string, mode: string): string {
+  const tier = mode === '1080p' ? 'pro' : 'standard';
+  const map: Record<string, Record<string, string>> = {
+    'video-3.0':       { standard: 'fal-ai/kling-video/v3/standard/image-to-video',       pro: 'fal-ai/kling-video/v3/pro/image-to-video' },
+    'video-2.6':       { standard: 'fal-ai/kling-video/v2.6/standard/image-to-video',     pro: 'fal-ai/kling-video/v2.6/pro/image-to-video' },
+    'video-2.5-turbo': { standard: 'fal-ai/kling-video/v2.5-turbo/standard/image-to-video', pro: 'fal-ai/kling-video/v2.5-turbo/pro/image-to-video' },
+  };
+  return map[model]?.[tier] || 'fal-ai/kling-video/v3/standard/image-to-video';
+}
+
+function getMotionControlEndpoint(model: string): string {
+  const map: Record<string, string> = {
+    'video-3.0':       'fal-ai/kling-video/v3/standard/motion-control',
+    'video-2.6':       'fal-ai/kling-video/v2.6/standard/motion-control',
+    'video-2.5-turbo': 'fal-ai/kling-video/v2.5-turbo/standard/motion-control',
+  };
+  return map[model] || 'fal-ai/kling-video/v2.6/standard/motion-control';
+}
 
 // Текст → Видео
-export async function generateVideo(prompt: string, duration: number = 5, model?: string): Promise<VideoGenResult> {
+export async function generateVideo(
+  prompt: string,
+  duration: number = 5,
+  model?: string,
+  mode?: string,
+  aspectRatio?: string,
+  generateAudio?: boolean,
+  startImageUrl?: string
+): Promise<VideoGenResult> {
   if (!process.env.FAL_KEY) throw new Error('FAL_KEY не задан');
 
-  const endpoint = (model && VIDEO_MODEL_MAP[model]) || DEFAULT_VIDEO_MODEL;
+  const endpoint = getVideoEndpoint(model || 'video-3.0', mode || '720p');
+
+  const input: Record<string, any> = {
+    prompt,
+    duration,
+    aspect_ratio: aspectRatio || '9:16',
+  };
+  if (generateAudio) input.generate_audio = true;
+  if (startImageUrl) input.start_image_url = startImageUrl;
 
   const result = await fal.subscribe(endpoint as any, {
-    input: {
-      prompt,
-      duration,
-      aspect_ratio: '9:16',
-    },
+    input,
     timeout: FAL_TIMEOUT,
   });
 
@@ -75,13 +102,16 @@ async function ensureHttpUrl(url: string): Promise<string> {
 export async function generateMotion(
   imageUrl: string,
   prompt?: string,
-  duration: number = 5
+  duration: number = 5,
+  model?: string,
+  mode?: string
 ): Promise<VideoGenResult> {
   if (!process.env.FAL_KEY) throw new Error('FAL_KEY не задан');
 
   const hostedUrl = await ensureHttpUrl(imageUrl);
+  const endpoint = getMotionEndpoint(model || 'video-3.0', mode || '720p');
 
-  const result = await fal.subscribe(DEFAULT_MOTION_MODEL as any, {
+  const result = await fal.subscribe(endpoint as any, {
     input: {
       image_url: hostedUrl,
       prompt: prompt ?? '',
@@ -101,14 +131,16 @@ export async function generateMotion(
 export async function generateMotionControl(
   imageUrl: string,
   videoUrl: string,
-  characterOrientation: 'video' | 'image'
+  characterOrientation: 'video' | 'image',
+  model?: string
 ): Promise<VideoGenResult> {
   if (!process.env.FAL_KEY) throw new Error('FAL_KEY не задан');
 
   const hostedImageUrl = await ensureHttpUrl(imageUrl);
   const hostedVideoUrl = await ensureHttpUrl(videoUrl);
+  const endpoint = getMotionControlEndpoint(model || 'video-2.6');
 
-  const result = await fal.subscribe('fal-ai/kling-video/v3/pro/motion-control' as any, {
+  const result = await fal.subscribe(endpoint as any, {
     input: {
       image_url: hostedImageUrl,
       video_url: hostedVideoUrl,
@@ -148,17 +180,21 @@ export async function generateTTS(
 // Avatar — говорящая аватарка (Kling Avatar v2 Pro)
 export async function generateAvatar(
   imageUrl: string,
-  audioUrl: string
+  audioUrl: string,
+  prompt?: string
 ): Promise<VideoGenResult> {
   if (!process.env.FAL_KEY) throw new Error('FAL_KEY не задан');
 
   const hostedImageUrl = await ensureHttpUrl(imageUrl);
 
+  const input: Record<string, any> = {
+    image_url: hostedImageUrl,
+    audio_url: audioUrl,
+  };
+  if (prompt) input.prompt = prompt;
+
   const result = await fal.subscribe('fal-ai/kling-video/ai-avatar/v2/pro', {
-    input: {
-      image_url: hostedImageUrl,
-      audio_url: audioUrl,
-    },
+    input,
     timeout: FAL_TIMEOUT,
   });
 

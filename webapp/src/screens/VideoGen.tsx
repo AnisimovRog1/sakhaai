@@ -91,12 +91,20 @@ const EMOTION_KEYS: { id: Emotion; key: 'video.emotion.neutral' | 'video.emotion
   { id: 'surprised', key: 'video.emotion.surprised' },
 ];
 
-// Динамическая цена: fal.ai $0.084/сек × 2 (маржа) × 1000 (кредиты)
-function calcVideoCost(tab: Tab, durationStr: VideoLength): number {
+// Динамическая цена: fal.ai baseRate/сек × 2 (маржа) × 1000 (кредиты)
+function calcVideoCost(tab: Tab, durationStr: VideoLength, model: VideoModel, mode: VideoMode, audio: boolean): number {
   const dur = parseInt(durationStr);
-  if (tab === 'video' || tab === 'motion') return Math.ceil(dur * 0.084 * 2 * 1000);
   if (tab === 'avatar') return 1150;
-  return 0;
+
+  let baseRate: number;
+  if (model === 'video-2.6' || model === 'video-2.5-turbo') {
+    baseRate = audio ? 0.14 : 0.07;
+  } else {
+    baseRate = audio ? 0.126 : 0.084;
+  }
+  if (mode === '1080p') baseRate *= 1.5;
+
+  return Math.ceil(dur * baseRate * 2 * 1000);
 }
 
 // ─── Icon components ───────────────────────────────────────
@@ -256,7 +264,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
     api.getGenerations('video', 20).then(setHistory).catch(console.error).finally(() => setHistoryLoading(false));
   }
 
-  const cost = calcVideoCost(tab, videoLength) * videoCount;
+  const cost = calcVideoCost(tab, videoLength, videoModel, videoMode, nativeAudio) * videoCount;
   const hasCredits = user.credits >= cost;
 
   const canGenerate = !loading && hasCredits && (
@@ -281,7 +289,15 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
     try {
       let result: { videoUrl: string; creditsLeft: number };
       if (tab === 'video') {
-        result = await api.generateVideo(prompt.trim(), videoModel, parseInt(videoLength));
+        result = await api.generateVideo({
+          prompt: prompt.trim(),
+          model: videoModel,
+          duration: parseInt(videoLength),
+          mode: videoMode,
+          aspectRatio: videoRatio,
+          generateAudio: nativeAudio,
+          startImageUrl: startFrame || undefined,
+        });
       } else if (tab === 'motion') {
         if (motionImage && motionVideo) {
           result = await api.generateMotion({
@@ -289,12 +305,16 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
             videoUrl: motionVideo,
             characterOrientation: motionOrient,
             prompt: prompt.trim() || undefined,
+            model: videoModel,
+            mode: videoMode,
           });
         } else {
           result = await api.generateMotion({
             imageUrl: motionImage || '',
             prompt: prompt.trim() || undefined,
             duration: parseInt(videoLength),
+            model: videoModel,
+            mode: videoMode,
           });
         }
       } else {
@@ -304,6 +324,8 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
           text: speechText.trim(),
           voiceId: voiceConfig?.voiceId || 'oversea_male1',
           voiceSpeed: speechRate,
+          emotion: emotion !== 'neutral' ? emotion : undefined,
+          avatarPrompt: avatarPrompt?.trim() || undefined,
         });
       }
       setVideoUrl(result.videoUrl);

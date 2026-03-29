@@ -75,16 +75,28 @@ export const api = {
     }),
 
   // ── Генерация видео ──────────────────
-  generateVideo: (prompt: string, model?: string, duration?: number) =>
+  generateVideo: (params: {
+    prompt: string;
+    model?: string;
+    duration?: number;
+    mode?: string;
+    aspectRatio?: string;
+    generateAudio?: boolean;
+    startImageUrl?: string;
+  }) =>
     request<{ videoUrl: string; creditsLeft: number; cost: number }>('/video/generate', {
       method: 'POST',
-      body: JSON.stringify({ prompt, model, duration }),
+      body: JSON.stringify(params),
     }),
 
   generateMotion: (params: {
-    imageUrl: string; videoUrl?: string;
+    imageUrl: string;
+    videoUrl?: string;
     characterOrientation?: 'video' | 'image';
-    prompt?: string; duration?: number;
+    prompt?: string;
+    duration?: number;
+    model?: string;
+    mode?: string;
   }) =>
     request<{ videoUrl: string; creditsLeft: number; cost: number }>('/video/motion', {
       method: 'POST',
@@ -92,8 +104,12 @@ export const api = {
     }),
 
   generateAvatar: (params: {
-    imageUrl: string; text: string;
-    voiceId: string; voiceSpeed?: number;
+    imageUrl: string;
+    text: string;
+    voiceId: string;
+    voiceSpeed?: number;
+    emotion?: string;
+    avatarPrompt?: string;
   }) =>
     request<{ videoUrl: string; creditsLeft: number; cost: number }>('/video/avatar', {
       method: 'POST',

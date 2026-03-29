@@ -7,9 +7,24 @@ import { saveGeneration } from '../services/generations';
 export const videoRouter = Router();
 videoRouter.use(requireAuth);
 
-// Динамическая цена: fal.ai $0.084/сек × 2 (маржа x2) × 1000 (кредиты/$)
-function calcVideoCost(duration: number): number {
-  return Math.ceil(duration * 0.084 * 2 * 1000);
+// Динамическая цена: baseRate × duration × маржа x2 × 1000 (кредиты/$)
+function calcVideoCost(duration: number, type: 'video' | 'motion' | 'motion-control', model?: string, mode?: string, audio?: boolean): number {
+  let baseRate: number;
+
+  if (type === 'motion-control') {
+    baseRate = 0.168; // motion-control is expensive
+  } else if (model === 'video-2.6' || model === 'video-2.5-turbo') {
+    baseRate = audio ? 0.14 : 0.07;
+  } else {
+    // v3 standard
+    baseRate = audio ? 0.126 : 0.084;
+  }
+
+  // 1080p/pro costs ~50% more
+  if (mode === '1080p') baseRate *= 1.5;
+
+  // Margin x2
+  return Math.ceil(duration * baseRate * 2 * 1000);
 }
 
 const AVATAR_COST = 1150;
@@ -35,17 +50,17 @@ async function charge(
 
 // POST /video/generate — текст → видео
 videoRouter.post('/generate', async (req: Request, res: Response) => {
-  const { prompt, model, duration } = req.body;
+  const { prompt, model, duration, mode, aspectRatio, generateAudio, startImageUrl } = req.body;
   if (!prompt?.trim()) { res.status(400).json({ error: 'Промпт обязателен' }); return; }
 
   const dur = [5, 10].includes(Number(duration)) ? Number(duration) : 5;
-  const cost = calcVideoCost(dur);
+  const cost = calcVideoCost(dur, 'video', model, mode, !!generateAudio);
 
   const creditsLeft = await charge(req, res, 'video', cost);
   if (creditsLeft === null) return;
 
   try {
-    const result = await generateVideo(prompt, dur, model);
+    const result = await generateVideo(prompt, dur, model, mode, aspectRatio, generateAudio, startImageUrl);
     await saveGeneration(req.userId!, 'video', prompt, result.videoUrl, cost).catch(console.error);
     res.json({ ...result, creditsLeft, cost });
   } catch (e: any) {
@@ -57,12 +72,13 @@ videoRouter.post('/generate', async (req: Request, res: Response) => {
 
 // POST /video/motion — картинка → видео (image-to-video) ИЛИ motion control (image + video)
 videoRouter.post('/motion', async (req: Request, res: Response) => {
-  const { imageUrl, videoUrl, characterOrientation, prompt, duration } = req.body;
+  const { imageUrl, videoUrl, characterOrientation, prompt, duration, model, mode } = req.body;
   if (!imageUrl) { res.status(400).json({ error: 'imageUrl обязателен' }); return; }
 
   const isMotionControl = !!(imageUrl && videoUrl);
   const dur = [5, 10].includes(Number(duration)) ? Number(duration) : 5;
-  const cost = calcVideoCost(dur);
+  const costType = isMotionControl ? 'motion-control' as const : 'motion' as const;
+  const cost = calcVideoCost(dur, costType, model, mode);
 
   const creditsLeft = await charge(req, res, 'motion', cost);
   if (creditsLeft === null) return;
@@ -71,9 +87,9 @@ videoRouter.post('/motion', async (req: Request, res: Response) => {
     let result;
     if (isMotionControl) {
       const orient = characterOrientation === 'image' ? 'image' as const : 'video' as const;
-      result = await generateMotionControl(imageUrl, videoUrl, orient);
+      result = await generateMotionControl(imageUrl, videoUrl, orient, model);
     } else {
-      result = await generateMotion(imageUrl, prompt, dur);
+      result = await generateMotion(imageUrl, prompt, dur, model, mode);
     }
     await saveGeneration(req.userId!, 'motion', prompt || null, result.videoUrl, cost).catch(console.error);
     res.json({ ...result, creditsLeft, cost });
@@ -110,7 +126,7 @@ videoRouter.post('/tts', async (req: Request, res: Response) => {
 
 // POST /video/avatar — изображение + текст → TTS → говорящий аватар
 videoRouter.post('/avatar', async (req: Request, res: Response) => {
-  const { imageUrl, text, voiceId, voiceSpeed } = req.body;
+  const { imageUrl, text, voiceId, voiceSpeed, emotion, avatarPrompt } = req.body;
   if (!imageUrl) { res.status(400).json({ error: 'imageUrl обязателен' }); return; }
   if (!text?.trim()) { res.status(400).json({ error: 'Текст обязателен' }); return; }
 
@@ -122,8 +138,11 @@ videoRouter.post('/avatar', async (req: Request, res: Response) => {
     const ttsResult = await generateTTS(text.trim(), voiceId || 'oversea_male1', voiceSpeed ?? 1.0);
     if (!ttsResult.audioUrl) throw new Error('TTS не вернул аудио');
 
-    // Шаг 2: Аватар — фото + аудио → видео
-    const result = await generateAvatar(imageUrl, ttsResult.audioUrl);
+    // Шаг 2: Собрать prompt из emotion + avatarPrompt
+    const prompt = [avatarPrompt, emotion && emotion !== 'neutral' ? `Expression: ${emotion}` : ''].filter(Boolean).join('. ') || undefined;
+
+    // Шаг 3: Аватар — фото + аудио → видео
+    const result = await generateAvatar(imageUrl, ttsResult.audioUrl, prompt);
     await saveGeneration(req.userId!, 'avatar', text.trim(), result.videoUrl, AVATAR_COST).catch(console.error);
     res.json({ ...result, creditsLeft, cost: AVATAR_COST });
   } catch (e: any) {

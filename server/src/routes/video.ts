@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth';
 import { generateVideo, generateMotion, generateAvatar, generateTTS } from '../services/kling';
-import { deduct, TxType } from '../services/balance';
+import { deduct, addCredits, TxType } from '../services/balance';
 import { saveGeneration } from '../services/generations';
 
 export const videoRouter = Router();
@@ -49,6 +49,8 @@ videoRouter.post('/generate', async (req: Request, res: Response) => {
     await saveGeneration(req.userId!, 'video', prompt, result.videoUrl, cost).catch(console.error);
     res.json({ ...result, creditsLeft, cost });
   } catch (e: any) {
+    await addCredits(req.userId!, cost, 'video', `Рефанд: ошибка генерации`).catch(console.error);
+    console.error('[video] error + refund:', e?.message);
     res.status(500).json({ error: e.message ?? 'Ошибка генерации' });
   }
 });
@@ -69,7 +71,8 @@ videoRouter.post('/motion', async (req: Request, res: Response) => {
     await saveGeneration(req.userId!, 'motion', prompt || null, result.videoUrl, cost).catch(console.error);
     res.json({ ...result, creditsLeft, cost });
   } catch (e: any) {
-    console.error('[motion] error:', e?.message, e?.body || '');
+    await addCredits(req.userId!, cost, 'motion', `Рефанд: ошибка motion`).catch(console.error);
+    console.error('[motion] error + refund:', e?.message, e?.body || '');
     res.status(500).json({ error: e.message ?? 'Ошибка генерации' });
   }
 });
@@ -112,6 +115,8 @@ videoRouter.post('/avatar', async (req: Request, res: Response) => {
     await saveGeneration(req.userId!, 'avatar', null, result.videoUrl, AVATAR_COST).catch(console.error);
     res.json({ ...result, creditsLeft, cost: AVATAR_COST });
   } catch (e: any) {
+    await addCredits(req.userId!, AVATAR_COST, 'avatar', `Рефанд: ошибка avatar`).catch(console.error);
+    console.error('[avatar] error + refund:', e?.message);
     res.status(500).json({ error: e.message ?? 'Ошибка генерации' });
   }
 });

@@ -75,16 +75,16 @@ export const api = {
     }),
 
   // ── Генерация видео ──────────────────
-  generateVideo: (prompt: string) =>
+  generateVideo: (prompt: string, model?: string, duration?: number) =>
     request<{ videoUrl: string; creditsLeft: number; cost: number }>('/video/generate', {
       method: 'POST',
-      body: JSON.stringify({ prompt }),
+      body: JSON.stringify({ prompt, model, duration }),
     }),
 
-  generateMotion: (imageUrl: string, prompt?: string) =>
+  generateMotion: (imageUrl: string, prompt?: string, duration?: number) =>
     request<{ videoUrl: string; creditsLeft: number; cost: number }>('/video/motion', {
       method: 'POST',
-      body: JSON.stringify({ imageUrl, prompt }),
+      body: JSON.stringify({ imageUrl, prompt, duration }),
     }),
 
   generateAvatar: (imageUrl: string, audioUrl: string) =>

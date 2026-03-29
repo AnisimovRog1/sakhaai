@@ -90,11 +90,13 @@ const EMOTION_KEYS: { id: Emotion; key: 'video.emotion.neutral' | 'video.emotion
   { id: 'surprised', key: 'video.emotion.surprised' },
 ];
 
-const COSTS: Record<Tab, number> = {
-  video: 608,
-  motion: 608,
-  avatar: 810,
-};
+// Динамическая цена: fal.ai $0.084/сек × 2 (маржа) × 1000 (кредиты)
+function calcVideoCost(tab: Tab, durationStr: VideoLength): number {
+  const dur = parseInt(durationStr);
+  if (tab === 'video' || tab === 'motion') return Math.ceil(dur * 0.084 * 2 * 1000);
+  if (tab === 'avatar') return 1150;
+  return 0;
+}
 
 // ─── Icon components ───────────────────────────────────────
 function IconVideo({ size = 16 }: { size?: number }) {
@@ -252,7 +254,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
     api.getGenerations('video', 20).then(setHistory).catch(console.error).finally(() => setHistoryLoading(false));
   }
 
-  const cost = COSTS[tab] * videoCount;
+  const cost = calcVideoCost(tab, videoLength) * videoCount;
   const hasCredits = user.credits >= cost;
 
   const canGenerate = !loading && hasCredits && (
@@ -277,9 +279,9 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
     try {
       let result: { videoUrl: string; creditsLeft: number };
       if (tab === 'video') {
-        result = await api.generateVideo(prompt.trim());
+        result = await api.generateVideo(prompt.trim(), videoModel, parseInt(videoLength));
       } else if (tab === 'motion') {
-        result = await api.generateMotion(motionImage || motionVideo || '', prompt.trim() || undefined);
+        result = await api.generateMotion(motionImage || motionVideo || '', prompt.trim() || undefined, parseInt(videoLength));
       } else {
         result = await api.generateAvatar(avatarImage || '', speechText.trim());
       }

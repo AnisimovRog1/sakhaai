@@ -7,19 +7,27 @@ import { saveGeneration } from '../services/generations';
 export const videoRouter = Router();
 videoRouter.use(requireAuth);
 
-const COSTS: Record<string, { credits: number; type: TxType; label: string }> = {
-  video:  { credits: 608, type: 'video',  label: 'Видео' },
-  motion: { credits: 608, type: 'motion', label: 'Motion видео' },
-  avatar: { credits: 810, type: 'avatar', label: 'Avatar видео' },
+// Динамическая цена: fal.ai $0.084/сек × 2 (маржа x2) × 1000 (кредиты/$)
+function calcVideoCost(duration: number): number {
+  return Math.ceil(duration * 0.084 * 2 * 1000);
+}
+
+const AVATAR_COST = 1150;
+
+const TX_META: Record<string, { type: TxType; label: string }> = {
+  video:  { type: 'video',  label: 'Видео' },
+  motion: { type: 'motion', label: 'Motion видео' },
+  avatar: { type: 'avatar', label: 'Avatar видео' },
 };
 
 async function charge(
   req: Parameters<Parameters<typeof videoRouter.post>[1]>[0],
   res: Parameters<Parameters<typeof videoRouter.post>[1]>[1],
-  kind: keyof typeof COSTS
+  kind: keyof typeof TX_META,
+  credits: number
 ): Promise<number | null> {
-  const { credits, type, label } = COSTS[kind];
-  return deduct(req.userId!, credits, type, label).catch((err: Error & { status?: number }) => {
+  const { type, label } = TX_META[kind];
+  return deduct(req.userId!, credits, type, `${label} (${credits} кр.)`).catch((err: Error & { status?: number }) => {
     res.status(err.status ?? 500).json({ error: err.message });
     return null;
   });
@@ -27,16 +35,19 @@ async function charge(
 
 // POST /video/generate — текст → видео
 videoRouter.post('/generate', async (req: Request, res: Response) => {
-  const { prompt } = req.body;
+  const { prompt, model, duration } = req.body;
   if (!prompt?.trim()) { res.status(400).json({ error: 'Промпт обязателен' }); return; }
 
-  const creditsLeft = await charge(req, res, 'video');
+  const dur = [5, 10].includes(Number(duration)) ? Number(duration) : 5;
+  const cost = calcVideoCost(dur);
+
+  const creditsLeft = await charge(req, res, 'video', cost);
   if (creditsLeft === null) return;
 
   try {
-    const result = await generateVideo(prompt);
-    await saveGeneration(req.userId!, 'video', prompt, result.videoUrl, COSTS.video.credits).catch(console.error);
-    res.json({ ...result, creditsLeft, cost: COSTS.video.credits });
+    const result = await generateVideo(prompt, dur, model);
+    await saveGeneration(req.userId!, 'video', prompt, result.videoUrl, cost).catch(console.error);
+    res.json({ ...result, creditsLeft, cost });
   } catch (e: any) {
     res.status(500).json({ error: e.message ?? 'Ошибка генерации' });
   }
@@ -44,16 +55,19 @@ videoRouter.post('/generate', async (req: Request, res: Response) => {
 
 // POST /video/motion — картинка → видео
 videoRouter.post('/motion', async (req: Request, res: Response) => {
-  const { imageUrl, prompt } = req.body;
+  const { imageUrl, prompt, duration } = req.body;
   if (!imageUrl) { res.status(400).json({ error: 'imageUrl обязателен' }); return; }
 
-  const creditsLeft = await charge(req, res, 'motion');
+  const dur = [5, 10].includes(Number(duration)) ? Number(duration) : 5;
+  const cost = calcVideoCost(dur);
+
+  const creditsLeft = await charge(req, res, 'motion', cost);
   if (creditsLeft === null) return;
 
   try {
-    const result = await generateMotion(imageUrl, prompt);
-    await saveGeneration(req.userId!, 'motion', prompt || null, result.videoUrl, COSTS.motion.credits).catch(console.error);
-    res.json({ ...result, creditsLeft, cost: COSTS.motion.credits });
+    const result = await generateMotion(imageUrl, prompt, dur);
+    await saveGeneration(req.userId!, 'motion', prompt || null, result.videoUrl, cost).catch(console.error);
+    res.json({ ...result, creditsLeft, cost });
   } catch (e: any) {
     res.status(500).json({ error: e.message ?? 'Ошибка генерации' });
   }
@@ -89,13 +103,13 @@ videoRouter.post('/avatar', async (req: Request, res: Response) => {
   const audio = audioUrl || text;
   if (!imageUrl || !audio) { res.status(400).json({ error: 'imageUrl и audioUrl обязательны' }); return; }
 
-  const creditsLeft = await charge(req, res, 'avatar');
+  const creditsLeft = await charge(req, res, 'avatar', AVATAR_COST);
   if (creditsLeft === null) return;
 
   try {
     const result = await generateAvatar(imageUrl, audio);
-    await saveGeneration(req.userId!, 'avatar', null, result.videoUrl, COSTS.avatar.credits).catch(console.error);
-    res.json({ ...result, creditsLeft, cost: COSTS.avatar.credits });
+    await saveGeneration(req.userId!, 'avatar', null, result.videoUrl, AVATAR_COST).catch(console.error);
+    res.json({ ...result, creditsLeft, cost: AVATAR_COST });
   } catch (e: any) {
     res.status(500).json({ error: e.message ?? 'Ошибка генерации' });
   }

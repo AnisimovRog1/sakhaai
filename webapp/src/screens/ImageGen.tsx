@@ -24,7 +24,7 @@ const MODELS: { id: Model; name: string; desc: string; badge?: string; badgeColo
 const ASPECT_RATIOS: AspectRatio[] = ['1:1', '16:9', '9:16', '21:9', '3:2', '2:3', '3:4', '4:3', '4:5', '5:4'];
 const RESOLUTIONS: Resolution[] = ['1K', '2K', '4K'];
 
-const BASE_COST = 60;
+const BASE_COST = 79;
 
 export function ImageGen({ user, onCreditsUpdate }: Props) {
   const { t } = useLang();

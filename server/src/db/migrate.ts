@@ -194,6 +194,16 @@ export async function migrate() {
       ALTER TABLE push_sent DROP CONSTRAINT IF EXISTS push_sent_user_id_sequence_id_key;
     EXCEPTION WHEN OTHERS THEN NULL;
     END $$;
+
+    -- Pending motion-control запросы (переживают рестарт сервера)
+    CREATE TABLE IF NOT EXISTS pending_motion (
+      request_id TEXT PRIMARY KEY,
+      user_id BIGINT NOT NULL,
+      cost INT NOT NULL,
+      endpoint TEXT NOT NULL,
+      prompt TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
   `);
 
   console.log('✅ Миграции применены');

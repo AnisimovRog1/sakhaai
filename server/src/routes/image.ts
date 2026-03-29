@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth';
 import { generateImage } from '../services/nanabanana';
-import { deduct } from '../services/balance';
+import { deduct, addCredits } from '../services/balance';
 import { saveGeneration } from '../services/generations';
 
 export const imageRouter = Router();
@@ -36,6 +36,8 @@ imageRouter.post('/generate', async (req: Request, res: Response) => {
 
     res.json({ imageUrl: result.imageUrl, creditsLeft, cost: IMAGE_COST });
   } catch (e: any) {
+    await addCredits(req.userId!, IMAGE_COST, 'image', `Рефанд: ошибка генерации`).catch(console.error);
+    console.error('[image] error + refund:', e?.message);
     res.status(500).json({ error: e.message ?? 'Ошибка генерации' });
   }
 });

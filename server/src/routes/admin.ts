@@ -527,6 +527,16 @@ adminRouter.get('/file-url/:fileId', async (req: Request, res: Response) => {
   } catch (err: any) { res.status(500).json({ error: err.message }); }
 });
 
+// ─── Список всех motion-control задач из Kling ───
+adminRouter.get('/kling-tasks', async (req: Request, res: Response) => {
+  try {
+    const result = await klingRequest('GET', '/v1/videos/motion-control?pageNum=1&pageSize=30');
+    res.json(result);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ─── Диагностика motion-control: 3 варианта параметров ───
 adminRouter.post('/test-motion', async (req: Request, res: Response) => {
   try {

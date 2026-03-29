@@ -107,6 +107,7 @@ export async function checkMotionStatusDirect(taskId: string): Promise<{
 
   const task = result.data;
   const status = task?.task_status as 'submitted' | 'processing' | 'succeed' | 'failed';
+  console.log(`[kling-direct] task ${taskId} status: ${status}`);
 
   if (status === 'succeed') {
     const videoUrl = task?.task_result?.videos?.[0]?.url;

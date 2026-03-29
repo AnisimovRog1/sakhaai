@@ -4,6 +4,7 @@ import { pool } from '../db/pool';
 import { addCredits, deduct } from '../services/balance';
 import { getAllSequences, getActiveSequences, getDeletedSequences, upsertSequence, deleteSequence, restoreSequence, toggleSequence, findPendingPushes, markPushSent } from '../services/push-sequences';
 import { seedPushSequences } from '../services/push-seed';
+import { klingRequest } from '../services/kling-direct';
 
 export const adminRouter = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -524,4 +525,63 @@ adminRouter.get('/file-url/:fileId', async (req: Request, res: Response) => {
       res.status(404).json({ error: 'File not found' });
     }
   } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+// ─── Диагностика motion-control: 3 варианта параметров ───
+adminRouter.post('/test-motion', async (req: Request, res: Response) => {
+  try {
+    const imageUrl = req.body.image_url || 'https://sakhaai-production.up.railway.app/tmp-upload/eb9a63ec-663b-40d1-bc13-529b1acc7e15.jpeg';
+    const videoUrl = req.body.video_url || 'https://cdn.higgsfield.ai/kling_motion_control_preset/d9d7ea02-fdcc-475a-a53e-d3353a8b866e.mp4';
+
+    const variants: { name: string; body: Record<string, any> }[] = [
+      {
+        name: 'A_minimal',
+        body: { image_url: imageUrl, video_url: videoUrl, character_orientation: 'video', mode: 'std' },
+      },
+      {
+        name: 'B_duration',
+        body: { image_url: imageUrl, video_url: videoUrl, character_orientation: 'video', mode: 'std', duration: '5' },
+      },
+      {
+        name: 'C_cfg_scale',
+        body: { image_url: imageUrl, video_url: videoUrl, character_orientation: 'video', mode: 'std', cfg_scale: 0.5 },
+      },
+    ];
+
+    const results: { name: string; taskId?: string; error?: string }[] = [];
+
+    for (const v of variants) {
+      try {
+        console.log(`[test-motion] === ${v.name} ===`);
+        const r = await klingRequest('POST', '/v1/videos/motion-control', v.body);
+        const taskId = r.data?.task_id;
+        console.log(`[test-motion] ${v.name} → task_id: ${taskId}`);
+        results.push({ name: v.name, taskId });
+      } catch (e: any) {
+        console.error(`[test-motion] ${v.name} → ERROR: ${e.message}`);
+        results.push({ name: v.name, error: e.message });
+      }
+    }
+
+    // Проверить статус через 2 и 5 минут
+    for (const delay of [2, 5]) {
+      setTimeout(async () => {
+        console.log(`[test-motion] === STATUS CHECK (${delay} min) ===`);
+        for (const r of results) {
+          if (!r.taskId) continue;
+          try {
+            const status = await klingRequest('GET', `/v1/videos/motion-control/${r.taskId}`);
+            const s = status.data?.task_status;
+            console.log(`[test-motion] ${r.name} → ${s}${s === 'succeed' ? ' VIDEO: ' + (status.data?.task_result?.videos?.[0]?.url?.substring(0, 100) || 'no url') : ''}`);
+          } catch (e: any) {
+            console.error(`[test-motion] ${r.name} check error: ${e.message}`);
+          }
+        }
+      }, delay * 60 * 1000);
+    }
+
+    res.json({ ok: true, results, note: 'Статус через 2 и 5 мин в логах' });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
 });

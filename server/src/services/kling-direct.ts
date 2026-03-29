@@ -66,7 +66,7 @@ function getToken(): string {
 }
 
 // ─── HTTP запросы к Kling API ──────────────────────────────
-async function klingRequest(method: 'GET' | 'POST', path: string, body?: any): Promise<any> {
+export async function klingRequest(method: 'GET' | 'POST', path: string, body?: any): Promise<any> {
   const url = `${BASE_URL}${path}`;
   const headers: Record<string, string> = {
     'Authorization': `Bearer ${getToken()}`,

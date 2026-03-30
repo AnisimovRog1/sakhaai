@@ -5,7 +5,7 @@ import { fal } from '@fal-ai/client';
 
 fal.config({ credentials: process.env.FAL_KEY! });
 
-const FAL_TIMEOUT = 840_000; // 14 мин
+const FAL_TIMEOUT = 1_800_000; // 30 мин
 
 // Конвертация data: URL → fal.ai hosted URL
 async function ensureHttpUrl(url: string): Promise<string> {

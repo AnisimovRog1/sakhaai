@@ -118,7 +118,10 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
         setInfo(`${result.generated} из ${result.requested} изображений готовы. Кредиты за ${result.refunded} неудачных возвращены на баланс.`);
       }
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Ошибка генерации');
+      const msg = e instanceof Error ? e.message : 'Ошибка генерации';
+      setError(`${msg}. Кредиты возвращены. Попробуйте снова.`);
+      // Обновить баланс после рефанда
+      api.getBalance().then(b => onCreditsUpdate(b.credits)).catch(() => {});
     } finally {
       setLoading(false);
     }

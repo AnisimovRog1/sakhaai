@@ -11,10 +11,10 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
 // Маппинг UI моделей → Gemini модели
 const MODEL_MAP: Record<string, string> = {
-  'nano-banana-pro': 'gemini-3.1-flash-image-preview',
-  'nano-banana-2':   'gemini-2.5-flash-image',
+  'nano-banana-pro': 'gemini-3-pro-image-preview',     // Самая мощная PRO модель
+  'nano-banana-2':   'gemini-3.1-flash-image-preview',  // Новая быстрая Flash
 };
-const DEFAULT_MODEL = 'gemini-2.5-flash-image';
+const DEFAULT_MODEL = 'gemini-3.1-flash-image-preview';
 
 function resolveModel(model?: string): string {
   return (model && MODEL_MAP[model]) || DEFAULT_MODEL;

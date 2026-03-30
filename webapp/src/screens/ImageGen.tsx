@@ -18,8 +18,8 @@ type AspectRatio = '1:1' | '16:9' | '9:16' | '21:9' | '3:2' | '2:3' | '3:4' | '4
 type Resolution = '1K' | '2K' | '4K';
 
 const MODELS: { id: Model; name: string; desc: string; badge?: string; badgeColor?: string }[] = [
-  { id: 'nano-banana-pro', name: 'Nano Banana Pro', desc: 'Улучшенный рендеринг, точное следование промптам и генерация в 4K', badge: 'Популярно', badgeColor: 'bg-green-500' },
-  { id: 'nano-banana-2', name: 'Nano Banana 2', desc: 'Модель нового поколения: быстрее, выше качество и поддержка 4K', badge: 'Новинка', badgeColor: 'bg-cyan-500' },
+  { id: 'nano-banana-pro', name: 'Nano Banana Pro', desc: 'Максимальное качество, face swap, сложные промпты', badge: 'PRO', badgeColor: 'bg-violet-500' },
+  { id: 'nano-banana-2', name: 'Nano Banana 2', desc: 'Быстрая генерация, высокое качество', badge: 'Новинка', badgeColor: 'bg-cyan-500' },
 ];
 
 const ASPECT_RATIOS: { id: AspectRatio; label: string; desc: string }[] = [

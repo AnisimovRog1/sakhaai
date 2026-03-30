@@ -4,8 +4,7 @@ import {
   submitTextToVideo,
   submitImageToVideo,
   submitMotionControlDirect,
-  submitTTS,
-  submitLipSync,
+  submitAvatar,
   checkTaskStatus,
   checkMotionStatusDirect,
 } from '../services/kling-direct';
@@ -169,35 +168,9 @@ videoRouter.get('/task-status/:taskId', async (req: Request, res: Response) => {
       'SELECT * FROM pending_tasks WHERE task_id = $1',
       [taskId]
     );
-    let task = rows[0];
+    const task = rows[0];
     if (!task) { res.status(404).json({ error: 'Задача не найдена' }); return; }
     if (String(task.user_id) !== String(req.userId)) { res.status(403).json({ error: 'Нет доступа' }); return; }
-
-    // Avatar chain: TTS задача succeed → проверить дочернюю lip-sync задачу
-    const metadata = task.metadata || {};
-    if (metadata.chain === 'avatar' && task.type === 'tts' && task.status === 'succeed') {
-      // Найти lip-sync задачу (дочерняя, parentTaskId = этот task_id)
-      const { rows: childRows } = await pool.query(
-        `SELECT * FROM pending_tasks WHERE user_id = $1 AND type = 'avatar'
-         AND metadata->>'parentTaskId' = $2 ORDER BY created_at DESC LIMIT 1`,
-        [req.userId!, task.task_id]
-      );
-      if (childRows.length > 0) {
-        task = childRows[0]; // подменяем на lip-sync задачу
-      } else {
-        // lip-sync ещё не создана — показываем processing
-        res.json({
-          taskId: task.task_id,
-          type: 'avatar',
-          status: 'processing',
-          resultUrl: null,
-          errorMsg: null,
-          cost: task.cost,
-          createdAt: task.created_at,
-        });
-        return;
-      }
-    }
 
     res.json({
       taskId: task.task_id,
@@ -286,54 +259,17 @@ videoRouter.get('/motion-status/:requestId', async (req: Request, res: Response)
   }
 });
 
-// ─── POST /video/tts-preview — превью голоса (бесплатно, синхронный) ──
-videoRouter.post('/tts-preview', async (req: Request, res: Response) => {
-  const { text, voiceId, voiceSpeed } = req.body;
-  if (!text?.trim()) { res.status(400).json({ error: 'Текст обязателен' }); return; }
-  try {
-    const { klingTaskId } = await submitTTS({ text: text.trim(), voiceId, voiceSpeed });
-    // Быстрый inline poll (TTS обычно <10 сек)
-    for (let i = 0; i < 15; i++) {
-      await new Promise(r => setTimeout(r, 2000));
-      const status = await checkTaskStatus('/v1/audios/tts', klingTaskId);
-      if (status.status === 'succeed' && status.resultUrl) {
-        res.json({ audioUrl: status.resultUrl });
-        return;
-      }
-      if (status.status === 'failed') {
-        throw new Error(status.errorMsg || 'Ошибка TTS');
-      }
-    }
-    throw new Error('TTS таймаут');
-  } catch (e: any) {
-    res.status(500).json({ error: e.message ?? 'Ошибка TTS' });
-  }
+// ─── POST /video/tts-preview — превью голоса (недоступно — Kling Direct не имеет TTS) ──
+videoRouter.post('/tts-preview', async (_req: Request, res: Response) => {
+  res.status(501).json({ error: 'Превью голоса временно недоступно. Голос можно выбрать при генерации аватара.' });
 });
 
-// ─── POST /video/tts — генерация аудио (синхронный, для standalone) ──
-videoRouter.post('/tts', async (req: Request, res: Response) => {
-  const { text, voiceId, voiceSpeed } = req.body;
-  if (!text?.trim()) { res.status(400).json({ error: 'Текст обязателен' }); return; }
-  try {
-    const { klingTaskId } = await submitTTS({ text: text.trim(), voiceId, voiceSpeed });
-    for (let i = 0; i < 15; i++) {
-      await new Promise(r => setTimeout(r, 2000));
-      const status = await checkTaskStatus('/v1/audios/tts', klingTaskId);
-      if (status.status === 'succeed' && status.resultUrl) {
-        res.json({ audioUrl: status.resultUrl });
-        return;
-      }
-      if (status.status === 'failed') {
-        throw new Error(status.errorMsg || 'Ошибка TTS');
-      }
-    }
-    throw new Error('TTS таймаут');
-  } catch (e: any) {
-    res.status(500).json({ error: e.message ?? 'Ошибка TTS' });
-  }
+// ─── POST /video/tts — TTS (недоступно) ──
+videoRouter.post('/tts', async (_req: Request, res: Response) => {
+  res.status(501).json({ error: 'TTS временно недоступен. Используйте генерацию аватара.' });
 });
 
-// ─── POST /video/avatar — TTS → lip-sync цепочка (async) ──
+// ─── POST /video/avatar — lip-sync text2video (один запрос, без TTS chain) ──
 videoRouter.post('/avatar', async (req: Request, res: Response) => {
   const { imageUrl, text, voiceId, voiceSpeed, emotion, avatarPrompt } = req.body;
   if (!imageUrl) { res.status(400).json({ error: 'imageUrl обязателен' }); return; }
@@ -343,28 +279,22 @@ videoRouter.post('/avatar', async (req: Request, res: Response) => {
   if (creditsLeft === null) return;
 
   try {
-    // Шаг 1: Submit TTS (worker подхватит результат и запустит lip-sync)
-    const { klingTaskId } = await submitTTS({
+    const prompt = [avatarPrompt, emotion && emotion !== 'neutral' ? `Expression: ${emotion}` : ''].filter(Boolean).join('. ') || undefined;
+
+    const { klingTaskId } = await submitAvatar({
+      imageUrl,
       text: text.trim(),
       voiceId: voiceId || 'oversea_male1',
       voiceSpeed: voiceSpeed ?? 1.0,
+      prompt,
     });
-
-    const prompt = [avatarPrompt, emotion && emotion !== 'neutral' ? `Expression: ${emotion}` : ''].filter(Boolean).join('. ') || undefined;
 
     const taskId = crypto.randomUUID();
     await pool.query(
       `INSERT INTO pending_tasks (task_id, kling_task_id, user_id, type, kling_endpoint, cost, prompt, metadata)
-       VALUES ($1, $2, $3, 'tts', '/v1/audios/tts', $4, $5, $6)`,
+       VALUES ($1, $2, $3, 'avatar', '/v1/videos/lip-sync', $4, $5, $6)`,
       [taskId, klingTaskId, req.userId!, AVATAR_COST, text.trim(),
-       JSON.stringify({
-         chain: 'avatar',
-         imageUrl,
-         avatarPrompt: prompt,
-         voiceId,
-         voiceSpeed: voiceSpeed ?? 1.0,
-         emotion,
-       })]
+       JSON.stringify({ model: 'lip-sync-text2video', voiceId, voiceSpeed: voiceSpeed ?? 1.0, emotion })]
     );
 
     res.json({ taskId, async: true, creditsLeft, cost: AVATAR_COST });

@@ -197,37 +197,25 @@ export async function submitMotionControlDirect(
   return { taskId: extractTaskId(result) };
 }
 
-// ─── TTS (Text-to-Speech) ──────────────────────────────────
-export async function submitTTS(params: {
+// ─── Lip Sync / Avatar (text2video mode) ───────────────────
+// Kling Direct API не имеет отдельного TTS.
+// lip-sync в режиме text2video сам генерирует речь + видео аватара.
+export async function submitAvatar(params: {
+  imageUrl: string;
   text: string;
   voiceId?: string;
   voiceSpeed?: number;
-}): Promise<{ klingTaskId: string }> {
-  console.log('[kling-direct] submitting TTS, voice:', params.voiceId, 'speed:', params.voiceSpeed);
-
-  const body = {
-    text: params.text,
-    voice_id: params.voiceId || 'oversea_male1',
-    voice_speed: params.voiceSpeed ?? 1.0,
-  };
-
-  const result = await klingRequest('POST', '/v1/audios/tts', body);
-  return { klingTaskId: extractTaskId(result) };
-}
-
-// ─── Lip Sync (Avatar) ────────────────────────────────────
-export async function submitLipSync(params: {
-  imageUrl: string;
-  audioUrl: string;
   prompt?: string;
 }): Promise<{ klingTaskId: string }> {
-  console.log('[kling-direct] submitting lip-sync');
+  console.log('[kling-direct] submitting avatar (lip-sync text2video), voice:', params.voiceId);
 
   const httpImageUrl = dataUrlToHttpUrl(params.imageUrl);
   const body: Record<string, any> = {
-    image_url: httpImageUrl,
-    audio_url: params.audioUrl,
-    audio_type: 'tts',
+    input_face: httpImageUrl,
+    mode: 'text2video',
+    text: params.text,
+    voice_id: params.voiceId || 'oversea_male1',
+    voice_speed: params.voiceSpeed ?? 1.0,
   };
   if (params.prompt?.trim()) body.prompt = params.prompt.trim();
 
@@ -241,7 +229,6 @@ const ALLOWED_ENDPOINTS = new Set([
   '/v1/videos/image2video',
   '/v1/videos/motion-control',
   '/v1/videos/lip-sync',
-  '/v1/audios/tts',
 ]);
 
 // ─── Универсальная проверка статуса ────────────────────────

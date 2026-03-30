@@ -499,7 +499,20 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
                     alt={item.prompt || 'Генерация'}
                     className="w-full aspect-square object-cover rounded-xl border border-white/[0.10]"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent rounded-xl opacity-0 group-active:opacity-100 transition-opacity flex flex-col justify-end p-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      api.deleteGeneration(item.id).then(() => {
+                        setHistory(prev => prev.filter(h => h.id !== item.id));
+                      }).catch(console.error);
+                    }}
+                    className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 border border-white/20 flex items-center justify-center"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </button>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent rounded-xl opacity-0 group-active:opacity-100 transition-opacity flex flex-col justify-end p-2 pointer-events-none">
                     <p className="text-white text-[10px] font-medium line-clamp-2">{item.prompt}</p>
                     <p className="text-slate-300 text-[9px] mt-0.5">{new Date(item.createdAt).toLocaleDateString('ru')}</p>
                   </div>

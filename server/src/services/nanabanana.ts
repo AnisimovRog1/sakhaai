@@ -48,8 +48,17 @@ export async function generateImage(prompt: string, model?: string, aspectRatio?
     },
   });
 
-  const parts = response.candidates?.[0]?.content?.parts;
-  if (!parts) throw new Error('Gemini не вернул изображение');
+  const candidate = response.candidates?.[0];
+  const parts = candidate?.content?.parts;
+
+  if (!parts || !parts.some((p: any) => p.inlineData?.data)) {
+    const finishReason = candidate?.finishReason;
+    const textParts = parts?.filter((p: any) => p.text).map((p: any) => p.text).join(' ');
+    console.error('[generateImage] Gemini отказ:', finishReason, textParts?.substring(0, 200));
+    throw new Error(textParts
+      ? `Gemini: ${textParts.substring(0, 100)}`
+      : 'Gemini не вернул изображение. Попробуйте другой промпт.');
+  }
 
   for (const part of parts) {
     if (part.inlineData?.data) {
@@ -59,7 +68,7 @@ export async function generateImage(prompt: string, model?: string, aspectRatio?
     }
   }
 
-  throw new Error('Gemini не вернул изображение');
+  throw new Error('Gemini не вернул изображение. Попробуйте другой промпт.');
 }
 
 // Редактирование изображения (img2img): отправляем картинки-референсы + промпт
@@ -93,8 +102,18 @@ export async function editImage(
     },
   });
 
-  const parts = response.candidates?.[0]?.content?.parts;
-  if (!parts) throw new Error('Gemini не вернул изображение');
+  const candidate = response.candidates?.[0];
+  const parts = candidate?.content?.parts;
+
+  // Логируем отказ если нет картинки
+  if (!parts || !parts.some((p: any) => p.inlineData?.data)) {
+    const finishReason = candidate?.finishReason;
+    const textParts = parts?.filter((p: any) => p.text).map((p: any) => p.text).join(' ');
+    console.error('[editImage] Gemini отказ:', finishReason, textParts?.substring(0, 200));
+    throw new Error(textParts
+      ? `Gemini: ${textParts.substring(0, 100)}`
+      : 'Gemini не вернул изображение. Попробуйте другой промпт.');
+  }
 
   for (const part of parts) {
     if (part.inlineData?.data) {
@@ -104,5 +123,5 @@ export async function editImage(
     }
   }
 
-  throw new Error('Gemini не вернул изображение');
+  throw new Error('Gemini не вернул изображение. Попробуйте другой промпт.');
 }

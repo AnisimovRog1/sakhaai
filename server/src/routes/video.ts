@@ -135,14 +135,6 @@ videoRouter.post('/motion', async (req: Request, res: Response) => {
        JSON.stringify({ model, mode, duration: dur })]
     );
 
-    // Также пишем в pending_motion для backward compat (motion-control)
-    if (isMotionControl) {
-      await pool.query(
-        `INSERT INTO pending_motion (request_id, user_id, cost, endpoint, prompt) VALUES ($1, $2, $3, $4, $5)`,
-        [klingTaskId, req.userId!, cost, 'kling-direct', prompt || null]
-      ).catch(() => {}); // ignore if duplicate
-    }
-
     res.json({ taskId, requestId: klingTaskId, async: true, creditsLeft, cost });
   } catch (e: any) {
     await addCredits(req.userId!, cost, 'motion', `Рефанд: ошибка motion`).catch(console.error);

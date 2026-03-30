@@ -235,7 +235,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
   const [videoMode, setVideoMode] = useState<VideoMode>('1080p');
   const [videoLength, setVideoLength] = useState<VideoLength>('10s');
   const [videoRatio, setVideoRatio] = useState<VideoRatio>('9:16');
-  const [videoCount, setVideoCount] = useState(1);
+  // videoCount убран — Kling API не поддерживает batch генерацию
   const [nativeAudio, setNativeAudio] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
@@ -273,7 +273,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
   }
 
   const isMotionControl = tab === 'motion' && motionVideo !== null && motionImage !== null;
-  const cost = calcVideoCost(tab, videoLength, videoModel, videoMode, nativeAudio, isMotionControl) * videoCount;
+  const cost = calcVideoCost(tab, videoLength, videoModel, videoMode, nativeAudio, isMotionControl);
   const hasCredits = user.credits >= cost;
 
   const canGenerate = !loading && hasCredits && (
@@ -638,7 +638,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2m-9-11h2m18 0h2m-4.2-5.8l-1.4 1.4M6.6 17.4l-1.4 1.4m0-12.8l1.4 1.4m10.8 10.8l1.4 1.4"/>
             </svg>
-            {videoMode} · {videoLength} · {videoRatio} · {videoCount}
+            {videoMode} · {videoLength} · {videoRatio}
             <IconChevron open={showSettings} />
           </button>
 
@@ -684,15 +684,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
                 />
               </div>
 
-              {/* Count */}
-              <div className="space-y-2">
-                <label className="text-white text-xs font-semibold">Количество</label>
-                <PillSelector
-                  options={[1, 2, 3, 4].map((n) => ({ id: String(n) as any, label: String(n) }))}
-                  value={String(videoCount) as any}
-                  onChange={(v) => setVideoCount(Number(v))}
-                />
-              </div>
+              {/* Count — пока 1, batch не поддерживается Kling API */}
             </div>
           )}
 

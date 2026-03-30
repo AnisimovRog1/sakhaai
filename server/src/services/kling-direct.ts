@@ -198,8 +198,8 @@ export async function submitMotionControlDirect(
 }
 
 // ─── Lip Sync / Avatar (text2video mode) ───────────────────
-// Kling Direct API не имеет отдельного TTS.
-// lip-sync в режиме text2video сам генерирует речь + видео аватара.
+// Kling Direct API lip-sync: передаём video_url (фото/видео с лицом) + текст + голос.
+// API сам генерирует речь и анимирует лицо.
 export async function submitAvatar(params: {
   imageUrl: string;
   text: string;
@@ -211,13 +211,15 @@ export async function submitAvatar(params: {
 
   const httpImageUrl = dataUrlToHttpUrl(params.imageUrl);
   const body: Record<string, any> = {
-    input_face: httpImageUrl,
     mode: 'text2video',
-    text: params.text,
-    voice_id: params.voiceId || 'oversea_male1',
-    voice_speed: params.voiceSpeed ?? 1.0,
+    input: {
+      video_url: httpImageUrl,
+      text: params.text.substring(0, 120), // макс 120 символов
+      voice_id: params.voiceId || 'oversea_male1',
+      voice_speed: params.voiceSpeed ?? 1.0,
+      voice_language: 'en',
+    },
   };
-  if (params.prompt?.trim()) body.prompt = params.prompt.trim();
 
   const result = await klingRequest('POST', '/v1/videos/lip-sync', body);
   return { klingTaskId: extractTaskId(result) };

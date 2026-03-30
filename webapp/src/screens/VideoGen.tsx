@@ -165,11 +165,11 @@ function UploadCard({ label, preview, onSelect, onRemove, accept = 'image/*' }: 
   return (
     <div className="flex-1">
       {preview ? (
-        <div className="relative">
+        <div className="relative inline-block">
           {accept.startsWith('video') ? (
-            <video src={preview} className="w-full h-32 object-cover rounded-xl border border-white/[0.10]" muted playsInline />
+            <video src={preview} className="max-w-[160px] max-h-[120px] object-contain rounded-xl border border-white/[0.10]" muted playsInline />
           ) : (
-            <img src={preview} alt="" className="w-full h-32 object-cover rounded-xl border border-white/[0.10]" />
+            <img src={preview} alt="" className="max-w-[160px] max-h-[120px] object-contain rounded-xl border border-white/[0.10]" />
           )}
           <button onClick={onRemove} className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 flex items-center justify-center shadow-lg">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round">
@@ -180,7 +180,7 @@ function UploadCard({ label, preview, onSelect, onRemove, accept = 'image/*' }: 
       ) : (
         <button
           onClick={() => ref.current?.click()}
-          className="w-full h-32 rounded-xl border border-dashed border-white/[0.15] bg-white/[0.03] flex flex-col items-center justify-center gap-2 text-slate-200 active:bg-white/[0.06] transition-colors"
+          className="w-32 h-24 rounded-xl border border-dashed border-white/[0.15] bg-white/[0.03] flex flex-col items-center justify-center gap-2 text-slate-200 active:bg-white/[0.06] transition-colors"
         >
           <IconUpload />
           <span className="text-xs font-medium text-center px-2 leading-tight">{label}</span>

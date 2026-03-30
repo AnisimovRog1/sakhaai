@@ -70,21 +70,39 @@ videoRouter.post('/generate', async (req: Request, res: Response) => {
   if (creditsLeft === null) return;
 
   try {
-    const { klingTaskId } = await submitTextToVideo({
-      prompt: prompt.trim(),
-      duration: dur,
-      model,
-      mode,
-      aspectRatio,
-      generateAudio: !!generateAudio,
-      startImageUrl,
-    });
+    let klingTaskId: string;
+    let klingEndpoint: string;
+
+    if (startImageUrl) {
+      // Начальный кадр → image-to-video (Kling использует image как первый кадр)
+      const result = await submitImageToVideo({
+        imageUrl: startImageUrl,
+        prompt: prompt.trim(),
+        duration: dur,
+        model,
+        mode,
+      });
+      klingTaskId = result.klingTaskId;
+      klingEndpoint = '/v1/videos/image2video';
+    } else {
+      // Только текст → text-to-video
+      const result = await submitTextToVideo({
+        prompt: prompt.trim(),
+        duration: dur,
+        model,
+        mode,
+        aspectRatio,
+        generateAudio: !!generateAudio,
+      });
+      klingTaskId = result.klingTaskId;
+      klingEndpoint = '/v1/videos/text2video';
+    }
 
     const taskId = crypto.randomUUID();
     await pool.query(
       `INSERT INTO pending_tasks (task_id, kling_task_id, user_id, type, kling_endpoint, cost, prompt, metadata)
-       VALUES ($1, $2, $3, 'video', '/v1/videos/text2video', $4, $5, $6)`,
-      [taskId, klingTaskId, req.userId!, cost, prompt.trim(),
+       VALUES ($1, $2, $3, 'video', $4, $5, $6, $7)`,
+      [taskId, klingTaskId, req.userId!, klingEndpoint, cost, prompt.trim(),
        JSON.stringify({ model, mode, duration: dur, aspectRatio, generateAudio: !!generateAudio })]
     );
 

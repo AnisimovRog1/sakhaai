@@ -94,7 +94,12 @@ export function App() {
       const isTelegram = !!(window.Telegram?.WebApp?.platform) ||
                          window.location.hash.includes('tgWebAppData');
       if (!isTelegram) {
-        window.location.href = '/landing';
+        // Показать лендинг прямо здесь (без redirect)
+        fetch('/landing').then(r => r.text()).then(html => {
+          document.open();
+          document.write(html);
+          document.close();
+        });
         return;
       }
       setError('Открой приложение через Telegram-бота @UraanxAI_bot');

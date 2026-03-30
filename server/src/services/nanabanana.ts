@@ -22,7 +22,7 @@ function resolveModel(model?: string): string {
 
 // Перевод промпта на английский через Gemini (текстовая модель)
 // Если промпт уже на английском — возвращает как есть
-async function translateToEnglish(prompt: string): Promise<string> {
+export async function translateToEnglish(prompt: string): Promise<string> {
   // Быстрая проверка — если >80% ASCII символов, скорее всего уже EN
   const asciiRatio = prompt.replace(/[^\x00-\x7F]/g, '').length / prompt.length;
   if (asciiRatio > 0.8) return prompt;

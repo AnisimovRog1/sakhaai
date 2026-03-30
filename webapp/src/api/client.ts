@@ -18,7 +18,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 120_000); // 2 мин
+  const timeoutId = setTimeout(() => controller.abort(), 300_000); // 5 мин (4 фото = ~2-3 мин)
 
   try {
     const res = await fetch(`${API_URL}${path}`, {

@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth';
-import { generateImage, editImage } from '../services/nanabanana';
+import { generateImage, editImage, translateToEnglish } from '../services/nanabanana';
 import { deduct, addCredits } from '../services/balance';
 import { saveGeneration } from '../services/generations';
 
@@ -57,16 +57,18 @@ imageRouter.post('/generate', async (req: Request, res: Response) => {
       });
     }
 
+    // Переводим промпт ОДИН раз (не для каждого фото)
+    const translatedPrompt = await translateToEnglish(prompt);
+
     // Генерируем count изображений ПОСЛЕДОВАТЕЛЬНО
-    // Если одно фото не получилось — возвращаем те что получились
     const imageUrls: string[] = [];
     let failedCount = 0;
     for (let i = 0; i < count; i++) {
       try {
         console.log(`[image] generating ${i + 1}/${count}...`);
         const result = parsedImages
-          ? await editImage(parsedImages, prompt, model, aspectRatio, resolution)
-          : await generateImage(prompt, model, aspectRatio, resolution);
+          ? await editImage(parsedImages, translatedPrompt, model, aspectRatio, resolution)
+          : await generateImage(translatedPrompt, model, aspectRatio, resolution);
         imageUrls.push(result.imageUrl);
       } catch (genErr: any) {
         console.error(`[image] gen ${i + 1}/${count} failed:`, genErr?.message);

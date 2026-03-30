@@ -64,32 +64,20 @@ export function GenerationViewer({ items, startIndex, onClose }: Props) {
   async function handleSave() {
     if (!item || saving) return;
     const fileName = isVideo ? 'uraanxai-video.mp4' : 'uraanxai-image.png';
-    const mimeType = isVideo ? 'video/mp4' : 'image/png';
 
     setSaving(true);
     try {
-      const resp = await fetch(item.resultUrl);
-      const blob = await resp.blob();
-
-      // Мобильный: нативный share (iOS → "Сохранить в Фото")
-      const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
-      if (isMobile) {
-        const file = new File([blob], fileName, { type: mimeType });
-        if (navigator.canShare?.({ files: [file] })) {
-          await navigator.share({ files: [file] });
-          setSaving(false);
-          return;
-        }
-        // Fallback: Telegram downloadFile
-        const tg = (window as any).Telegram?.WebApp;
-        if (tg?.downloadFile) {
-          tg.downloadFile({ url: item.resultUrl, file_name: fileName });
-          setSaving(false);
-          return;
-        }
+      // Telegram Mini App: downloadFile — прямое скачивание
+      const tg = (window as any).Telegram?.WebApp;
+      if (tg?.downloadFile) {
+        tg.downloadFile({ url: item.resultUrl, file_name: fileName });
+        setSaving(false);
+        return;
       }
 
-      // Десктоп / fallback: прямое скачивание файла (выбор папки)
+      // Fallback: blob + <a download>
+      const resp = await fetch(item.resultUrl);
+      const blob = await resp.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -97,7 +85,7 @@ export function GenerationViewer({ items, startIndex, onClose }: Props) {
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      // fallback если fetch не сработал
+      // fallback если fetch не сработал — открыть напрямую
       const a = document.createElement('a');
       a.href = item.resultUrl;
       a.download = fileName;

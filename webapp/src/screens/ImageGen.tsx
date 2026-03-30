@@ -43,7 +43,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
   const MAX_REF_IMAGES = 4;
   const promptRef = useRef<HTMLTextAreaElement>(null);
 
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -85,10 +85,17 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
     if (!canGenerate) return;
     setLoading(true);
     setError(null);
-    setImageUrl(null);
+    setImageUrls([]);
     try {
-      const result = await api.generateImage(prompt.trim(), model, refImages.length > 0 ? refImages : undefined);
-      setImageUrl(result.imageUrl);
+      const result = await api.generateImage({
+        prompt: prompt.trim(),
+        model,
+        refImages: refImages.length > 0 ? refImages : undefined,
+        aspectRatio: aspect,
+        resolution,
+        count,
+      });
+      setImageUrls(result.imageUrls || [result.imageUrl]);
       onCreditsUpdate(result.creditsLeft);
       loadHistory();
     } catch (e: unknown) {
@@ -395,7 +402,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
       )}
 
       {/* ─── Loading placeholder ─── */}
-      {loading && !imageUrl && (
+      {loading && imageUrls.length === 0 && (
         <div className="bg-white/[0.08] border border-white/[0.12] rounded-2xl aspect-square flex items-center justify-center">
           <div className="text-center space-y-3">
             <div className="w-12 h-12 rounded-2xl bg-violet-500/15 border border-violet-500/20 flex items-center justify-center mx-auto">
@@ -405,23 +412,28 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
                 <path d="M21 15l-5-5L5 21"/>
               </svg>
             </div>
-            <p className="text-white text-sm font-semibold">Создаю изображение...</p>
+            <p className="text-white text-sm font-semibold">Создаю изображение{count > 1 ? ` (${count} шт.)` : ''}...</p>
             <p className="text-slate-400 text-xs font-medium">Обычно 10–30 секунд</p>
           </div>
         </div>
       )}
 
       {/* ─── Result ─── */}
-      {imageUrl && (
+      {imageUrls.length > 0 && (
         <div className="space-y-3">
-          <img
-            src={imageUrl}
-            alt="Сгенерированное изображение"
-            className="w-full rounded-2xl shadow-xl shadow-black/40"
-          />
+          <div className={imageUrls.length > 1 ? 'grid grid-cols-2 gap-2' : ''}>
+            {imageUrls.map((url, i) => (
+              <img
+                key={i}
+                src={url}
+                alt={`Результат ${i + 1}`}
+                className="w-full object-contain max-h-[70vh] rounded-2xl shadow-xl shadow-black/40"
+              />
+            ))}
+          </div>
           <div className="flex gap-2">
             <a
-              href={imageUrl}
+              href={imageUrls[0]}
               download="uraanxai-image.png"
               target="_blank"
               rel="noreferrer"
@@ -435,7 +447,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
               {t('image.download')}
             </a>
             <button
-              onClick={() => { setImageUrl(null); setPrompt(''); }}
+              onClick={() => { setImageUrls([]); setPrompt(''); }}
               className="flex-1 bg-violet-500/15 border border-violet-500/20 rounded-xl py-3 text-sm font-bold text-violet-300 active:opacity-80 transition-all flex items-center justify-center gap-1.5"
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

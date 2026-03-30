@@ -20,13 +20,27 @@ function resolveModel(model?: string): string {
   return (model && MODEL_MAP[model]) || DEFAULT_MODEL;
 }
 
+// Добавить инструкции по aspect ratio и resolution в промпт
+function enrichPrompt(prompt: string, aspectRatio?: string, resolution?: string): string {
+  const parts = [prompt];
+  if (aspectRatio && aspectRatio !== '1:1') {
+    parts.push(`[Aspect ratio: ${aspectRatio}]`);
+  }
+  if (resolution && resolution !== '1K') {
+    parts.push(`[Resolution: ${resolution}]`);
+  }
+  return parts.join(' ');
+}
+
 // Текст → картинка
-export async function generateImage(prompt: string, model?: string): Promise<ImageGenResult> {
+export async function generateImage(prompt: string, model?: string, aspectRatio?: string, resolution?: string): Promise<ImageGenResult> {
   if (!process.env.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY не задан');
+
+  const fullPrompt = enrichPrompt(prompt, aspectRatio, resolution);
 
   const response = await ai.models.generateContent({
     model: resolveModel(model),
-    contents: [{ parts: [{ text: prompt }] }],
+    contents: [{ parts: [{ text: fullPrompt }] }],
     config: {
       responseModalities: ['IMAGE'],
       maxOutputTokens: 8192,
@@ -34,7 +48,6 @@ export async function generateImage(prompt: string, model?: string): Promise<Ima
     },
   });
 
-  // Извлекаем картинку из ответа
   const parts = response.candidates?.[0]?.content?.parts;
   if (!parts) throw new Error('Gemini не вернул изображение');
 
@@ -50,15 +63,17 @@ export async function generateImage(prompt: string, model?: string): Promise<Ima
 }
 
 // Редактирование изображения (img2img): отправляем картинки-референсы + промпт
-// Поддерживает 1-4 референсных изображения
 export async function editImage(
   images: Array<{ base64: string; mimeType: string }>,
   prompt: string,
-  model?: string
+  model?: string,
+  aspectRatio?: string,
+  resolution?: string
 ): Promise<ImageGenResult> {
   if (!process.env.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY не задан');
   if (images.length === 0) throw new Error('Нужно хотя бы одно изображение');
 
+  const fullPrompt = enrichPrompt(prompt, aspectRatio, resolution);
   const imageParts = images.map(img => ({
     inlineData: { mimeType: img.mimeType, data: img.base64 },
   }));
@@ -67,7 +82,7 @@ export async function editImage(
     model: resolveModel(model),
     contents: [{
       parts: [
-        { text: prompt },
+        { text: fullPrompt },
         ...imageParts,
       ],
     }],

@@ -101,6 +101,9 @@ imageRouter.post('/generate', async (req: Request, res: Response) => {
       imageUrls,
       creditsLeft: creditsLeft + (costPerImage * failedCount),
       cost: costPerImage * imageUrls.length,
+      requested: count,
+      generated: imageUrls.length,
+      refunded: failedCount,
     });
   } catch (e: any) {
     await addCredits(req.userId!, totalCost, 'image', `Рефанд: ошибка генерации`).catch(console.error);

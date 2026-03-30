@@ -57,6 +57,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -98,6 +99,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
     if (!canGenerate) return;
     setLoading(true);
     setError(null);
+    setInfo(null);
     setImageUrls([]);
     try {
       const result = await api.generateImage({
@@ -111,6 +113,10 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
       setImageUrls(result.imageUrls || [result.imageUrl]);
       onCreditsUpdate(result.creditsLeft);
       loadHistory();
+      // Уведомление о частичном рефанде
+      if (result.refunded && result.refunded > 0 && result.generated && result.generated > 0) {
+        setInfo(`${result.generated} из ${result.requested} изображений готовы. Кредиты за ${result.refunded} неудачных возвращены на баланс.`);
+      }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Ошибка генерации');
     } finally {
@@ -419,6 +425,12 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
       {error && (
         <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-red-300 text-sm font-medium">
           {error}
+        </div>
+      )}
+      {info && (
+        <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-xl p-3 text-cyan-300 text-sm font-medium flex items-center gap-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+          {info}
         </div>
       )}
 

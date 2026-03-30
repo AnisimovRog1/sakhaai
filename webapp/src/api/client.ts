@@ -108,7 +108,7 @@ export const api = {
     resolution?: string;
     count?: number;
   }) =>
-    request<{ imageUrl: string; imageUrls?: string[]; creditsLeft: number; cost: number }>('/image/generate', {
+    request<{ imageUrl: string; imageUrls?: string[]; creditsLeft: number; cost: number; requested?: number; generated?: number; refunded?: number }>('/image/generate', {
       method: 'POST',
       body: JSON.stringify(params),
     }),

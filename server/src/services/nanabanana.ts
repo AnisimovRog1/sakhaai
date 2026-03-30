@@ -45,6 +45,22 @@ async function translateToEnglish(prompt: string): Promise<string> {
   return prompt; // fallback — оригинал
 }
 
+// Retry при IMAGE_SAFETY / IMAGE_RECITATION (до 2 повторов)
+const RETRYABLE_REASONS = ['IMAGE_SAFETY', 'IMAGE_RECITATION', 'SAFETY'];
+async function withRetry<T>(fn: () => Promise<T>, maxRetries = 2): Promise<T> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      const msg = (err as Error).message || '';
+      const isRetryable = RETRYABLE_REASONS.some(r => msg.includes(r));
+      if (!isRetryable || attempt === maxRetries) throw err;
+      console.log(`[nanabanana] retry ${attempt + 1}/${maxRetries} after: ${msg.substring(0, 60)}`);
+    }
+  }
+  throw new Error('Unexpected');
+}
+
 // Добавить инструкции по aspect ratio и resolution в промпт
 function enrichPrompt(prompt: string, aspectRatio?: string, resolution?: string): string {
   const parts = [prompt];
@@ -63,6 +79,8 @@ export async function generateImage(prompt: string, model?: string, aspectRatio?
 
   const translated = await translateToEnglish(prompt);
   const fullPrompt = enrichPrompt(translated, aspectRatio, resolution);
+
+  return withRetry(async () => {
 
   const response = await ai.models.generateContent({
     model: resolveModel(model),
@@ -95,6 +113,7 @@ export async function generateImage(prompt: string, model?: string, aspectRatio?
   }
 
   throw new Error('Gemini не вернул изображение. Попробуйте другой промпт.');
+  }); // withRetry
 }
 
 // Редактирование изображения (img2img): отправляем картинки-референсы + промпт
@@ -114,6 +133,7 @@ export async function editImage(
     inlineData: { mimeType: img.mimeType, data: img.base64 },
   }));
 
+  return withRetry(async () => {
   const response = await ai.models.generateContent({
     model: resolveModel(model),
     contents: [{
@@ -151,4 +171,5 @@ export async function editImage(
   }
 
   throw new Error('Gemini не вернул изображение. Попробуйте другой промпт.');
+  }); // withRetry
 }

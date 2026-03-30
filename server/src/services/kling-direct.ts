@@ -198,7 +198,6 @@ export async function submitMotionControlDirect(
 }
 
 // ─── Lip Sync / Avatar (text2video mode) ───────────────────
-// Пробуем несколько форматов — Kling API документация противоречива.
 export async function submitAvatar(params: {
   imageUrl: string;
   text: string;
@@ -209,54 +208,20 @@ export async function submitAvatar(params: {
   console.log('[kling-direct] submitting avatar, voice:', params.voiceId);
 
   const httpImageUrl = dataUrlToHttpUrl(params.imageUrl);
-  const text = params.text.substring(0, 120);
-  const voiceId = params.voiceId || 'oversea_male1';
-  const voiceSpeed = params.voiceSpeed ?? 1.0;
 
-  // Формат 1: плоский (как text2video/image2video — наши рабочие endpoints)
-  const bodies = [
-    {
-      mode: 'text2video',
-      video_url: httpImageUrl,
-      text,
-      voice_id: voiceId,
-      voice_speed: voiceSpeed,
-      voice_language: 'en',
-    },
-    // Формат 2: вложенный input (MCP Kling SDK)
-    {
-      input: {
-        mode: 'text2video',
-        video_url: httpImageUrl,
-        text,
-        voice_id: voiceId,
-        voice_speed: voiceSpeed,
-        voice_language: 'en',
-      },
-    },
-    // Формат 3: PiAPI стиль (tts_text вместо text)
-    {
-      input: {
-        video_url: httpImageUrl,
-        tts_text: text,
-        tts_timbre: voiceId,
-        tts_speed: voiceSpeed,
-        local_dubbing_url: '',
-      },
-    },
-  ];
+  // Kling lip-sync API — параметры на верхнем уровне (как другие endpoints)
+  const body: Record<string, any> = {
+    video_url: httpImageUrl,
+    mode: 'text2video',
+    text: params.text.substring(0, 120),
+    voice_id: params.voiceId || 'oversea_male1',
+    voice_speed: params.voiceSpeed ?? 1.0,
+    voice_language: 'en',
+  };
 
-  for (let i = 0; i < bodies.length; i++) {
-    try {
-      console.log(`[kling-direct] lip-sync attempt ${i + 1}/3`);
-      const result = await klingRequest('POST', '/v1/videos/lip-sync', bodies[i]);
-      return { klingTaskId: extractTaskId(result) };
-    } catch (err) {
-      console.error(`[kling-direct] lip-sync format ${i + 1} failed:`, (err as Error).message);
-      if (i === bodies.length - 1) throw err; // последний — пробросить ошибку
-    }
-  }
-  throw new Error('Все форматы lip-sync отклонены');
+  console.log('[kling-direct] lip-sync FULL body:', JSON.stringify(body));
+  const result = await klingRequest('POST', '/v1/videos/lip-sync', body);
+  return { klingTaskId: extractTaskId(result) };
 }
 
 // Whitelist допустимых Kling API endpoints для polling

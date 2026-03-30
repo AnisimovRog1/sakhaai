@@ -424,40 +424,39 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
         <div className="space-y-3">
           <div className={imageUrls.length > 1 ? 'grid grid-cols-2 gap-2' : ''}>
             {imageUrls.map((url, i) => (
-              <img
-                key={i}
-                src={url}
-                alt={`Результат ${i + 1}`}
-                className="w-full object-contain max-h-[70vh] rounded-2xl shadow-xl shadow-black/40"
-              />
+              <div key={i} className="space-y-2">
+                <img
+                  src={url}
+                  alt={`Результат ${i + 1}`}
+                  className={`w-full object-contain rounded-2xl shadow-xl shadow-black/40 ${imageUrls.length === 1 ? 'max-h-[50vh]' : ''}`}
+                />
+                <a
+                  href={url}
+                  download={`uraanxai-image-${i + 1}.png`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full bg-white/[0.08] border border-white/[0.10] rounded-lg py-2 text-center text-xs font-bold text-white active:bg-white/[0.12] transition-all flex items-center justify-center gap-1"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  Скачать
+                </a>
+              </div>
             ))}
           </div>
-          <div className="flex gap-2">
-            <a
-              href={imageUrls[0]}
-              download="uraanxai-image.png"
-              target="_blank"
-              rel="noreferrer"
-              className="flex-1 bg-white/[0.08] border border-white/[0.10] rounded-xl py-3 text-center text-sm font-bold text-white active:bg-white/[0.12] transition-all flex items-center justify-center gap-1.5"
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-                <polyline points="7 10 12 15 17 10"/>
-                <line x1="12" y1="15" x2="12" y2="3"/>
-              </svg>
-              {t('image.download')}
-            </a>
-            <button
-              onClick={() => { setImageUrls([]); setPrompt(''); }}
-              className="flex-1 bg-violet-500/15 border border-violet-500/20 rounded-xl py-3 text-sm font-bold text-violet-300 active:opacity-80 transition-all flex items-center justify-center gap-1.5"
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="1 4 1 10 7 10"/>
-                <path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
-              </svg>
-              {t('image.new')}
-            </button>
-          </div>
+          <button
+            onClick={() => { setImageUrls([]); setPrompt(''); }}
+            className="w-full bg-violet-500/15 border border-violet-500/20 rounded-xl py-3 text-sm font-bold text-violet-300 active:opacity-80 transition-all flex items-center justify-center gap-1.5"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="1 4 1 10 7 10"/>
+              <path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
+            </svg>
+            {t('image.new')}
+          </button>
         </div>
       )}
 
@@ -492,14 +491,27 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
               <p className="text-slate-300 text-sm">{t('image.noHistory')}</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+            <div className="columns-2 gap-2 space-y-2">
               {history.map((item, i) => (
-                <div key={item.id} className="relative group" onClick={() => setViewerIndex(i)}>
+                <div key={item.id} className="relative group break-inside-avoid" onClick={() => setViewerIndex(i)}>
                   <img
                     src={item.resultUrl}
                     alt={item.prompt || 'Генерация'}
-                    className="w-full aspect-square object-cover rounded-xl border border-white/[0.10]"
+                    className="w-full rounded-xl border border-white/[0.10]"
+                    onLoad={(e) => {
+                      const img = e.currentTarget;
+                      const r = img.naturalWidth / img.naturalHeight;
+                      const badge = img.parentElement?.querySelector('[data-ratio]') as HTMLElement;
+                      if (badge) {
+                        if (r > 1.3) badge.textContent = '16:9';
+                        else if (r > 1.1) badge.textContent = '4:3';
+                        else if (r < 0.77) badge.textContent = '9:16';
+                        else if (r < 0.9) badge.textContent = '3:4';
+                        else badge.textContent = '1:1';
+                      }
+                    }}
                   />
+                  <span data-ratio className="absolute bottom-1.5 left-1.5 bg-black/70 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md backdrop-blur-sm"></span>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();

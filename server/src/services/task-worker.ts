@@ -2,11 +2,10 @@
 // Юзеру не нужно держать приложение открытым — worker сам обработает результат
 
 import { pool } from '../db/pool';
-import { checkTaskStatus, submitLipSync } from './kling-direct';
+import { checkTaskStatus } from './kling-direct';
 import { saveGeneration } from './generations';
 import { addCredits, TxType } from './balance';
 import { sendTelegramPush } from './telegram-push';
-import crypto from 'crypto';
 
 const POLL_INTERVAL = 30_000;  // 30 секунд
 const TASK_TIMEOUT = 60 * 60 * 1000;  // 60 минут
@@ -71,53 +70,9 @@ async function processTask(task: any) {
 }
 
 async function handleSuccess(task: any, resultUrl: string) {
-  const metadata = task.metadata || {};
-
-  // Avatar chain: step1 (image2video) succeed → запустить step2 (lip-sync)
-  if (metadata.chain === 'avatar-lipsync' && task.type === 'avatar-step1') {
-    // Пометить step1 как завершённый
-    await pool.query(
-      `UPDATE pending_tasks SET status = 'succeed', result_url = $1, updated_at = NOW() WHERE id = $2`,
-      [resultUrl, task.id]
-    );
-
-    try {
-      console.log(`[task-worker] avatar step1 done, starting lip-sync, kling_task_id: ${task.kling_task_id}`);
-      const { klingTaskId } = await submitLipSync({
-        originTaskId: task.kling_task_id, // Kling task_id из image2video
-        text: metadata.text || '',
-        voiceId: metadata.voiceId,
-        voiceSpeed: metadata.voiceSpeed,
-      });
-
-      // Создать задачу lip-sync (step2)
-      const newTaskId = crypto.randomUUID();
-      await pool.query(
-        `INSERT INTO pending_tasks (task_id, kling_task_id, user_id, type, kling_endpoint, cost, prompt, metadata)
-         VALUES ($1, $2, $3, 'avatar', '/v1/videos/lip-sync', $4, $5, $6)`,
-        [newTaskId, klingTaskId, task.user_id, task.cost, task.prompt,
-         JSON.stringify({ parentTaskId: task.task_id })]
-      );
-      console.log(`[task-worker] avatar lip-sync task created: ${newTaskId}`);
-      return;
-    } catch (err) {
-      console.error('[task-worker] lip-sync submit failed:', (err as Error).message);
-      // Рефанд если lip-sync не запустился
-      await addCredits(task.user_id, task.cost, 'avatar' as TxType, `Рефанд: ${(err as Error).message.substring(0, 100)}`).catch(e =>
-        console.error('[task-worker] refund error:', e.message)
-      );
-      await pool.query(
-        `UPDATE pending_tasks SET error_msg = $1, updated_at = NOW() WHERE id = $2`,
-        [`lip-sync failed: ${(err as Error).message}`, task.id]
-      );
-      await sendTelegramPush(task.user_id, 'avatar', 'failed', undefined, task.prompt, `Ошибка создания аватара`).catch(console.error);
-      return;
-    }
-  }
-
-  // Обычный succeed — сохранить генерацию + push
+  // Сохранить генерацию + push
   const genType = task.type === 'motion-control' ? 'motion' : task.type;
-  if (task.type !== 'tts' && task.type !== 'avatar-step1') {
+  if (task.type !== 'tts') {
     await saveGeneration(task.user_id, genType, task.prompt, resultUrl, task.cost).catch(e =>
       console.error('[task-worker] saveGeneration error:', e.message)
     );

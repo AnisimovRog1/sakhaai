@@ -380,6 +380,8 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
           creditsLeft = r.creditsLeft;
         }
       } else {
+        // Avatar — синхронный через fal.ai (TTS → Avatar, ~30-60 сек)
+        setMotionStatus('Генерирую аватар...');
         const voiceConfig = VOICES.find(v => v.name === selectedVoice);
         const r = await api.generateAvatar({
           imageUrl: avatarImage || '',
@@ -389,13 +391,15 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
           emotion: emotion !== 'neutral' ? emotion : undefined,
           avatarPrompt: avatarPrompt?.trim() || undefined,
         });
-        taskId = r.taskId;
-        creditsLeft = r.creditsLeft;
+        if (r.videoUrl) setVideoUrl(r.videoUrl);
+        if (r.creditsLeft !== undefined) onCreditsUpdate(r.creditsLeft);
+        loadHistory();
+        return;
       }
 
       if (creditsLeft !== undefined) onCreditsUpdate(creditsLeft);
 
-      // Все генерации теперь async — polling через taskId
+      // Video/Motion — async polling через taskId
       setMotionStatus('Отправлено в очередь...');
       const videoResult = await pollTaskResult(taskId);
       if (videoResult) setVideoUrl(videoResult);

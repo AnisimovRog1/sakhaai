@@ -150,7 +150,7 @@ export const api = {
     emotion?: string;
     avatarPrompt?: string;
   }) =>
-    request<AsyncGenResult>('/video/avatar', {
+    request<{ videoUrl: string; creditsLeft: number; cost: number }>('/video/avatar', {
       method: 'POST',
       body: JSON.stringify(params),
     }),

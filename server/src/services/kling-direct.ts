@@ -211,10 +211,10 @@ export async function submitAvatar(params: {
 
   const httpImageUrl = dataUrlToHttpUrl(params.imageUrl);
   const body: Record<string, any> = {
-    mode: 'text2video',
     input: {
+      mode: 'text2video',
       video_url: httpImageUrl,
-      text: params.text.substring(0, 120), // макс 120 символов
+      text: params.text.substring(0, 120),
       voice_id: params.voiceId || 'oversea_male1',
       voice_speed: params.voiceSpeed ?? 1.0,
       voice_language: 'en',

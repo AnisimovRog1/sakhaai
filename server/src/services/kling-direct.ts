@@ -197,7 +197,12 @@ export async function submitMotionControlDirect(
   return { taskId: extractTaskId(result) };
 }
 
-// ─── Lip Sync / Avatar (text2video mode) ───────────────────
+// ─── Avatar (2 шага: image2video → lip-sync) ───────────────
+// Kling lip-sync требует ВИДЕО с лицом, не фото.
+// Шаг 1: Создаём короткое видео из фото (image2video, 5 сек)
+// Шаг 2: Применяем lip-sync text2video к этому видео
+// Но шаг 2 требует video_id (результат шага 1), а это async.
+// Поэтому для MVP: используем image2video с промптом говорящего человека.
 export async function submitAvatar(params: {
   imageUrl: string;
   text: string;
@@ -205,22 +210,25 @@ export async function submitAvatar(params: {
   voiceSpeed?: number;
   prompt?: string;
 }): Promise<{ klingTaskId: string }> {
-  console.log('[kling-direct] submitting avatar, voice:', params.voiceId);
+  console.log('[kling-direct] submitting avatar via image2video');
 
   const httpImageUrl = dataUrlToHttpUrl(params.imageUrl);
 
-  // Kling lip-sync API — параметры на верхнем уровне (как другие endpoints)
+  // Генерируем видео из фото с промптом "говорящий человек"
+  const prompt = params.prompt
+    ? `${params.prompt}. The person is talking and saying: "${params.text.substring(0, 80)}"`
+    : `The person in the photo is talking naturally, lip movements matching speech: "${params.text.substring(0, 80)}"`;
+
   const body: Record<string, any> = {
-    video_url: httpImageUrl,
-    mode: 'text2video',
-    text: params.text.substring(0, 120),
-    voice_id: params.voiceId || 'oversea_male1',
-    voice_speed: params.voiceSpeed ?? 1.0,
-    voice_language: 'en',
+    image_url: httpImageUrl,
+    model_name: resolveModelName('video-2.6'),
+    mode: 'std',
+    duration: '5',
+    prompt,
   };
 
-  console.log('[kling-direct] lip-sync FULL body:', JSON.stringify(body));
-  const result = await klingRequest('POST', '/v1/videos/lip-sync', body);
+  console.log('[kling-direct] avatar body:', JSON.stringify(body).substring(0, 500));
+  const result = await klingRequest('POST', '/v1/videos/image2video', body);
   return { klingTaskId: extractTaskId(result) };
 }
 

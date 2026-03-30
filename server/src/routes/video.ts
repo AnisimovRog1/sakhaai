@@ -292,9 +292,9 @@ videoRouter.post('/avatar', async (req: Request, res: Response) => {
     const taskId = crypto.randomUUID();
     await pool.query(
       `INSERT INTO pending_tasks (task_id, kling_task_id, user_id, type, kling_endpoint, cost, prompt, metadata)
-       VALUES ($1, $2, $3, 'avatar', '/v1/videos/lip-sync', $4, $5, $6)`,
+       VALUES ($1, $2, $3, 'avatar', '/v1/videos/image2video', $4, $5, $6)`,
       [taskId, klingTaskId, req.userId!, AVATAR_COST, text.trim(),
-       JSON.stringify({ model: 'lip-sync-text2video', voiceId, voiceSpeed: voiceSpeed ?? 1.0, emotion })]
+       JSON.stringify({ model: 'avatar-image2video', voiceId, voiceSpeed: voiceSpeed ?? 1.0, emotion })]
     );
 
     res.json({ taskId, async: true, creditsLeft, cost: AVATAR_COST });

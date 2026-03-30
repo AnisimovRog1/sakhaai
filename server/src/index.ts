@@ -74,6 +74,17 @@ app.get('/landing', (_req, res) => {
   res.type('text/html').send(LANDING_HTML);
 });
 
+// ─── /app → SPA для Telegram Mini App ───
+app.get('/app', (_req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.sendFile(path.join(path.resolve(__dirname, '../webapp-dist'), 'index.html'));
+});
+
+// ─── Корень / → лендинг (для UnitPay, модерации, обычных браузеров) ───
+app.get('/', (_req, res) => {
+  res.type('text/html').send(LANDING_HTML);
+});
+
 // ─── Webapp SPA (React) ─────────────────────────────────
 // Собранный фронтенд копируется в server/webapp-dist/ при билде на Railway
 const webappDist = path.resolve(__dirname, '../webapp-dist');

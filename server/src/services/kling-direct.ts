@@ -1,10 +1,24 @@
 // Прямое подключение к Kling AI API (без прокси fal.ai)
-// Используется для motion-control — быстрее и надёжнее
+// Все генерации: text2video, image2video, motion-control, TTS, lip-sync (avatar)
 
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 
 const BASE_URL = 'https://api-singapore.klingai.com';
+
+// ─── Маппинг моделей UI → Kling API ────────────────────────
+function resolveModelName(model?: string): string {
+  const map: Record<string, string> = {
+    'video-3.0': 'kling-v2-master',
+    'video-2.6': 'kling-v2-6',
+    'video-2.5-turbo': 'kling-v2-5-turbo',
+  };
+  return map[model || 'video-3.0'] || 'kling-v2-master';
+}
+
+function resolveMode(mode?: string): 'pro' | 'std' {
+  return mode === '1080p' ? 'pro' : 'std';
+}
 
 // ─── Временное хранилище файлов ────────────────────────────
 // Kling скачивает файлы по HTTP URL → храним временно на нашем сервере
@@ -93,8 +107,69 @@ export async function klingRequest(method: 'GET' | 'POST', path: string, body?: 
   return data;
 }
 
-// ─── Motion Control ────────────────────────────────────────
+// ─── Хелпер: достать task_id из ответа ─────────────────────
+function extractTaskId(result: any): string {
+  const taskId = result.data?.task_id;
+  if (!taskId) {
+    console.error('[kling-direct] no task_id in response:', JSON.stringify(result).substring(0, 300));
+    throw new Error('Не получен task_id от Kling');
+  }
+  console.log('[kling-direct] task submitted:', taskId);
+  return taskId;
+}
 
+// ─── Text-to-Video ─────────────────────────────────────────
+export async function submitTextToVideo(params: {
+  prompt: string;
+  duration?: number;
+  model?: string;
+  mode?: string;
+  aspectRatio?: string;
+  generateAudio?: boolean;
+  startImageUrl?: string;
+}): Promise<{ klingTaskId: string }> {
+  console.log('[kling-direct] submitting text2video, model:', params.model, 'mode:', params.mode);
+
+  const body: Record<string, any> = {
+    prompt: params.prompt,
+    duration: String(params.duration || 5),
+    model_name: resolveModelName(params.model),
+    mode: resolveMode(params.mode),
+    aspect_ratio: params.aspectRatio || '9:16',
+  };
+  if (params.generateAudio) body.generate_audio = true;
+  if (params.startImageUrl) {
+    body.image_url = dataUrlToHttpUrl(params.startImageUrl);
+  }
+
+  const result = await klingRequest('POST', '/v1/videos/text2video', body);
+  return { klingTaskId: extractTaskId(result) };
+}
+
+// ─── Image-to-Video ────────────────────────────────────────
+export async function submitImageToVideo(params: {
+  imageUrl: string;
+  prompt?: string;
+  duration?: number;
+  model?: string;
+  mode?: string;
+}): Promise<{ klingTaskId: string }> {
+  console.log('[kling-direct] submitting image2video, model:', params.model, 'mode:', params.mode);
+
+  const httpImageUrl = dataUrlToHttpUrl(params.imageUrl);
+  const body: Record<string, any> = {
+    image_url: httpImageUrl,
+    model_name: resolveModelName(params.model),
+    mode: resolveMode(params.mode),
+    duration: String(params.duration || 5),
+  };
+  if (params.prompt?.trim()) body.prompt = params.prompt.trim();
+
+  const result = await klingRequest('POST', '/v1/videos/image2video', body);
+  return { klingTaskId: extractTaskId(result) };
+}
+
+// ─── Motion Control ────────────────────────────────────────
 export async function submitMotionControlDirect(
   imageUrl: string,
   videoUrl: string,
@@ -104,7 +179,6 @@ export async function submitMotionControlDirect(
 ): Promise<{ taskId: string }> {
   console.log('[kling-direct] submitting motion-control, orientation:', characterOrientation, 'mode:', mode || 'std');
 
-  // data: URL → HTTP URL на нашем сервере (Kling скачает по ссылке)
   const httpImageUrl = dataUrlToHttpUrl(imageUrl);
   const httpVideoUrl = dataUrlToHttpUrl(videoUrl);
   console.log('[kling-direct] image_url:', httpImageUrl.substring(0, 80));
@@ -120,36 +194,81 @@ export async function submitMotionControlDirect(
   if (prompt?.trim()) body.prompt = prompt.trim();
 
   const result = await klingRequest('POST', '/v1/videos/motion-control', body);
-
-  const taskId = result.data?.task_id;
-  if (!taskId) {
-    console.error('[kling-direct] no task_id in response:', JSON.stringify(result).substring(0, 300));
-    throw new Error('Не получен task_id от Kling');
-  }
-
-  console.log('[kling-direct] task submitted:', taskId);
-  return { taskId };
+  return { taskId: extractTaskId(result) };
 }
 
-export async function checkMotionStatusDirect(taskId: string): Promise<{
+// ─── TTS (Text-to-Speech) ──────────────────────────────────
+export async function submitTTS(params: {
+  text: string;
+  voiceId?: string;
+  voiceSpeed?: number;
+}): Promise<{ klingTaskId: string }> {
+  console.log('[kling-direct] submitting TTS, voice:', params.voiceId, 'speed:', params.voiceSpeed);
+
+  const body = {
+    text: params.text,
+    voice_id: params.voiceId || 'oversea_male1',
+    voice_speed: params.voiceSpeed ?? 1.0,
+  };
+
+  const result = await klingRequest('POST', '/v1/audios/tts', body);
+  return { klingTaskId: extractTaskId(result) };
+}
+
+// ─── Lip Sync (Avatar) ────────────────────────────────────
+export async function submitLipSync(params: {
+  imageUrl: string;
+  audioUrl: string;
+  prompt?: string;
+}): Promise<{ klingTaskId: string }> {
+  console.log('[kling-direct] submitting lip-sync');
+
+  const httpImageUrl = dataUrlToHttpUrl(params.imageUrl);
+  const body: Record<string, any> = {
+    image_url: httpImageUrl,
+    audio_url: params.audioUrl,
+    audio_type: 'tts',
+  };
+  if (params.prompt?.trim()) body.prompt = params.prompt.trim();
+
+  const result = await klingRequest('POST', '/v1/videos/lip-sync', body);
+  return { klingTaskId: extractTaskId(result) };
+}
+
+// Whitelist допустимых Kling API endpoints для polling
+const ALLOWED_ENDPOINTS = new Set([
+  '/v1/videos/text2video',
+  '/v1/videos/image2video',
+  '/v1/videos/motion-control',
+  '/v1/videos/lip-sync',
+  '/v1/audios/tts',
+]);
+
+// ─── Универсальная проверка статуса ────────────────────────
+export async function checkTaskStatus(klingEndpoint: string, klingTaskId: string): Promise<{
   status: 'submitted' | 'processing' | 'succeed' | 'failed';
-  videoUrl?: string;
+  resultUrl?: string;
   errorMsg?: string;
 }> {
-  const result = await klingRequest('GET', `/v1/videos/motion-control/${taskId}`);
+  if (!ALLOWED_ENDPOINTS.has(klingEndpoint)) {
+    throw new Error(`Недопустимый endpoint: ${klingEndpoint}`);
+  }
 
+  const result = await klingRequest('GET', `${klingEndpoint}/${klingTaskId}`);
   const task = result.data;
-  const status = task?.task_status as 'submitted' | 'processing' | 'succeed' | 'failed';
-  console.log(`[kling-direct] task ${taskId} status: ${status}`);
+  const status = task?.task_status as string;
 
   if (status === 'succeed') {
+    // Videos: task_result.videos[0].url, Audio/TTS: task_result.audios[0].url
     const videoUrl = task?.task_result?.videos?.[0]?.url;
-    if (!videoUrl) {
-      console.error('[kling-direct] succeed but no video URL:', JSON.stringify(task).substring(0, 300));
-      return { status: 'failed', errorMsg: 'Видео не найдено в результате' };
+    const audioUrl = task?.task_result?.audios?.[0]?.url;
+    const resultUrl = videoUrl || audioUrl;
+    if (!resultUrl) {
+      console.error('[kling-direct] succeed but no result URL:', JSON.stringify(task).substring(0, 300));
+      return { status: 'failed', errorMsg: 'Результат не найден' };
     }
-    console.log('[kling-direct] video ready:', videoUrl.substring(0, 80));
-    return { status: 'succeed', videoUrl };
+    console.log('[kling-direct] result ready:', resultUrl.substring(0, 80));
+    return { status: 'succeed', resultUrl };
   }
 
   if (status === 'failed') {
@@ -157,9 +276,19 @@ export async function checkMotionStatusDirect(taskId: string): Promise<{
     return { status: 'failed', errorMsg: task?.task_status_msg || 'Ошибка генерации' };
   }
 
-  if (status === 'submitted') {
-    console.log(`[kling-direct] task ${taskId} still submitted, full task:`, JSON.stringify(task).substring(0, 500));
-  }
+  return { status: status as 'submitted' | 'processing' };
+}
 
-  return { status };
+// ─── Legacy: checkMotionStatusDirect (backward compat) ─────
+export async function checkMotionStatusDirect(taskId: string): Promise<{
+  status: 'submitted' | 'processing' | 'succeed' | 'failed';
+  videoUrl?: string;
+  errorMsg?: string;
+}> {
+  const result = await checkTaskStatus('/v1/videos/motion-control', taskId);
+  return {
+    status: result.status,
+    videoUrl: result.resultUrl,
+    errorMsg: result.errorMsg,
+  };
 }

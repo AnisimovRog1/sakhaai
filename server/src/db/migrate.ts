@@ -195,7 +195,7 @@ export async function migrate() {
     EXCEPTION WHEN OTHERS THEN NULL;
     END $$;
 
-    -- Pending motion-control запросы (переживают рестарт сервера)
+    -- Pending motion-control запросы (legacy, kept for backward compat)
     CREATE TABLE IF NOT EXISTS pending_motion (
       request_id TEXT PRIMARY KEY,
       user_id BIGINT NOT NULL,
@@ -204,6 +204,27 @@ export async function migrate() {
       prompt TEXT,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
+
+    -- Универсальная таблица async-задач (все генерации через Kling Direct)
+    CREATE TABLE IF NOT EXISTS pending_tasks (
+      id              SERIAL PRIMARY KEY,
+      task_id         TEXT NOT NULL UNIQUE,
+      kling_task_id   TEXT NOT NULL,
+      user_id         BIGINT NOT NULL,
+      type            TEXT NOT NULL,
+      kling_endpoint  TEXT NOT NULL,
+      cost            INTEGER NOT NULL,
+      prompt          TEXT,
+      status          TEXT NOT NULL DEFAULT 'pending',
+      result_url      TEXT,
+      error_msg       TEXT,
+      metadata        JSONB,
+      created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE INDEX IF NOT EXISTS pending_tasks_active_idx ON pending_tasks (status) WHERE status IN ('pending', 'processing');
+    CREATE INDEX IF NOT EXISTS pending_tasks_user_idx ON pending_tasks (user_id, created_at DESC);
   `);
 
   console.log('✅ Миграции применены');

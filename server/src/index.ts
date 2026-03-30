@@ -15,6 +15,7 @@ import { adminRouter } from './routes/admin';
 import { adminPanelRouter } from './routes/admin-panel';
 import { serveTempFile } from './services/kling-direct';
 import { processHeldReferrals } from './services/referral';
+import { startTaskWorker } from './services/task-worker';
 import { seedPushData } from './db/migrate';
 import { LANDING_HTML } from './landing';
 
@@ -32,7 +33,7 @@ app.use(cors({
   origin: (origin, callback) => {
     // origin = undefined у server-to-server запросов и curl — пропускаем
     // Также пропускаем свой же домен (для admin panel)
-    if (!origin || allowedOrigins.includes(origin) || origin?.includes('railway.app')) return callback(null, true);
+    if (!origin || allowedOrigins.includes(origin) || origin === 'https://sakhaai-production.up.railway.app') return callback(null, true);
     callback(new Error(`CORS: origin ${origin} не разрешён`));
   },
 }));
@@ -110,9 +111,9 @@ migrate()
     const server = app.listen(PORT, () => {
       console.log(`✅ Сервер запущен на порту ${PORT}`);
     });
-    // Таймаут 15 минут — motion-control генерирует 10+ мин
-    server.timeout = 900_000;
-    server.keepAliveTimeout = 920_000;
+    // Таймаут 2 мин — все запросы теперь async (worker обрабатывает)
+    server.timeout = 120_000;
+    server.keepAliveTimeout = 125_000;
 
     // Планировщик: проверяем held-рефералы каждые 15 минут
     // Простой setInterval — без внешних зависимостей
@@ -124,6 +125,9 @@ migrate()
 
     runProcessor(); // сразу при старте
     setInterval(runProcessor, 15 * 60 * 1000); // каждые 15 мин
+
+    // Фоновый worker: проверяет pending задачи через Kling Direct API каждые 30 сек
+    startTaskWorker();
 
     // Заполняем пуш-последовательности при первом запуске
     seedPushData().then(n => { if (n) console.log('📥 Seed пушей: ' + n); }).catch(e => console.error('❌ Seed пушей:', e));

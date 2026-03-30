@@ -7,7 +7,7 @@ export function setToken(t: string) {
   token = t;
 }
 
-// Базовая функция для запросов к серверу (таймаут 11 мин — страховка на случай зависания)
+// Базовая функция для запросов к серверу (таймаут 2 мин — все запросы теперь быстрые)
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -18,7 +18,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 960_000); // 16 мин
+  const timeoutId = setTimeout(() => controller.abort(), 120_000); // 2 мин
 
   try {
     const res = await fetch(`${API_URL}${path}`, {
@@ -42,6 +42,25 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     clearTimeout(timeoutId);
   }
 }
+
+// Тип ответа async-генерации
+export type AsyncGenResult = {
+  taskId: string;
+  async: true;
+  creditsLeft: number;
+  cost: number;
+  requestId?: string; // для backward compat motion-control
+};
+
+export type TaskStatus = {
+  taskId: string;
+  type: string;
+  status: 'pending' | 'processing' | 'succeed' | 'failed';
+  resultUrl?: string;
+  errorMsg?: string;
+  cost?: number;
+  createdAt?: string;
+};
 
 // ── Auth ──────────────────────────────
 export const api = {
@@ -87,7 +106,7 @@ export const api = {
       body: JSON.stringify({ prompt, model }),
     }),
 
-  // ── Генерация видео ──────────────────
+  // ── Генерация видео (все async) ──────
   generateVideo: (params: {
     prompt: string;
     model?: string;
@@ -97,7 +116,7 @@ export const api = {
     generateAudio?: boolean;
     startImageUrl?: string;
   }) =>
-    request<{ videoUrl: string; creditsLeft: number; cost: number }>('/video/generate', {
+    request<AsyncGenResult>('/video/generate', {
       method: 'POST',
       body: JSON.stringify(params),
     }),
@@ -111,13 +130,10 @@ export const api = {
     model?: string;
     mode?: string;
   }) =>
-    request<{ videoUrl?: string; requestId?: string; creditsLeft: number; cost: number; async?: boolean }>('/video/motion', {
+    request<AsyncGenResult>('/video/motion', {
       method: 'POST',
       body: JSON.stringify(params),
     }),
-
-  checkMotionStatus: (requestId: string) =>
-    request<{ status: string; videoUrl?: string; errorMsg?: string }>(`/video/motion-status/${requestId}`),
 
   generateAvatar: (params: {
     imageUrl: string;
@@ -127,11 +143,32 @@ export const api = {
     emotion?: string;
     avatarPrompt?: string;
   }) =>
-    request<{ videoUrl: string; creditsLeft: number; cost: number }>('/video/avatar', {
+    request<AsyncGenResult>('/video/avatar', {
       method: 'POST',
       body: JSON.stringify(params),
     }),
 
+  // ── Статус задач ───────────────────
+  checkTaskStatus: (taskId: string) =>
+    request<TaskStatus>(`/video/task-status/${taskId}`),
+
+  getTasks: () =>
+    request<Array<{
+      task_id: string;
+      type: string;
+      status: string;
+      result_url?: string;
+      error_msg?: string;
+      prompt?: string;
+      cost: number;
+      created_at: string;
+    }>>('/video/tasks'),
+
+  // Legacy motion-status (backward compat)
+  checkMotionStatus: (requestId: string) =>
+    request<{ status: string; videoUrl?: string; errorMsg?: string }>(`/video/motion-status/${requestId}`),
+
+  // ── TTS ────────────────────────────
   generateTTS: (text: string, voiceId: string, voiceSpeed?: number) =>
     request<{ audioUrl: string }>('/video/tts', {
       method: 'POST',

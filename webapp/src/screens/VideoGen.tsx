@@ -278,7 +278,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
 
   const canGenerate = !loading && hasCredits && (
     (tab === 'video'  && prompt.trim().length > 0) ||
-    (tab === 'motion' && (motionVideo !== null || motionImage !== null)) ||
+    (tab === 'motion' && motionImage !== null) ||
     (tab === 'avatar' && avatarImage !== null && speechText.trim().length > 0)
   );
 
@@ -290,26 +290,26 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
     reader.readAsDataURL(file);
   }
 
-  // Polling для motion-control (Kling direct API)
-  async function pollMotionResult(requestId: string) {
+  // Polling задачи (единый для video/motion/avatar)
+  async function pollTaskResult(taskId: string) {
     setMotionStatus('Отправлено в Kling...');
     let errorCount = 0;
     for (let i = 0; i < 360; i++) { // макс 60 мин
       await new Promise(r => setTimeout(r, 10_000));
       try {
-        const result = await api.checkMotionStatus(requestId);
+        const result = await api.checkTaskStatus(taskId);
         errorCount = 0;
 
-        if (result.status === 'succeed' && result.videoUrl) {
-          return result.videoUrl;
+        if (result.status === 'succeed' && result.resultUrl) {
+          return result.resultUrl;
         }
         if (result.status === 'failed') {
           throw new Error(result.errorMsg || 'Kling: ошибка генерации. Кредиты возвращены.');
         }
-        // submitted / processing — показываем таймер
+        // pending / processing — показываем таймер
         const mins = Math.floor(i * 10 / 60);
         const secs = (i * 10) % 60;
-        const label = result.status === 'submitted' ? 'В очереди Kling' : 'Генерирую видео';
+        const label = result.status === 'pending' ? 'В очереди Kling' : 'Генерирую видео';
         setMotionStatus(`${label}... ${mins}:${secs.toString().padStart(2, '0')}`);
       } catch (err) {
         if (err instanceof Error && (err.message.includes('Kling') || err.message.includes('генерации'))) throw err;
@@ -330,8 +330,8 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
     setVideoUrl(null);
     setMotionStatus(null);
     try {
-      let videoResult: string | undefined;
       let creditsLeft: number | undefined;
+      let taskId: string;
 
       if (tab === 'video') {
         const r = await api.generateVideo({
@@ -343,11 +343,10 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
           generateAudio: nativeAudio,
           startImageUrl: startFrame || undefined,
         });
-        videoResult = r.videoUrl;
+        taskId = r.taskId;
         creditsLeft = r.creditsLeft;
       } else if (tab === 'motion') {
         if (motionImage && motionVideo) {
-          // Motion-control: async с polling
           const r = await api.generateMotion({
             imageUrl: motionImage,
             videoUrl: motionVideo,
@@ -356,13 +355,8 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
             model: videoModel,
             mode: videoMode,
           });
+          taskId = r.taskId;
           creditsLeft = r.creditsLeft;
-          if (r.async && r.requestId) {
-            setMotionStatus('Отправлено в очередь...');
-            videoResult = await pollMotionResult(r.requestId);
-          } else {
-            videoResult = r.videoUrl;
-          }
         } else {
           const r = await api.generateMotion({
             imageUrl: motionImage || '',
@@ -371,7 +365,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
             model: videoModel,
             mode: videoMode,
           });
-          videoResult = r.videoUrl;
+          taskId = r.taskId;
           creditsLeft = r.creditsLeft;
         }
       } else {
@@ -384,12 +378,16 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
           emotion: emotion !== 'neutral' ? emotion : undefined,
           avatarPrompt: avatarPrompt?.trim() || undefined,
         });
-        videoResult = r.videoUrl;
+        taskId = r.taskId;
         creditsLeft = r.creditsLeft;
       }
 
-      if (videoResult) setVideoUrl(videoResult);
       if (creditsLeft !== undefined) onCreditsUpdate(creditsLeft);
+
+      // Все генерации теперь async — polling через taskId
+      setMotionStatus('Отправлено в очередь...');
+      const videoResult = await pollTaskResult(taskId);
+      if (videoResult) setVideoUrl(videoResult);
       loadHistory();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Ошибка генерации');

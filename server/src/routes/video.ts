@@ -1,10 +1,18 @@
 import { Router, Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth';
-import { generateVideo, generateMotion, generateAvatar, generateTTS } from '../services/kling';
-import { submitMotionControlDirect, checkMotionStatusDirect } from '../services/kling-direct';
+import {
+  submitTextToVideo,
+  submitImageToVideo,
+  submitMotionControlDirect,
+  submitTTS,
+  submitLipSync,
+  checkTaskStatus,
+  checkMotionStatusDirect,
+} from '../services/kling-direct';
 import { deduct, addCredits, TxType } from '../services/balance';
 import { saveGeneration } from '../services/generations';
 import { pool } from '../db/pool';
+import crypto from 'crypto';
 
 export const videoRouter = Router();
 videoRouter.use(requireAuth);
@@ -50,7 +58,7 @@ async function charge(
   });
 }
 
-// POST /video/generate — текст → видео
+// ─── POST /video/generate — текст → видео (async) ──────────
 videoRouter.post('/generate', async (req: Request, res: Response) => {
   const { prompt, model, duration, mode, aspectRatio, generateAudio, startImageUrl } = req.body;
   if (!prompt?.trim()) { res.status(400).json({ error: 'Промпт обязателен' }); return; }
@@ -62,9 +70,25 @@ videoRouter.post('/generate', async (req: Request, res: Response) => {
   if (creditsLeft === null) return;
 
   try {
-    const result = await generateVideo(prompt, dur, model, mode, aspectRatio, generateAudio, startImageUrl);
-    await saveGeneration(req.userId!, 'video', prompt, result.videoUrl, cost).catch(console.error);
-    res.json({ ...result, creditsLeft, cost });
+    const { klingTaskId } = await submitTextToVideo({
+      prompt: prompt.trim(),
+      duration: dur,
+      model,
+      mode,
+      aspectRatio,
+      generateAudio: !!generateAudio,
+      startImageUrl,
+    });
+
+    const taskId = crypto.randomUUID();
+    await pool.query(
+      `INSERT INTO pending_tasks (task_id, kling_task_id, user_id, type, kling_endpoint, cost, prompt, metadata)
+       VALUES ($1, $2, $3, 'video', '/v1/videos/text2video', $4, $5, $6)`,
+      [taskId, klingTaskId, req.userId!, cost, prompt.trim(),
+       JSON.stringify({ model, mode, duration: dur, aspectRatio, generateAudio: !!generateAudio })]
+    );
+
+    res.json({ taskId, async: true, creditsLeft, cost });
   } catch (e: any) {
     await addCredits(req.userId!, cost, 'video', `Рефанд: ошибка генерации`).catch(console.error);
     console.error('[video] error + refund:', e?.message);
@@ -72,7 +96,7 @@ videoRouter.post('/generate', async (req: Request, res: Response) => {
   }
 });
 
-// POST /video/motion — картинка → видео (image-to-video) ИЛИ motion control (image + video)
+// ─── POST /video/motion — image-to-video ИЛИ motion control (async) ──
 videoRouter.post('/motion', async (req: Request, res: Response) => {
   const { imageUrl, videoUrl, characterOrientation, prompt, duration, model, mode } = req.body;
   if (!imageUrl) { res.status(400).json({ error: 'imageUrl обязателен' }); return; }
@@ -86,21 +110,40 @@ videoRouter.post('/motion', async (req: Request, res: Response) => {
   if (creditsLeft === null) return;
 
   try {
+    let klingTaskId: string;
+    let klingEndpoint: string;
+    let taskType: string;
+
     if (isMotionControl) {
-      // ASYNC: submit в Kling direct API, вернуть taskId сразу
       const orient = characterOrientation === 'image' ? 'image' as const : 'video' as const;
-      const { taskId } = await submitMotionControlDirect(imageUrl, videoUrl, orient, mode, prompt);
+      const result = await submitMotionControlDirect(imageUrl, videoUrl, orient, mode, prompt);
+      klingTaskId = result.taskId;
+      klingEndpoint = '/v1/videos/motion-control';
+      taskType = 'motion-control';
+    } else {
+      const result = await submitImageToVideo({ imageUrl, prompt, duration: dur, model, mode });
+      klingTaskId = result.klingTaskId;
+      klingEndpoint = '/v1/videos/image2video';
+      taskType = 'motion';
+    }
+
+    const taskId = crypto.randomUUID();
+    await pool.query(
+      `INSERT INTO pending_tasks (task_id, kling_task_id, user_id, type, kling_endpoint, cost, prompt, metadata)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [taskId, klingTaskId, req.userId!, taskType, klingEndpoint, cost, prompt || null,
+       JSON.stringify({ model, mode, duration: dur })]
+    );
+
+    // Также пишем в pending_motion для backward compat (motion-control)
+    if (isMotionControl) {
       await pool.query(
         `INSERT INTO pending_motion (request_id, user_id, cost, endpoint, prompt) VALUES ($1, $2, $3, $4, $5)`,
-        [taskId, req.userId!, cost, 'kling-direct', prompt || null]
-      );
-      res.json({ requestId: taskId, creditsLeft, cost, async: true });
-    } else {
-      // Обычный motion (image-to-video) — синхронный
-      const result = await generateMotion(imageUrl, prompt, dur, model, mode);
-      await saveGeneration(req.userId!, 'motion', prompt || null, result.videoUrl, cost).catch(console.error);
-      res.json({ ...result, creditsLeft, cost });
+        [klingTaskId, req.userId!, cost, 'kling-direct', prompt || null]
+      ).catch(() => {}); // ignore if duplicate
     }
+
+    res.json({ taskId, requestId: klingTaskId, async: true, creditsLeft, cost });
   } catch (e: any) {
     await addCredits(req.userId!, cost, 'motion', `Рефанд: ошибка motion`).catch(console.error);
     console.error('[motion] error + refund:', e?.message, e?.body || '');
@@ -108,15 +151,74 @@ videoRouter.post('/motion', async (req: Request, res: Response) => {
   }
 });
 
-// GET /video/motion-status/:requestId — проверить статус генерации
+// ─── GET /video/task-status/:taskId — универсальный статус задачи ──
+videoRouter.get('/task-status/:taskId', async (req: Request, res: Response) => {
+  try {
+    const { taskId } = req.params;
+    const { rows } = await pool.query(
+      'SELECT * FROM pending_tasks WHERE task_id = $1',
+      [taskId]
+    );
+    const task = rows[0];
+    if (!task) { res.status(404).json({ error: 'Задача не найдена' }); return; }
+    if (String(task.user_id) !== String(req.userId)) { res.status(403).json({ error: 'Нет доступа' }); return; }
+
+    res.json({
+      taskId: task.task_id,
+      type: task.type,
+      status: task.status,
+      resultUrl: task.result_url,
+      errorMsg: task.error_msg,
+      cost: task.cost,
+      createdAt: task.created_at,
+    });
+  } catch (e: any) {
+    console.error('[task-status] error:', e?.message);
+    res.status(500).json({ error: e.message ?? 'Ошибка проверки статуса' });
+  }
+});
+
+// ─── GET /video/tasks — все задачи юзера ──
+videoRouter.get('/tasks', async (req: Request, res: Response) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT task_id, type, status, result_url, error_msg, prompt, cost, created_at
+       FROM pending_tasks WHERE user_id = $1 ORDER BY created_at DESC LIMIT 20`,
+      [req.userId!]
+    );
+    res.json(rows);
+  } catch (e: any) {
+    console.error('[tasks] error:', e?.message);
+    res.status(500).json({ error: e.message ?? 'Ошибка загрузки задач' });
+  }
+});
+
+// ─── GET /video/motion-status/:requestId — legacy (backward compat) ──
 videoRouter.get('/motion-status/:requestId', async (req: Request, res: Response) => {
   const { requestId } = req.params;
+
+  // Сначала проверяем новую таблицу
+  const { rows: newRows } = await pool.query(
+    'SELECT * FROM pending_tasks WHERE kling_task_id = $1 OR task_id = $1',
+    [requestId]
+  );
+  if (newRows.length > 0) {
+    const task = newRows[0];
+    if (String(task.user_id) !== String(req.userId)) { res.status(403).json({ error: 'Нет доступа' }); return; }
+    res.json({
+      status: task.status === 'pending' ? 'submitted' : task.status,
+      videoUrl: task.result_url,
+      errorMsg: task.error_msg,
+    });
+    return;
+  }
+
+  // Fallback на legacy таблицу pending_motion
   const row = await pool.query('SELECT * FROM pending_motion WHERE request_id = $1', [requestId]);
   const meta = row.rows[0];
   if (!meta) { res.status(404).json({ error: 'Запрос не найден' }); return; }
   if (String(meta.user_id) !== String(req.userId)) { res.status(403).json({ error: 'Нет доступа' }); return; }
 
-  // Старше 60 мин — удалить, рефанд (Kling генерит motion-control до 36 мин)
   if (Date.now() - new Date(meta.created_at).getTime() > 60 * 60 * 1000) {
     await addCredits(Number(meta.user_id), meta.cost, 'motion', 'Рефанд: таймаут motion-control').catch(console.error);
     await pool.query('DELETE FROM pending_motion WHERE request_id = $1', [requestId]);
@@ -127,7 +229,6 @@ videoRouter.get('/motion-status/:requestId', async (req: Request, res: Response)
   try {
     const result = await checkMotionStatusDirect(requestId);
 
-    // Если succeed — сохраняем генерацию, удаляем pending, возвращаем видео
     if (result.status === 'succeed' && result.videoUrl) {
       await saveGeneration(Number(meta.user_id), 'motion', meta.prompt, result.videoUrl, meta.cost).catch(console.error);
       await pool.query('DELETE FROM pending_motion WHERE request_id = $1', [requestId]);
@@ -135,7 +236,6 @@ videoRouter.get('/motion-status/:requestId', async (req: Request, res: Response)
       return;
     }
 
-    // Если failed — рефанд, удаляем pending
     if (result.status === 'failed') {
       await addCredits(Number(meta.user_id), meta.cost, 'motion', 'Рефанд: ошибка motion-control').catch(console.error);
       await pool.query('DELETE FROM pending_motion WHERE request_id = $1', [requestId]);
@@ -143,7 +243,6 @@ videoRouter.get('/motion-status/:requestId', async (req: Request, res: Response)
       return;
     }
 
-    // processing / submitted — продолжаем ждать
     res.json({ status: result.status });
   } catch (e: any) {
     console.error('[motion-status] error:', e?.message);
@@ -151,31 +250,54 @@ videoRouter.get('/motion-status/:requestId', async (req: Request, res: Response)
   }
 });
 
-// POST /video/tts-preview — превью голоса (бесплатно, без списания)
+// ─── POST /video/tts-preview — превью голоса (бесплатно, синхронный) ──
 videoRouter.post('/tts-preview', async (req: Request, res: Response) => {
   const { text, voiceId, voiceSpeed } = req.body;
   if (!text?.trim()) { res.status(400).json({ error: 'Текст обязателен' }); return; }
   try {
-    const result = await generateTTS(text, voiceId, voiceSpeed);
-    res.json(result);
+    const { klingTaskId } = await submitTTS({ text: text.trim(), voiceId, voiceSpeed });
+    // Быстрый inline poll (TTS обычно <10 сек)
+    for (let i = 0; i < 15; i++) {
+      await new Promise(r => setTimeout(r, 2000));
+      const status = await checkTaskStatus('/v1/audios/tts', klingTaskId);
+      if (status.status === 'succeed' && status.resultUrl) {
+        res.json({ audioUrl: status.resultUrl });
+        return;
+      }
+      if (status.status === 'failed') {
+        throw new Error(status.errorMsg || 'Ошибка TTS');
+      }
+    }
+    throw new Error('TTS таймаут');
   } catch (e: any) {
     res.status(500).json({ error: e.message ?? 'Ошибка TTS' });
   }
 });
 
-// POST /video/tts — генерация аудио для аватара (списание при генерации аватара)
+// ─── POST /video/tts — генерация аудио (синхронный, для standalone) ──
 videoRouter.post('/tts', async (req: Request, res: Response) => {
   const { text, voiceId, voiceSpeed } = req.body;
   if (!text?.trim()) { res.status(400).json({ error: 'Текст обязателен' }); return; }
   try {
-    const result = await generateTTS(text, voiceId, voiceSpeed);
-    res.json(result);
+    const { klingTaskId } = await submitTTS({ text: text.trim(), voiceId, voiceSpeed });
+    for (let i = 0; i < 15; i++) {
+      await new Promise(r => setTimeout(r, 2000));
+      const status = await checkTaskStatus('/v1/audios/tts', klingTaskId);
+      if (status.status === 'succeed' && status.resultUrl) {
+        res.json({ audioUrl: status.resultUrl });
+        return;
+      }
+      if (status.status === 'failed') {
+        throw new Error(status.errorMsg || 'Ошибка TTS');
+      }
+    }
+    throw new Error('TTS таймаут');
   } catch (e: any) {
     res.status(500).json({ error: e.message ?? 'Ошибка TTS' });
   }
 });
 
-// POST /video/avatar — изображение + текст → TTS → говорящий аватар
+// ─── POST /video/avatar — TTS → lip-sync цепочка (async) ──
 videoRouter.post('/avatar', async (req: Request, res: Response) => {
   const { imageUrl, text, voiceId, voiceSpeed, emotion, avatarPrompt } = req.body;
   if (!imageUrl) { res.status(400).json({ error: 'imageUrl обязателен' }); return; }
@@ -185,17 +307,31 @@ videoRouter.post('/avatar', async (req: Request, res: Response) => {
   if (creditsLeft === null) return;
 
   try {
-    // Шаг 1: TTS — текст → аудио URL
-    const ttsResult = await generateTTS(text.trim(), voiceId || 'oversea_male1', voiceSpeed ?? 1.0);
-    if (!ttsResult.audioUrl) throw new Error('TTS не вернул аудио');
+    // Шаг 1: Submit TTS (worker подхватит результат и запустит lip-sync)
+    const { klingTaskId } = await submitTTS({
+      text: text.trim(),
+      voiceId: voiceId || 'oversea_male1',
+      voiceSpeed: voiceSpeed ?? 1.0,
+    });
 
-    // Шаг 2: Собрать prompt из emotion + avatarPrompt
     const prompt = [avatarPrompt, emotion && emotion !== 'neutral' ? `Expression: ${emotion}` : ''].filter(Boolean).join('. ') || undefined;
 
-    // Шаг 3: Аватар — фото + аудио → видео
-    const result = await generateAvatar(imageUrl, ttsResult.audioUrl, prompt);
-    await saveGeneration(req.userId!, 'avatar', text.trim(), result.videoUrl, AVATAR_COST).catch(console.error);
-    res.json({ ...result, creditsLeft, cost: AVATAR_COST });
+    const taskId = crypto.randomUUID();
+    await pool.query(
+      `INSERT INTO pending_tasks (task_id, kling_task_id, user_id, type, kling_endpoint, cost, prompt, metadata)
+       VALUES ($1, $2, $3, 'tts', '/v1/audios/tts', $4, $5, $6)`,
+      [taskId, klingTaskId, req.userId!, AVATAR_COST, text.trim(),
+       JSON.stringify({
+         chain: 'avatar',
+         imageUrl,
+         avatarPrompt: prompt,
+         voiceId,
+         voiceSpeed: voiceSpeed ?? 1.0,
+         emotion,
+       })]
+    );
+
+    res.json({ taskId, async: true, creditsLeft, cost: AVATAR_COST });
   } catch (e: any) {
     await addCredits(req.userId!, AVATAR_COST, 'avatar', `Рефанд: ошибка avatar`).catch(console.error);
     console.error('[avatar] error + refund:', e?.message);

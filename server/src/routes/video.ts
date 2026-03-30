@@ -4,7 +4,7 @@ import {
   submitTextToVideo,
   submitImageToVideo,
   submitMotionControlDirect,
-  submitAvatar,
+  submitAvatarStep1,
   checkTaskStatus,
   checkMotionStatusDirect,
 } from '../services/kling-direct';
@@ -168,13 +168,29 @@ videoRouter.get('/task-status/:taskId', async (req: Request, res: Response) => {
       'SELECT * FROM pending_tasks WHERE task_id = $1',
       [taskId]
     );
-    const task = rows[0];
+    let task = rows[0];
     if (!task) { res.status(404).json({ error: 'Задача не найдена' }); return; }
     if (String(task.user_id) !== String(req.userId)) { res.status(403).json({ error: 'Нет доступа' }); return; }
 
+    // Avatar chain: step1 succeed → показать статус lip-sync (step2)
+    if (task.type === 'avatar-step1' && task.status === 'succeed') {
+      const { rows: childRows } = await pool.query(
+        `SELECT * FROM pending_tasks WHERE user_id = $1 AND type = 'avatar'
+         AND metadata->>'parentTaskId' = $2 ORDER BY created_at DESC LIMIT 1`,
+        [req.userId!, task.task_id]
+      );
+      if (childRows.length > 0) {
+        task = childRows[0]; // показываем lip-sync статус
+      } else {
+        // lip-sync ещё не создана worker-ом
+        res.json({ taskId: task.task_id, type: 'avatar', status: 'processing', resultUrl: null, errorMsg: null, cost: task.cost, createdAt: task.created_at });
+        return;
+      }
+    }
+
     res.json({
       taskId: task.task_id,
-      type: task.type,
+      type: task.type === 'avatar-step1' ? 'avatar' : task.type,
       status: task.status,
       resultUrl: task.result_url,
       errorMsg: task.error_msg,
@@ -281,20 +297,22 @@ videoRouter.post('/avatar', async (req: Request, res: Response) => {
   try {
     const prompt = [avatarPrompt, emotion && emotion !== 'neutral' ? `Expression: ${emotion}` : ''].filter(Boolean).join('. ') || undefined;
 
-    const { klingTaskId } = await submitAvatar({
-      imageUrl,
-      text: text.trim(),
-      voiceId: voiceId || 'oversea_male1',
-      voiceSpeed: voiceSpeed ?? 1.0,
-      prompt,
-    });
+    // Шаг 1: image2video (фото → видео с лицом 5 сек)
+    // Worker подхватит результат и запустит шаг 2 (lip-sync)
+    const { klingTaskId } = await submitAvatarStep1({ imageUrl });
 
     const taskId = crypto.randomUUID();
     await pool.query(
       `INSERT INTO pending_tasks (task_id, kling_task_id, user_id, type, kling_endpoint, cost, prompt, metadata)
-       VALUES ($1, $2, $3, 'avatar', '/v1/videos/ai-avatar', $4, $5, $6)`,
+       VALUES ($1, $2, $3, 'avatar-step1', '/v1/videos/image2video', $4, $5, $6)`,
       [taskId, klingTaskId, req.userId!, AVATAR_COST, text.trim(),
-       JSON.stringify({ model: 'ai-avatar', voiceId, voiceSpeed: voiceSpeed ?? 1.0, emotion })]
+       JSON.stringify({
+         chain: 'avatar-lipsync',
+         text: text.trim(),
+         voiceId: voiceId || 'oversea_male1',
+         voiceSpeed: voiceSpeed ?? 1.0,
+         avatarPrompt: prompt,
+       })]
     );
 
     res.json({ taskId, async: true, creditsLeft, cost: AVATAR_COST });

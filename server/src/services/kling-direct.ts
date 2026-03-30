@@ -213,64 +213,43 @@ export async function submitMotionControlDirect(
   return { taskId: extractTaskId(result) };
 }
 
-// ─── Avatar (Kling AI Avatar endpoint) ───────────────────
-// Endpoint /v1/videos/ai-avatar — существует (401, не 404)
-// Параметры определяем методом проб — документация закрыта
-export async function submitAvatar(params: {
+// ─── Avatar Step 1: image2video (фото → видео с лицом) ───
+export async function submitAvatarStep1(params: {
   imageUrl: string;
+}): Promise<{ klingTaskId: string }> {
+  console.log('[kling-direct] avatar step 1: image2video');
+  return submitImageToVideo({
+    imageUrl: params.imageUrl,
+    prompt: 'A person looking directly at the camera with natural subtle head movements, neutral expression, well-lit face, portrait video',
+    duration: 5,
+    model: 'video-2.6',
+    mode: '720p',
+  });
+}
+
+// ─── Avatar Step 2: lip-sync (видео → говорящий аватар) ───
+export async function submitLipSync(params: {
+  originTaskId: string;
   text: string;
   voiceId?: string;
   voiceSpeed?: number;
-  prompt?: string;
 }): Promise<{ klingTaskId: string }> {
-  console.log('[kling-direct] submitting avatar via /v1/videos/ai-avatar');
+  console.log('[kling-direct] avatar step 2: lip-sync, originTaskId:', params.originTaskId);
 
-  const httpImageUrl = dataUrlToHttpUrl(params.imageUrl);
-
-  // Пробуем форматы последовательно
-  const formats = [
-    // Формат 1: как fal.ai (image_url + text + voice)
-    {
-      image_url: httpImageUrl,
+  const body: Record<string, any> = {
+    input: {
+      mode: 'text2video',
+      origin_task_id: params.originTaskId,
       text: params.text.substring(0, 120),
       voice_id: params.voiceId || 'oversea_male1',
       voice_speed: params.voiceSpeed ?? 1.0,
-      prompt: params.prompt || undefined,
+      voice_language: 'en',
     },
-    // Формат 2: вложенный input
-    {
-      input: {
-        image_url: httpImageUrl,
-        text: params.text.substring(0, 120),
-        voice_id: params.voiceId || 'oversea_male1',
-        voice_speed: params.voiceSpeed ?? 1.0,
-      },
-    },
-    // Формат 3: mode + input (как lip-sync)
-    {
-      input: {
-        mode: 'text2video',
-        image_url: httpImageUrl,
-        text: params.text.substring(0, 120),
-        voice_id: params.voiceId || 'oversea_male1',
-        voice_speed: params.voiceSpeed ?? 1.0,
-        voice_language: 'en',
-      },
-    },
-  ];
+  };
 
-  for (let i = 0; i < formats.length; i++) {
-    try {
-      console.log(`[kling-direct] ai-avatar attempt ${i + 1}/${formats.length}:`, JSON.stringify(formats[i]).substring(0, 300));
-      const result = await klingRequest('POST', '/v1/videos/ai-avatar', formats[i]);
-      console.log(`[kling-direct] ai-avatar format ${i + 1} WORKED!`);
-      return { klingTaskId: extractTaskId(result) };
-    } catch (err) {
-      console.error(`[kling-direct] ai-avatar format ${i + 1} failed:`, (err as Error).message);
-      if (i === formats.length - 1) throw err;
-    }
-  }
-  throw new Error('Avatar API: все форматы отклонены');
+  console.log('[kling-direct] lip-sync body:', JSON.stringify(body).substring(0, 500));
+  const result = await klingRequest('POST', '/v1/videos/lip-sync', body);
+  return { klingTaskId: extractTaskId(result) };
 }
 
 // Whitelist допустимых Kling API endpoints для polling

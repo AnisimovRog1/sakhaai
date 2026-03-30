@@ -156,6 +156,7 @@ export async function submitImageToVideo(params: {
 }): Promise<{ klingTaskId: string }> {
   console.log('[kling-direct] submitting image2video, model:', params.model, 'mode:', params.mode);
 
+  // Сначала пробуем HTTP URL (temp file), если не сработает — base64
   const httpImageUrl = dataUrlToHttpUrl(params.imageUrl);
   const body: Record<string, any> = {
     image_url: httpImageUrl,
@@ -165,8 +166,23 @@ export async function submitImageToVideo(params: {
   };
   if (params.prompt?.trim()) body.prompt = params.prompt.trim();
 
-  const result = await klingRequest('POST', '/v1/videos/image2video', body);
-  return { klingTaskId: extractTaskId(result) };
+  try {
+    const result = await klingRequest('POST', '/v1/videos/image2video', body);
+    return { klingTaskId: extractTaskId(result) };
+  } catch (err) {
+    // Если Kling не смог скачать temp URL — попробовать base64
+    if ((err as Error).message?.includes('image') && params.imageUrl.startsWith('data:')) {
+      console.log('[kling-direct] HTTP URL failed, trying base64 image');
+      const match = params.imageUrl.match(/^data:([^;]+);base64,(.+)$/);
+      if (match) {
+        body.image = match[2]; // base64 без prefix
+        delete body.image_url;
+        const result = await klingRequest('POST', '/v1/videos/image2video', body);
+        return { klingTaskId: extractTaskId(result) };
+      }
+    }
+    throw err;
+  }
 }
 
 // ─── Motion Control ────────────────────────────────────────

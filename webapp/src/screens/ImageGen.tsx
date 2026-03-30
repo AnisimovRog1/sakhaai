@@ -60,7 +60,8 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
     api.getGenerations('image', 20).then(setHistory).catch(console.error).finally(() => setHistoryLoading(false));
   }
 
-  const cost = BASE_COST * count;
+  const resMultiplier = resolution === '4K' ? 2.0 : resolution === '2K' ? 1.5 : 1.0;
+  const cost = Math.ceil(BASE_COST * resMultiplier) * count;
   const canGenerate = prompt.trim().length > 0 && user.credits >= cost && !loading
     && (tab === 'txt2img' || refImages.length > 0);
 

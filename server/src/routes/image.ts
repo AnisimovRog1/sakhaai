@@ -7,7 +7,14 @@ import { saveGeneration } from '../services/generations';
 export const imageRouter = Router();
 imageRouter.use(requireAuth);
 
-const IMAGE_COST_PER_IMAGE = 79;
+const IMAGE_COST_BASE = 79;
+
+// Множитель цены за разрешение
+function getResolutionMultiplier(resolution?: string): number {
+  if (resolution === '4K') return 2.0;
+  if (resolution === '2K') return 1.5;
+  return 1.0; // 1K или не указано
+}
 
 // POST /image/generate
 imageRouter.post('/generate', async (req: Request, res: Response) => {
@@ -18,13 +25,15 @@ imageRouter.post('/generate', async (req: Request, res: Response) => {
   }
 
   const count = Math.min(Math.max(Number(rawCount) || 1, 1), 4);
-  const totalCost = IMAGE_COST_PER_IMAGE * count;
+  const resMultiplier = getResolutionMultiplier(resolution);
+  const costPerImage = Math.ceil(IMAGE_COST_BASE * resMultiplier);
+  const totalCost = costPerImage * count;
 
   const creditsLeft = await deduct(
     req.userId!,
     totalCost,
     'image',
-    `Картинка x${count}: ${(prompt as string).slice(0, 50)}`
+    `Картинка x${count} ${resolution || '1K'}: ${(prompt as string).slice(0, 50)}`
   ).catch((err: Error & { status?: number }) => {
     res.status(err.status ?? 500).json({ error: err.message });
     return null;
@@ -43,19 +52,24 @@ imageRouter.post('/generate', async (req: Request, res: Response) => {
       });
     }
 
-    // Генерируем count изображений параллельно
-    const promises = Array.from({ length: count }, () =>
-      parsedImages
-        ? editImage(parsedImages, prompt, model, aspectRatio, resolution)
-        : generateImage(prompt, model, aspectRatio, resolution)
-    );
-
-    const results = await Promise.all(promises);
-    const imageUrls = results.map(r => r.imageUrl);
+    // Генерируем count изображений ПОСЛЕДОВАТЕЛЬНО (Gemini rate limit)
+    const imageUrls: string[] = [];
+    for (let i = 0; i < count; i++) {
+      console.log(`[image] generating ${i + 1}/${count}...`);
+      const result = parsedImages
+        ? await editImage(parsedImages, prompt, model, aspectRatio, resolution)
+        : await generateImage(prompt, model, aspectRatio, resolution);
+      imageUrls.push(result.imageUrl);
+    }
 
     // Сохраняем каждый результат в историю
     for (const url of imageUrls) {
-      await saveGeneration(req.userId!, 'image', prompt, url, IMAGE_COST_PER_IMAGE).catch(console.error);
+      try {
+        await saveGeneration(req.userId!, 'image', prompt, url, costPerImage);
+        console.log(`[image] saved to generations, url length: ${url.length}`);
+      } catch (saveErr: any) {
+        console.error('[image] SAVE FAILED:', saveErr?.message, 'url length:', url.length);
+      }
     }
 
     res.json({

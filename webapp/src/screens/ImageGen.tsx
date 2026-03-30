@@ -38,9 +38,9 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
   const [resolution, setResolution] = useState<Resolution>('1K');
   const [showModelPicker, setShowModelPicker] = useState(false);
   const [showAspectPicker, setShowAspectPicker] = useState(false);
-  const [refImage, setRefImage] = useState<string | null>(null);
-  const [_refFile, setRefFile] = useState<File | null>(null);
+  const [refImages, setRefImages] = useState<string[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
+  const MAX_REF_IMAGES = 4;
   const promptRef = useRef<HTMLTextAreaElement>(null);
 
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -62,23 +62,23 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
 
   const cost = BASE_COST * count;
   const canGenerate = prompt.trim().length > 0 && user.credits >= cost && !loading
-    && (tab === 'txt2img' || refImage !== null);
+    && (tab === 'txt2img' || refImages.length > 0);
 
   const selectedModel = MODELS.find(m => m.id === model)!;
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file) return;
-    setRefFile(file);
+    if (!file || refImages.length >= MAX_REF_IMAGES) return;
     const reader = new FileReader();
-    reader.onload = () => setRefImage(reader.result as string);
+    reader.onload = () => {
+      setRefImages(prev => [...prev, reader.result as string]);
+    };
     reader.readAsDataURL(file);
+    if (fileRef.current) fileRef.current.value = '';
   }
 
-  function removeRefImage() {
-    setRefImage(null);
-    setRefFile(null);
-    if (fileRef.current) fileRef.current.value = '';
+  function removeRefImage(index: number) {
+    setRefImages(prev => prev.filter((_, i) => i !== index));
   }
 
   async function generate() {
@@ -87,7 +87,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
     setError(null);
     setImageUrl(null);
     try {
-      const result = await api.generateImage(prompt.trim(), model);
+      const result = await api.generateImage(prompt.trim(), model, refImages.length > 0 ? refImages : undefined);
       setImageUrl(result.imageUrl);
       onCreditsUpdate(result.creditsLeft);
       loadHistory();
@@ -101,7 +101,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
   function handleSelectTemplate(templatePrompt: string, imageUrl?: string) {
     setPrompt(templatePrompt);
     if (imageUrl) {
-      setRefImage(imageUrl);
+      setRefImages([imageUrl]);
       setTab('img2img');
     }
     setSection('create');
@@ -218,44 +218,46 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
         )}
       </div>
 
-      {/* ─── Reference image (img2img only) ─── */}
+      {/* ─── Reference images (img2img only, до 4 шт.) ─── */}
       {tab === 'img2img' && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <label className="text-white text-sm font-semibold">{t('image.uploadRef')}</label>
-            {refImage && (
-              <span className="text-slate-200 text-xs">1/10</span>
+            {refImages.length > 0 && (
+              <span className="text-slate-200 text-xs">{refImages.length}/{MAX_REF_IMAGES}</span>
             )}
           </div>
 
-          {refImage ? (
-            <div className="relative inline-block">
-              <img src={refImage} alt="Референс" className="w-24 h-24 object-cover rounded-xl border border-white/[0.10]" />
+          <div className="flex flex-wrap gap-3">
+            {refImages.map((img, i) => (
+              <div key={i} className="relative">
+                <img src={img} alt={`Референс ${i + 1}`} className="w-24 h-24 object-cover rounded-xl border border-white/[0.10]" />
+                <button
+                  onClick={() => removeRefImage(i)}
+                  className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 flex items-center justify-center shadow-lg"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </div>
+            ))}
+
+            {refImages.length < MAX_REF_IMAGES && (
               <button
-                onClick={removeRefImage}
-                className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 flex items-center justify-center shadow-lg"
+                onClick={() => fileRef.current?.click()}
+                className="w-24 h-24 rounded-xl border-2 border-dashed border-white/[0.15] flex flex-col items-center justify-center gap-1.5 text-slate-200 active:bg-white/[0.04] transition-colors"
               >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round">
-                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => fileRef.current?.click()}
-              className="w-28 h-28 rounded-xl border-2 border-dashed border-white/[0.15] flex flex-col items-center justify-center gap-2 text-slate-200 active:bg-white/[0.04] transition-colors"
-            >
-              <div className="w-10 h-10 rounded-full bg-white/[0.08] flex items-center justify-center">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                   <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
                 </svg>
-              </div>
-              <span className="text-xs font-medium">Добавить</span>
-            </button>
-          )}
+                <span className="text-[10px] font-medium">Добавить</span>
+              </button>
+            )}
+          </div>
 
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
-          <p className="text-slate-400 text-xs">Перетащите или нажмите, чтобы загрузить изображение</p>
+          <p className="text-slate-400 text-xs">Нажмите +, чтобы добавить изображение (до {MAX_REF_IMAGES})</p>
         </div>
       )}
 

@@ -11,7 +11,7 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
 // Маппинг UI моделей → Gemini модели
 const MODEL_MAP: Record<string, string> = {
-  'nano-banana-pro': 'gemini-2.5-flash-preview-05-20',
+  'nano-banana-pro': 'gemini-3.1-flash-image-preview',
   'nano-banana-2':   'gemini-2.5-flash-image',
 };
 const DEFAULT_MODEL = 'gemini-2.5-flash-image';
@@ -49,21 +49,26 @@ export async function generateImage(prompt: string, model?: string): Promise<Ima
   throw new Error('Gemini не вернул изображение');
 }
 
-// Редактирование изображения (img2img): отправляем картинку + промпт
+// Редактирование изображения (img2img): отправляем картинки-референсы + промпт
+// Поддерживает 1-4 референсных изображения
 export async function editImage(
-  imageBase64: string,
-  mimeType: string,
+  images: Array<{ base64: string; mimeType: string }>,
   prompt: string,
   model?: string
 ): Promise<ImageGenResult> {
   if (!process.env.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY не задан');
+  if (images.length === 0) throw new Error('Нужно хотя бы одно изображение');
+
+  const imageParts = images.map(img => ({
+    inlineData: { mimeType: img.mimeType, data: img.base64 },
+  }));
 
   const response = await ai.models.generateContent({
     model: resolveModel(model),
     contents: [{
       parts: [
         { text: prompt },
-        { inlineData: { mimeType, data: imageBase64 } },
+        ...imageParts,
       ],
     }],
     config: {

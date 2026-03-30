@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth';
-import { generateImage } from '../services/nanabanana';
+import { generateImage, editImage } from '../services/nanabanana';
 import { deduct, addCredits } from '../services/balance';
 import { saveGeneration } from '../services/generations';
 
@@ -29,7 +29,20 @@ imageRouter.post('/generate', async (req: Request, res: Response) => {
   if (creditsLeft === null) return;
 
   try {
-    const result = await generateImage(prompt, model);
+    const { refImages } = req.body;
+    let result;
+
+    if (Array.isArray(refImages) && refImages.length > 0) {
+      // img2img: парсим data: URL → base64 + mimeType
+      const images = refImages.slice(0, 4).map((dataUrl: string) => {
+        const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+        if (!match) throw new Error('Некорректный формат изображения');
+        return { mimeType: match[1], base64: match[2] };
+      });
+      result = await editImage(images, prompt, model);
+    } else {
+      result = await generateImage(prompt, model);
+    }
 
     // Автосохранение в историю
     await saveGeneration(req.userId!, 'image', prompt, result.imageUrl, IMAGE_COST).catch(console.error);

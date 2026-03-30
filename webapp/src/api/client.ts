@@ -100,10 +100,10 @@ export const api = {
     request<Array<{ id: number; type: string; amount: number; description: string; created_at: string; icon: string; label: string; isDebit: boolean }>>(`/balance/transactions?limit=${limit}`),
 
   // ── Генерация изображений ────────────
-  generateImage: (prompt: string, model?: string) =>
+  generateImage: (prompt: string, model?: string, refImages?: string[]) =>
     request<{ imageUrl: string; creditsLeft: number; cost: number }>('/image/generate', {
       method: 'POST',
-      body: JSON.stringify({ prompt, model }),
+      body: JSON.stringify({ prompt, model, refImages }),
     }),
 
   // ── Генерация видео (все async) ──────

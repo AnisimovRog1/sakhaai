@@ -52,14 +52,33 @@ imageRouter.post('/generate', async (req: Request, res: Response) => {
       });
     }
 
-    // Генерируем count изображений ПОСЛЕДОВАТЕЛЬНО (Gemini rate limit)
+    // Генерируем count изображений ПОСЛЕДОВАТЕЛЬНО
+    // Если одно фото не получилось — возвращаем те что получились
     const imageUrls: string[] = [];
+    let failedCount = 0;
     for (let i = 0; i < count; i++) {
-      console.log(`[image] generating ${i + 1}/${count}...`);
-      const result = parsedImages
-        ? await editImage(parsedImages, prompt, model, aspectRatio, resolution)
-        : await generateImage(prompt, model, aspectRatio, resolution);
-      imageUrls.push(result.imageUrl);
+      try {
+        console.log(`[image] generating ${i + 1}/${count}...`);
+        const result = parsedImages
+          ? await editImage(parsedImages, prompt, model, aspectRatio, resolution)
+          : await generateImage(prompt, model, aspectRatio, resolution);
+        imageUrls.push(result.imageUrl);
+      } catch (genErr: any) {
+        console.error(`[image] gen ${i + 1}/${count} failed:`, genErr?.message);
+        failedCount++;
+      }
+    }
+
+    // Если ничего не сгенерировалось — рефанд и ошибка
+    if (imageUrls.length === 0) {
+      throw new Error('Gemini не вернул изображение. Попробуйте другой промпт.');
+    }
+
+    // Рефанд за неудачные фото
+    if (failedCount > 0) {
+      const refundAmount = costPerImage * failedCount;
+      await addCredits(req.userId!, refundAmount, 'image', `Рефанд: ${failedCount} фото не получились`).catch(console.error);
+      console.log(`[image] partial refund: ${refundAmount} credits for ${failedCount} failed`);
     }
 
     // Сохраняем каждый результат в историю
@@ -75,8 +94,8 @@ imageRouter.post('/generate', async (req: Request, res: Response) => {
     res.json({
       imageUrl: imageUrls[0],
       imageUrls,
-      creditsLeft,
-      cost: totalCost,
+      creditsLeft: creditsLeft + (costPerImage * failedCount),
+      cost: costPerImage * imageUrls.length,
     });
   } catch (e: any) {
     await addCredits(req.userId!, totalCost, 'image', `Рефанд: ошибка генерации`).catch(console.error);

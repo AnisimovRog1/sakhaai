@@ -122,9 +122,9 @@ migrate()
     const server = app.listen(PORT, () => {
       console.log(`✅ Сервер запущен на порту ${PORT}`);
     });
-    // Таймаут 2 мин — все запросы теперь async (worker обрабатывает)
-    server.timeout = 120_000;
-    server.keepAliveTimeout = 125_000;
+    // Таймаут 15 мин — avatar через fal.ai может занимать до 5 мин
+    server.timeout = 900_000;
+    server.keepAliveTimeout = 920_000;
 
     // Планировщик: проверяем held-рефералы каждые 15 минут
     // Простой setInterval — без внешних зависимостей

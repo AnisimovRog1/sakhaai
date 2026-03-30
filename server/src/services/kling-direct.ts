@@ -213,7 +213,9 @@ export async function submitMotionControlDirect(
   return { taskId: extractTaskId(result) };
 }
 
-// ─── Avatar — используем image2video напрямую ───────────────
+// ─── Avatar (Kling AI Avatar endpoint) ───────────────────
+// Endpoint /v1/videos/ai-avatar — существует (401, не 404)
+// Параметры определяем методом проб — документация закрыта
 export async function submitAvatar(params: {
   imageUrl: string;
   text: string;
@@ -221,19 +223,54 @@ export async function submitAvatar(params: {
   voiceSpeed?: number;
   prompt?: string;
 }): Promise<{ klingTaskId: string }> {
-  // Генерируем промпт для "говорящего человека"
-  const talkingPrompt = params.prompt
-    ? `${params.prompt}. The person is talking and saying: "${params.text.substring(0, 80)}"`
-    : `The person in the photo is talking naturally, lip movements matching speech: "${params.text.substring(0, 80)}"`;
+  console.log('[kling-direct] submitting avatar via /v1/videos/ai-avatar');
 
-  // Используем ТОТ ЖЕ submitImageToVideo который работает в motion tab
-  return submitImageToVideo({
-    imageUrl: params.imageUrl,
-    prompt: talkingPrompt,
-    duration: 5,
-    model: 'video-2.6',
-    mode: '720p',
-  });
+  const httpImageUrl = dataUrlToHttpUrl(params.imageUrl);
+
+  // Пробуем форматы последовательно
+  const formats = [
+    // Формат 1: как fal.ai (image_url + text + voice)
+    {
+      image_url: httpImageUrl,
+      text: params.text.substring(0, 120),
+      voice_id: params.voiceId || 'oversea_male1',
+      voice_speed: params.voiceSpeed ?? 1.0,
+      prompt: params.prompt || undefined,
+    },
+    // Формат 2: вложенный input
+    {
+      input: {
+        image_url: httpImageUrl,
+        text: params.text.substring(0, 120),
+        voice_id: params.voiceId || 'oversea_male1',
+        voice_speed: params.voiceSpeed ?? 1.0,
+      },
+    },
+    // Формат 3: mode + input (как lip-sync)
+    {
+      input: {
+        mode: 'text2video',
+        image_url: httpImageUrl,
+        text: params.text.substring(0, 120),
+        voice_id: params.voiceId || 'oversea_male1',
+        voice_speed: params.voiceSpeed ?? 1.0,
+        voice_language: 'en',
+      },
+    },
+  ];
+
+  for (let i = 0; i < formats.length; i++) {
+    try {
+      console.log(`[kling-direct] ai-avatar attempt ${i + 1}/${formats.length}:`, JSON.stringify(formats[i]).substring(0, 300));
+      const result = await klingRequest('POST', '/v1/videos/ai-avatar', formats[i]);
+      console.log(`[kling-direct] ai-avatar format ${i + 1} WORKED!`);
+      return { klingTaskId: extractTaskId(result) };
+    } catch (err) {
+      console.error(`[kling-direct] ai-avatar format ${i + 1} failed:`, (err as Error).message);
+      if (i === formats.length - 1) throw err;
+    }
+  }
+  throw new Error('Avatar API: все форматы отклонены');
 }
 
 // Whitelist допустимых Kling API endpoints для polling
@@ -242,6 +279,7 @@ const ALLOWED_ENDPOINTS = new Set([
   '/v1/videos/image2video',
   '/v1/videos/motion-control',
   '/v1/videos/lip-sync',
+  '/v1/videos/ai-avatar',
 ]);
 
 // ─── Универсальная проверка статуса ────────────────────────

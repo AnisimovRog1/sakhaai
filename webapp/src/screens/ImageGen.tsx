@@ -22,7 +22,18 @@ const MODELS: { id: Model; name: string; desc: string; badge?: string; badgeColo
   { id: 'nano-banana-2', name: 'Nano Banana 2', desc: 'Модель нового поколения: быстрее, выше качество и поддержка 4K', badge: 'Новинка', badgeColor: 'bg-cyan-500' },
 ];
 
-const ASPECT_RATIOS: AspectRatio[] = ['1:1', '16:9', '9:16', '21:9', '3:2', '2:3', '3:4', '4:3', '4:5', '5:4'];
+const ASPECT_RATIOS: { id: AspectRatio; label: string; desc: string }[] = [
+  { id: '1:1',  label: '1:1',  desc: 'Квадрат' },
+  { id: '16:9', label: '16:9', desc: 'Широкий' },
+  { id: '9:16', label: '9:16', desc: 'Портрет' },
+  { id: '4:3',  label: '4:3',  desc: 'Стандарт' },
+  { id: '3:4',  label: '3:4',  desc: 'Портрет Стандарт' },
+  { id: '3:2',  label: '3:2',  desc: 'Фото' },
+  { id: '2:3',  label: '2:3',  desc: 'Портрет Фото' },
+  { id: '5:4',  label: '5:4',  desc: 'Средний' },
+  { id: '4:5',  label: '4:5',  desc: 'Портрет Средний' },
+  { id: '21:9', label: '21:9', desc: 'Ультраширокий' },
+];
 const RESOLUTIONS: Resolution[] = ['1K', '2K', '4K'];
 
 const BASE_COST = 79;
@@ -313,25 +324,33 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
           onClick={() => setShowAspectPicker(!showAspectPicker)}
           className="w-full flex items-center justify-between bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md px-4 py-3 text-sm text-white font-medium"
         >
-          <span>{aspect}</span>
+          <span>{aspect} ({ASPECT_RATIOS.find(a => a.id === aspect)?.desc})</span>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className={`transition-transform ${showAspectPicker ? 'rotate-180' : ''}`}>
             <polyline points="6 9 12 15 18 9"/>
           </svg>
         </button>
 
         {showAspectPicker && (
-          <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5 bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md p-2">
+          <div className="bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md p-2 space-y-1">
             {ASPECT_RATIOS.map((ar) => (
               <button
-                key={ar}
-                onClick={() => { setAspect(ar); setShowAspectPicker(false); }}
-                className={`py-2 rounded-lg text-xs font-bold transition-all ${
-                  aspect === ar
-                    ? 'bg-gradient-to-r from-violet-600 to-cyan-500 text-white'
-                    : 'text-white active:bg-white/[0.08]'
+                key={ar.id}
+                onClick={() => { setAspect(ar.id); setShowAspectPicker(false); }}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all ${
+                  aspect === ar.id
+                    ? 'bg-gradient-to-r from-violet-600/30 to-cyan-500/20 border border-violet-500/30'
+                    : 'active:bg-white/[0.06]'
                 }`}
               >
-                {ar}
+                <div className="flex items-center gap-3">
+                  <span className="text-white text-sm font-bold w-10">{ar.label}</span>
+                  <span className="text-slate-300 text-xs">{ar.desc}</span>
+                </div>
+                {aspect === ar.id && (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                )}
               </button>
             ))}
           </div>

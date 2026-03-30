@@ -68,25 +68,36 @@ export function GenerationViewer({ items, startIndex, onClose }: Props) {
 
     setSaving(true);
     try {
-      // Попробовать нативный share (iOS → "Сохранить в Фото")
       const resp = await fetch(item.resultUrl);
       const blob = await resp.blob();
-      const file = new File([blob], fileName, { type: mimeType });
 
-      if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file] });
-        setSaving(false);
-        return;
+      // Мобильный: нативный share (iOS → "Сохранить в Фото")
+      const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
+      if (isMobile) {
+        const file = new File([blob], fileName, { type: mimeType });
+        if (navigator.canShare?.({ files: [file] })) {
+          await navigator.share({ files: [file] });
+          setSaving(false);
+          return;
+        }
+        // Fallback: Telegram downloadFile
+        const tg = (window as any).Telegram?.WebApp;
+        if (tg?.downloadFile) {
+          tg.downloadFile({ url: item.resultUrl, file_name: fileName });
+          setSaving(false);
+          return;
+        }
       }
-    } catch {
-      // share отменён или не поддерживается — fallback
-    }
 
-    // Fallback: Telegram downloadFile
-    const tg = (window as any).Telegram?.WebApp;
-    if (tg?.downloadFile) {
-      tg.downloadFile({ url: item.resultUrl, file_name: fileName });
-    } else {
+      // Десктоп / fallback: прямое скачивание файла (выбор папки)
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      // fallback если fetch не сработал
       const a = document.createElement('a');
       a.href = item.resultUrl;
       a.download = fileName;
@@ -109,7 +120,7 @@ export function GenerationViewer({ items, startIndex, onClose }: Props) {
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Media — object-cover на весь экран, сдвиг вверх чтобы закрыть gap Telegram header */}
+      {/* Media — видео cover, фото contain (чтобы было видно целиком) */}
       {isVideo ? (
         <video
           ref={videoRef}
@@ -124,8 +135,8 @@ export function GenerationViewer({ items, startIndex, onClose }: Props) {
         <img
           src={item.resultUrl}
           alt={item.prompt || ''}
-          className="absolute w-full h-full object-cover"
-          style={{ top: '-30px', left: 0, right: 0, bottom: 0 }}
+          className="absolute w-full h-full object-contain"
+          style={{ top: 0, left: 0, right: 0, bottom: '80px' }}
         />
       )}
 

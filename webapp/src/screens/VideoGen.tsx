@@ -269,7 +269,18 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
 
   function loadHistory() {
     setHistoryLoading(true);
-    api.getGenerations('video', 20).then(items => setHistory(items.filter(i => i.resultUrl))).catch(console.error).finally(() => setHistoryLoading(false));
+    // Загружаем все видео-типы: video, motion, avatar
+    Promise.all([
+      api.getGenerations('video', 20),
+      api.getGenerations('motion', 20),
+      api.getGenerations('avatar', 20),
+    ]).then(([v, m, a]) => {
+      const all = [...v, ...m, ...a]
+        .filter(i => i.resultUrl)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 20);
+      setHistory(all);
+    }).catch(console.error).finally(() => setHistoryLoading(false));
   }
 
   const isMotionControl = tab === 'motion' && motionVideo !== null && motionImage !== null;
@@ -1107,11 +1118,19 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
                     <p className="text-white text-sm font-semibold truncate">{item.prompt || item.type}</p>
                     <p className="text-slate-400 text-xs">{new Date(item.createdAt).toLocaleDateString('ru')} · {item.cost} кр.</p>
                   </div>
-                  <div className="w-8 h-8 rounded-lg bg-white/[0.08] flex items-center justify-center flex-shrink-0">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="6 9 12 15 18 9"/>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      api.deleteGeneration(item.id).then(() => {
+                        setHistory(prev => prev.filter(h => h.id !== item.id));
+                      }).catch(console.error);
+                    }}
+                    className="w-8 h-8 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center flex-shrink-0"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F87171" strokeWidth="2.5" strokeLinecap="round">
+                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                     </svg>
-                  </div>
+                  </button>
                 </div>
               ))}
             </div>

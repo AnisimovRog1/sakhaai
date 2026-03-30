@@ -210,9 +210,14 @@ export async function submitAvatar(params: {
   voiceSpeed?: number;
   prompt?: string;
 }): Promise<{ klingTaskId: string }> {
-  console.log('[kling-direct] submitting avatar via image2video');
+  console.log('[kling-direct] submitting avatar via image2video, imageUrl length:', params.imageUrl?.length, 'starts with:', params.imageUrl?.substring(0, 30));
+
+  if (!params.imageUrl || params.imageUrl.length < 10) {
+    throw new Error('imageUrl пустой или слишком короткий');
+  }
 
   const httpImageUrl = dataUrlToHttpUrl(params.imageUrl);
+  console.log('[kling-direct] avatar httpImageUrl:', httpImageUrl);
 
   // Генерируем видео из фото с промптом "говорящий человек"
   const prompt = params.prompt

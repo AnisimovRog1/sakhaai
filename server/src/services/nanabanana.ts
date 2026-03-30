@@ -11,7 +11,7 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
 // Маппинг UI моделей → Gemini модели
 const MODEL_MAP: Record<string, string> = {
-  'nano-banana-pro': 'gemini-2.5-flash-preview-04-17',
+  'nano-banana-pro': 'gemini-2.5-flash-preview-05-20',
   'nano-banana-2':   'gemini-2.5-flash-image',
 };
 const DEFAULT_MODEL = 'gemini-2.5-flash-image';

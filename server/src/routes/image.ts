@@ -7,7 +7,11 @@ import { saveGeneration } from '../services/generations';
 export const imageRouter = Router();
 imageRouter.use(requireAuth);
 
-const IMAGE_COST_BASE = 79;
+// Базовая цена за модель
+function getModelCost(model?: string): number {
+  if (model === 'nano-banana-pro') return 119;
+  return 79; // nano-banana-2 и по умолчанию
+}
 
 // Множитель цены за разрешение
 function getResolutionMultiplier(resolution?: string): number {
@@ -25,8 +29,9 @@ imageRouter.post('/generate', async (req: Request, res: Response) => {
   }
 
   const count = Math.min(Math.max(Number(rawCount) || 1, 1), 4);
+  const baseCost = getModelCost(model);
   const resMultiplier = getResolutionMultiplier(resolution);
-  const costPerImage = Math.ceil(IMAGE_COST_BASE * resMultiplier);
+  const costPerImage = Math.ceil(baseCost * resMultiplier);
   const totalCost = costPerImage * count;
 
   const creditsLeft = await deduct(

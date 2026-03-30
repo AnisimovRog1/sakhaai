@@ -36,7 +36,7 @@ const ASPECT_RATIOS: { id: AspectRatio; label: string; desc: string }[] = [
 ];
 const RESOLUTIONS: Resolution[] = ['1K', '2K', '4K'];
 
-const BASE_COST = 79;
+const MODEL_COSTS: Record<string, number> = { 'nano-banana-pro': 119, 'nano-banana-2': 79 };
 
 export function ImageGen({ user, onCreditsUpdate }: Props) {
   const { t } = useLang();
@@ -72,7 +72,8 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
   }
 
   const resMultiplier = resolution === '4K' ? 2.0 : resolution === '2K' ? 1.5 : 1.0;
-  const cost = Math.ceil(BASE_COST * resMultiplier) * count;
+  const baseCost = MODEL_COSTS[model] || 79;
+  const cost = Math.ceil(baseCost * resMultiplier) * count;
   const canGenerate = prompt.trim().length > 0 && user.credits >= cost && !loading
     && (tab === 'txt2img' || refImages.length > 0);
 

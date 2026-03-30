@@ -169,9 +169,35 @@ videoRouter.get('/task-status/:taskId', async (req: Request, res: Response) => {
       'SELECT * FROM pending_tasks WHERE task_id = $1',
       [taskId]
     );
-    const task = rows[0];
+    let task = rows[0];
     if (!task) { res.status(404).json({ error: 'Задача не найдена' }); return; }
     if (String(task.user_id) !== String(req.userId)) { res.status(403).json({ error: 'Нет доступа' }); return; }
+
+    // Avatar chain: TTS задача succeed → проверить дочернюю lip-sync задачу
+    const metadata = task.metadata || {};
+    if (metadata.chain === 'avatar' && task.type === 'tts' && task.status === 'succeed') {
+      // Найти lip-sync задачу (дочерняя, parentTaskId = этот task_id)
+      const { rows: childRows } = await pool.query(
+        `SELECT * FROM pending_tasks WHERE user_id = $1 AND type = 'avatar'
+         AND metadata->>'parentTaskId' = $2 ORDER BY created_at DESC LIMIT 1`,
+        [req.userId!, task.task_id]
+      );
+      if (childRows.length > 0) {
+        task = childRows[0]; // подменяем на lip-sync задачу
+      } else {
+        // lip-sync ещё не создана — показываем processing
+        res.json({
+          taskId: task.task_id,
+          type: 'avatar',
+          status: 'processing',
+          resultUrl: null,
+          errorMsg: null,
+          cost: task.cost,
+          createdAt: task.created_at,
+        });
+        return;
+      }
+    }
 
     res.json({
       taskId: task.task_id,

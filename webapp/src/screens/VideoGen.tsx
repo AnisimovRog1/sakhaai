@@ -390,7 +390,8 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
       if (videoResult) setVideoUrl(videoResult);
       loadHistory();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Ошибка генерации');
+      const msg = e instanceof Error ? e.message : '';
+      setError(msg || 'Ошибка генерации. Попробуйте ещё раз.');
     } finally {
       setLoading(false);
       setMotionStatus(null);

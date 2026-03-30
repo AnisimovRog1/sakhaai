@@ -20,6 +20,31 @@ function resolveModel(model?: string): string {
   return (model && MODEL_MAP[model]) || DEFAULT_MODEL;
 }
 
+// Перевод промпта на английский через Gemini (текстовая модель)
+// Если промпт уже на английском — возвращает как есть
+async function translateToEnglish(prompt: string): Promise<string> {
+  // Быстрая проверка — если >80% ASCII символов, скорее всего уже EN
+  const asciiRatio = prompt.replace(/[^\x00-\x7F]/g, '').length / prompt.length;
+  if (asciiRatio > 0.8) return prompt;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: [{
+        parts: [{ text: `You are a precise translator for AI image generation prompts. Translate the following prompt to English. Keep all technical terms, style descriptions, and specific instructions exactly as intended. Do NOT add or remove anything. Do NOT explain. Return ONLY the translated text.\n\nPrompt: ${prompt}` }],
+      }],
+    });
+    const translated = response.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    if (translated && translated.length > 5) {
+      console.log(`[nanabanana] translated: "${prompt.substring(0, 50)}" → "${translated.substring(0, 50)}"`);
+      return translated;
+    }
+  } catch (err) {
+    console.error('[nanabanana] translation failed:', (err as Error).message);
+  }
+  return prompt; // fallback — оригинал
+}
+
 // Добавить инструкции по aspect ratio и resolution в промпт
 function enrichPrompt(prompt: string, aspectRatio?: string, resolution?: string): string {
   const parts = [prompt];
@@ -36,7 +61,8 @@ function enrichPrompt(prompt: string, aspectRatio?: string, resolution?: string)
 export async function generateImage(prompt: string, model?: string, aspectRatio?: string, resolution?: string): Promise<ImageGenResult> {
   if (!process.env.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY не задан');
 
-  const fullPrompt = enrichPrompt(prompt, aspectRatio, resolution);
+  const translated = await translateToEnglish(prompt);
+  const fullPrompt = enrichPrompt(translated, aspectRatio, resolution);
 
   const response = await ai.models.generateContent({
     model: resolveModel(model),
@@ -82,7 +108,8 @@ export async function editImage(
   if (!process.env.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY не задан');
   if (images.length === 0) throw new Error('Нужно хотя бы одно изображение');
 
-  const fullPrompt = enrichPrompt(prompt, aspectRatio, resolution);
+  const translated = await translateToEnglish(prompt);
+  const fullPrompt = enrichPrompt(translated, aspectRatio, resolution);
   const imageParts = images.map(img => ({
     inlineData: { mimeType: img.mimeType, data: img.base64 },
   }));

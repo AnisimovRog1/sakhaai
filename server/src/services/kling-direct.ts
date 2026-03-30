@@ -197,12 +197,7 @@ export async function submitMotionControlDirect(
   return { taskId: extractTaskId(result) };
 }
 
-// ─── Avatar (2 шага: image2video → lip-sync) ───────────────
-// Kling lip-sync требует ВИДЕО с лицом, не фото.
-// Шаг 1: Создаём короткое видео из фото (image2video, 5 сек)
-// Шаг 2: Применяем lip-sync text2video к этому видео
-// Но шаг 2 требует video_id (результат шага 1), а это async.
-// Поэтому для MVP: используем image2video с промптом говорящего человека.
+// ─── Avatar — используем image2video напрямую ───────────────
 export async function submitAvatar(params: {
   imageUrl: string;
   text: string;
@@ -210,31 +205,19 @@ export async function submitAvatar(params: {
   voiceSpeed?: number;
   prompt?: string;
 }): Promise<{ klingTaskId: string }> {
-  console.log('[kling-direct] submitting avatar via image2video, imageUrl length:', params.imageUrl?.length, 'starts with:', params.imageUrl?.substring(0, 30));
-
-  if (!params.imageUrl || params.imageUrl.length < 10) {
-    throw new Error('imageUrl пустой или слишком короткий');
-  }
-
-  const httpImageUrl = dataUrlToHttpUrl(params.imageUrl);
-  console.log('[kling-direct] avatar httpImageUrl:', httpImageUrl);
-
-  // Генерируем видео из фото с промптом "говорящий человек"
-  const prompt = params.prompt
+  // Генерируем промпт для "говорящего человека"
+  const talkingPrompt = params.prompt
     ? `${params.prompt}. The person is talking and saying: "${params.text.substring(0, 80)}"`
     : `The person in the photo is talking naturally, lip movements matching speech: "${params.text.substring(0, 80)}"`;
 
-  const body: Record<string, any> = {
-    image_url: httpImageUrl,
-    model_name: resolveModelName('video-2.6'),
-    mode: 'std',
-    duration: '5',
-    prompt,
-  };
-
-  console.log('[kling-direct] avatar body:', JSON.stringify(body).substring(0, 500));
-  const result = await klingRequest('POST', '/v1/videos/image2video', body);
-  return { klingTaskId: extractTaskId(result) };
+  // Используем ТОТ ЖЕ submitImageToVideo который работает в motion tab
+  return submitImageToVideo({
+    imageUrl: params.imageUrl,
+    prompt: talkingPrompt,
+    duration: 5,
+    model: 'video-2.6',
+    mode: '720p',
+  });
 }
 
 // Whitelist допустимых Kling API endpoints для polling

@@ -840,7 +840,7 @@ export async function seedPushSequences(force = false): Promise<number> {
 
     await pool.query(`
       INSERT INTO push_sequences (trigger_type, delay_minutes, credits_threshold, text, media_type, media_url, label, send_mode, strict_time, preferred_time, weekday, greeting_mode, greeting_fixed, allow_hour_from, allow_hour_to, is_active)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, false)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $1 = 'welcome')
     `, [
       s.trigger_type,
       s.delay_minutes,
@@ -860,6 +860,9 @@ export async function seedPushSequences(force = false): Promise<number> {
     ]);
     count++;
   }
+
+  // Welcome push должен быть активным
+  await pool.query(`UPDATE push_sequences SET is_active = true WHERE trigger_type = 'welcome' AND is_deleted = false`);
 
   if (count > 0) console.log(`✅ Добавлено ${count} новых пуш-последовательностей`);
   else console.log(`⏭ push_sequences: все ${seeds.length} seed-ов уже есть`);

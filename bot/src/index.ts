@@ -73,7 +73,14 @@ bot.command('start', async (ctx) => {
     }
   }
 
-  const keyboard = new InlineKeyboard().webApp('🚀 Открыть UraanxAI', WEBAPP_URL);
+  const inlineKb = new InlineKeyboard().webApp('🚀 Открыть UraanxAI', WEBAPP_URL);
+  const replyKb = new Keyboard()
+    .text('🚀 Открыть приложение')
+    .row()
+    .text('🛟 Поддержка').text('📄 Документы')
+    .row()
+    .text('👥 Пригласить друга')
+    .resized().persistent();
 
   // Берём welcome push из админки (БД)
   let welcomeSeq: any = null;
@@ -89,35 +96,29 @@ bot.command('start', async (ctx) => {
       await ctx.replyWithPhoto(media, {
         caption: text,
         parse_mode: 'HTML',
-        reply_markup: keyboard,
+        reply_markup: inlineKb,
       });
     } else if (welcomeSeq.media_type === 'video' && media) {
       await ctx.replyWithVideo(media, {
         caption: text,
         parse_mode: 'HTML',
-        reply_markup: keyboard,
+        reply_markup: inlineKb,
       });
     } else {
-      await ctx.reply(text, { parse_mode: 'HTML', reply_markup: keyboard });
+      await ctx.reply(text, { parse_mode: 'HTML', reply_markup: inlineKb });
     }
   } else {
     // Fallback если welcome push не настроен в админке
     await ctx.reply(
       `Привет, ${ctx.from?.first_name ?? 'друг'}! 👋\n\n` +
-      `Я UraanxAI - твой ИИ-ассистент.\n\nНажми кнопку ниже, чтобы начать:`,
-      { reply_markup: keyboard, parse_mode: 'HTML' }
+      `Я <b>UraanxAI</b> - твой ИИ-ассистент для генерации фото, видео и арта.\n\n` +
+      `Нажми кнопку ниже, чтобы начать:`,
+      { reply_markup: inlineKb, parse_mode: 'HTML' }
     );
   }
 
-  // Постоянная клавиатура внизу
-  const replyKb = new Keyboard()
-    .text('🚀 Открыть приложение')
-    .row()
-    .text('🛟 Поддержка').text('📄 Документы')
-    .row()
-    .text('👥 Пригласить друга')
-    .resized().persistent();
-  await ctx.reply('⬇️ Используй меню ниже:', { reply_markup: replyKb });
+  // Устанавливаем постоянную клавиатуру (без лишнего сообщения)
+  await ctx.reply('⬇️', { reply_markup: replyKb });
 });
 
 // Premium emoji IDs

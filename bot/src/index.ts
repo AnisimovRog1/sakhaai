@@ -82,42 +82,28 @@ bot.command('start', async (ctx) => {
     .text('👥 Пригласить друга')
     .resized().persistent();
 
-  // Берём welcome push из админки (БД)
-  let welcomeSeq: any = null;
+  // Пробуем welcome push из БД, если не получится — fallback
   try {
-    welcomeSeq = await httpGet(`${SERVER_URL}/admin/push/sequences/welcome`);
-  } catch (_) { /* fallback to default */ }
-
-  if (welcomeSeq && welcomeSeq.text) {
-    const media = welcomeSeq.media_file_id || welcomeSeq.media_url;
-    const text = formatText(welcomeSeq.text);
-
-    if (welcomeSeq.media_type === 'photo' && media) {
-      await ctx.replyWithPhoto(media, {
-        caption: text,
-        parse_mode: 'HTML',
-        reply_markup: inlineKb,
-      });
-    } else if (welcomeSeq.media_type === 'video' && media) {
-      await ctx.replyWithVideo(media, {
-        caption: text,
-        parse_mode: 'HTML',
-        reply_markup: inlineKb,
-      });
+    const welcomeSeq = await httpGet(`${SERVER_URL}/admin/push/sequences/welcome`) as any;
+    if (welcomeSeq && welcomeSeq.text) {
+      const media = welcomeSeq.media_file_id || welcomeSeq.media_url;
+      const text = formatText(welcomeSeq.text);
+      if (welcomeSeq.media_type === 'photo' && media) {
+        await ctx.replyWithPhoto(media, { caption: text, parse_mode: 'HTML', reply_markup: inlineKb });
+      } else {
+        await ctx.reply(text, { parse_mode: 'HTML', reply_markup: inlineKb });
+      }
     } else {
-      await ctx.reply(text, { parse_mode: 'HTML', reply_markup: inlineKb });
+      throw new Error('no welcome');
     }
-  } else {
-    // Fallback если welcome push не настроен в админке
+  } catch {
     await ctx.reply(
-      `Привет, ${ctx.from?.first_name ?? 'друг'}! 👋\n\n` +
-      `Я <b>UraanxAI</b> - твой ИИ-ассистент для генерации фото, видео и арта.\n\n` +
-      `Нажми кнопку ниже, чтобы начать:`,
-      { reply_markup: inlineKb, parse_mode: 'HTML' }
+      `Привет, ${ctx.from?.first_name ?? 'друг'}! 👋\n\nЯ UraanxAI - твой ИИ-ассистент для генерации фото, видео и арта.\n\nНажми кнопку ниже:`,
+      { reply_markup: inlineKb }
     );
   }
 
-  // Устанавливаем постоянную клавиатуру (без лишнего сообщения)
+  // Клавиатура
   await ctx.reply('⬇️', { reply_markup: replyKb });
 });
 

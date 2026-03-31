@@ -59,16 +59,12 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 2): Promise<T> {
   throw new Error('Unexpected');
 }
 
-// Добавить инструкции по aspect ratio и resolution в промпт
-function enrichPrompt(prompt: string, aspectRatio?: string, resolution?: string): string {
-  const parts = [prompt];
-  if (aspectRatio && aspectRatio !== '1:1') {
-    parts.push(`[Aspect ratio: ${aspectRatio}]`);
-  }
-  if (resolution && resolution !== '1K') {
-    parts.push(`[Resolution: ${resolution}]`);
-  }
-  return parts.join(' ');
+// Конфиг изображения (aspect ratio + resolution) — передаётся нативно через API
+function buildImageConfig(aspectRatio?: string, resolution?: string): Record<string, string> {
+  const config: Record<string, string> = {};
+  if (aspectRatio) config.aspectRatio = aspectRatio;
+  if (resolution) config.imageSize = resolution;
+  return config;
 }
 
 // Текст → картинка
@@ -76,17 +72,17 @@ export async function generateImage(prompt: string, model?: string, aspectRatio?
   if (!process.env.GEMINI_API_KEY && !process.env.GOOGLE_APPLICATION_CREDENTIALS && !process.env.GOOGLE_CREDENTIALS_JSON) throw new Error('Нет credentials для Gemini (ни API key, ни Vertex AI)');
 
   const translated = await translateToEnglish(prompt);
-  const fullPrompt = enrichPrompt(translated, aspectRatio, resolution);
 
   return withRetry(async () => {
 
   const response = await ai.models.generateContent({
     model: resolveModel(model),
-    contents: [{ parts: [{ text: fullPrompt }] }],
+    contents: [{ parts: [{ text: translated }] }],
     config: {
-      responseModalities: ['TEXT', 'IMAGE'],
+      responseModalities: ['IMAGE'],
       maxOutputTokens: 8192,
       temperature: 1.0,
+      imageConfig: buildImageConfig(aspectRatio, resolution),
     },
   });
 
@@ -126,7 +122,6 @@ export async function editImage(
   if (images.length === 0) throw new Error('Нужно хотя бы одно изображение');
 
   const translated = await translateToEnglish(prompt);
-  const fullPrompt = enrichPrompt(translated, aspectRatio, resolution);
   const imageParts = images.map(img => ({
     inlineData: { mimeType: img.mimeType, data: img.base64 },
   }));
@@ -136,14 +131,15 @@ export async function editImage(
     model: resolveModel(model),
     contents: [{
       parts: [
-        { text: fullPrompt },
+        { text: translated },
         ...imageParts,
       ],
     }],
     config: {
-      responseModalities: ['TEXT', 'IMAGE'],
+      responseModalities: ['IMAGE'],
       maxOutputTokens: 8192,
       temperature: 1.0,
+      imageConfig: buildImageConfig(aspectRatio, resolution),
     },
   });
 

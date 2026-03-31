@@ -260,16 +260,16 @@ videoRouter.get('/motion-status/:requestId', async (req: Request, res: Response)
   }
 });
 
-// ─── POST /video/tts-preview — превью голоса (из кеша) ──
+// ─── POST /video/tts-preview — превью голоса (локальные файлы) ──
 
 videoRouter.post('/tts-preview', async (req: Request, res: Response) => {
   try {
     const { voiceId } = req.body;
-    const audioUrl = (voiceSamples as Record<string, string>)[voiceId];
-    if (!audioUrl) {
+    if (!voiceId || !(voiceId in voiceSamples)) {
       res.status(404).json({ error: 'Превью для этого голоса недоступно' });
       return;
     }
+    const audioUrl = `/voice-samples/${voiceId}.mp3`;
     res.json({ audioUrl });
   } catch (e: any) {
     res.status(500).json({ error: e.message ?? 'Ошибка превью голоса' });

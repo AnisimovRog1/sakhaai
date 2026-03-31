@@ -1120,8 +1120,6 @@ function formatText(raw: string): string {
   t = t.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
   // 4. _курсив_ → <i>курсив</i>
   t = t.replace(/(?<!\w)_(.+?)_(?!\w)/g, '<i>$1</i>');
-  // 5. Premium emoji :emoji:ID: → <tg-emoji emoji-id="ID">emoji</tg-emoji>
-  t = t.replace(/:([^:]+):(\d+):/g, '<tg-emoji emoji-id="$2">$1</tg-emoji>');
   return t;
 }
 
@@ -1182,16 +1180,6 @@ async function processAutoSequences() {
 // ═══════════════════════════════════════════════════════
 
 bot.on('message', async (ctx) => {
-  // Админ отправляет premium emoji → логируем ID
-  if (isAdmin(ctx.chat.id) && ctx.message.entities) {
-    const customEmojis = ctx.message.entities.filter((e: any) => e.type === 'custom_emoji');
-    if (customEmojis.length > 0) {
-      const ids = customEmojis.map((e: any) => `"${e.custom_emoji_id}"`).join('\n');
-      await ctx.reply(`🎯 Custom Emoji IDs (${customEmojis.length} шт):\n${ids}`);
-      return;
-    }
-  }
-
   // Админ отвечает reply на пересланное → отправляем юзеру
   if (isAdmin(ctx.chat.id) && ctx.message.reply_to_message) {
     const reply = ctx.message.reply_to_message;

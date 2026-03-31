@@ -615,7 +615,7 @@ function renderSeqs(){
     var gm=s.greeting_mode||'none';
     html+='<div class="flex gap-2 mt-1 flex-wrap items-center text-[11px] text-slate-500">';
     html+='<span>👋</span>';
-    html+='<select class="bg-black/20 border border-white/8 rounded px-1.5 py-0.5 text-slate-400 text-[11px]" id="seqgreet-'+s.id+'" onchange="markSeqDirty('+s.id+');var f=document.getElementById(\'seqgreetfixed-'+s.id+'\');if(f)f.classList.toggle(\'hidden\',this.value!==\'fixed\')">';
+    html+='<select class="bg-black/20 border border-white/8 rounded px-1.5 py-0.5 text-slate-400 text-[11px]" id="seqgreet-'+s.id+'" onchange="markSeqDirty('+s.id+');toggleGreetFixed('+s.id+',this.value)">';
     html+='<option value="none" '+(gm==='none'?'selected':'')+'>Без приветствия</option>';
     html+='<option value="dynamic" '+(gm==='dynamic'?'selected':'')+'>Динамическое (утро/день/вечер)</option>';
     html+='<option value="fixed" '+(gm==='fixed'?'selected':'')+'>Фиксированное</option>';
@@ -663,6 +663,7 @@ function renderSeqs(){
 
 function esc(s){var d=document.createElement('div');d.textContent=s||'';return d.innerHTML}
 
+function toggleGreetFixed(id,val){var f=document.getElementById('seqgreetfixed-'+id);if(f)f.classList.toggle('hidden',val!=='fixed')}
 function markSeqDirty(id){var b=document.getElementById('seqsave-'+id);if(b)b.classList.remove('hidden')}
 
 async function saveSeq(id){

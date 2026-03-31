@@ -199,21 +199,20 @@ input:focus,textarea:focus{border-color:rgba(139,92,246,.5);box-shadow:0 0 20px 
               <input type="datetime-local" id="pushScheduleAt" class="bg-black/20 border border-white/8 rounded-lg px-2 py-1.5 text-sm text-slate-300">
             </div>
           </div>
-          <div class="space-y-2">
+          <div class="glass p-4 rounded-xl space-y-2">
             <div class="text-xs text-slate-400 font-semibold">👥 Получатели:</div>
-            <div class="flex flex-wrap gap-2 text-xs">
-              <label class="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="pushRecipients" value="all" checked><span class="text-slate-300">Все юзеры</span></label>
-              <label class="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="pushRecipients" value="active"><span class="text-slate-300">Активные (&lt;7 дн)</span></label>
-              <label class="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="pushRecipients" value="purchased"><span class="text-slate-300">Купившие</span></label>
-              <label class="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="pushRecipients" value="not_purchased"><span class="text-slate-300">Не купившие</span></label>
-              <label class="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="pushRecipients" value="low_credits"><span class="text-slate-300">Кредиты &lt;</span></label>
-              <input type="number" id="pushCreditsFilter" placeholder="500" class="w-16 bg-black/20 border border-white/8 rounded px-1.5 py-0.5 text-slate-400 text-xs">
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+              <label class="flex items-center gap-2 cursor-pointer glass p-2 rounded-lg"><input type="radio" name="pushRecipients" value="all" checked class="accent-violet-500"><span class="text-slate-300">Все юзеры</span></label>
+              <label class="flex items-center gap-2 cursor-pointer glass p-2 rounded-lg"><input type="radio" name="pushRecipients" value="active" class="accent-violet-500"><span class="text-slate-300">Активные (&lt;7д)</span></label>
+              <label class="flex items-center gap-2 cursor-pointer glass p-2 rounded-lg"><input type="radio" name="pushRecipients" value="purchased" class="accent-violet-500"><span class="text-slate-300">Купившие</span></label>
+              <label class="flex items-center gap-2 cursor-pointer glass p-2 rounded-lg"><input type="radio" name="pushRecipients" value="not_purchased" class="accent-violet-500"><span class="text-slate-300">Не купившие</span></label>
+              <label class="flex items-center gap-2 cursor-pointer glass p-2 rounded-lg col-span-2 sm:col-span-2"><input type="radio" name="pushRecipients" value="low_credits" class="accent-violet-500"><span class="text-slate-300">Кредиты &lt;</span><input type="number" id="pushCreditsFilter" placeholder="500" class="w-16 bg-black/30 border border-white/10 rounded px-2 py-1 text-slate-400 text-xs"></label>
             </div>
           </div>
-          <div class="flex gap-2">
-            <button class="btn btn-ghost py-3" onclick="previewPush()">👁 Preview</button>
-            <button class="btn btn-primary flex-1 py-3" onclick="createPush(false)">💾 Сохранить</button>
-            <button class="btn btn-success flex-1 py-3" onclick="createPush(true)">📨 Отправить</button>
+          <div class="grid grid-cols-[auto_1fr_1fr] gap-3">
+            <button class="btn btn-ghost py-3 px-4 text-sm" onclick="previewPush()">👁</button>
+            <button class="btn btn-primary py-3 text-sm" onclick="createPush(false)">💾 Сохранить</button>
+            <button class="btn btn-success py-3 text-sm" onclick="createPush(true)">📨 Отправить</button>
           </div>
         </div>
       </div>

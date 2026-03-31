@@ -1180,6 +1180,15 @@ async function processAutoSequences() {
 // ═══════════════════════════════════════════════════════
 
 bot.on('message', async (ctx) => {
+  // Админ отправляет premium emoji → логируем ID
+  if (isAdmin(ctx.chat.id) && ctx.message.entities) {
+    const customEmojis = ctx.message.entities.filter((e: any) => e.type === 'custom_emoji');
+    if (customEmojis.length > 0) {
+      const ids = customEmojis.map((e: any) => `"${e.custom_emoji_id}"`).join(', ');
+      await ctx.reply(`🎯 Custom Emoji IDs:\n${ids}`);
+    }
+  }
+
   // Админ отвечает reply на пересланное → отправляем юзеру
   if (isAdmin(ctx.chat.id) && ctx.message.reply_to_message) {
     const reply = ctx.message.reply_to_message;

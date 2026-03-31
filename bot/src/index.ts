@@ -1184,8 +1184,9 @@ bot.on('message', async (ctx) => {
   if (isAdmin(ctx.chat.id) && ctx.message.entities) {
     const customEmojis = ctx.message.entities.filter((e: any) => e.type === 'custom_emoji');
     if (customEmojis.length > 0) {
-      const ids = customEmojis.map((e: any) => `"${e.custom_emoji_id}"`).join(', ');
-      await ctx.reply(`🎯 Custom Emoji IDs:\n${ids}`);
+      const ids = customEmojis.map((e: any) => `"${e.custom_emoji_id}"`).join('\n');
+      await ctx.reply(`🎯 Custom Emoji IDs (${customEmojis.length} шт):\n${ids}`);
+      return;
     }
   }
 

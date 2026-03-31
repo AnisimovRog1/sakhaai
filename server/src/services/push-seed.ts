@@ -824,18 +824,20 @@ clean aesthetic, soft bokeh»
 ];
 
 export async function seedPushSequences(force = false): Promise<number> {
-  const { rows } = await pool.query(`SELECT COUNT(*) as cnt FROM push_sequences`);
-  if (parseInt(rows[0].cnt) > 0 && !force) {
-    console.log(`⏭ push_sequences: уже есть ${rows[0].cnt} записей`);
-    return 0;
-  }
   if (force) {
     await pool.query(`DELETE FROM push_sent`);
     await pool.query(`DELETE FROM push_sequences`);
   }
 
+  // Вставляем только отсутствующие (по label + trigger_type)
+  const existing = await pool.query(`SELECT label, trigger_type FROM push_sequences WHERE is_deleted = false`);
+  const existingSet = new Set(existing.rows.map((r: any) => r.trigger_type + '::' + r.label));
+
   let count = 0;
   for (const s of seeds) {
+    const key = s.trigger_type + '::' + s.label;
+    if (existingSet.has(key)) continue;
+
     await pool.query(`
       INSERT INTO push_sequences (trigger_type, delay_minutes, credits_threshold, text, media_type, media_url, label, send_mode, strict_time, preferred_time, weekday, greeting_mode, greeting_fixed, allow_hour_from, allow_hour_to, is_active)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, false)
@@ -859,6 +861,7 @@ export async function seedPushSequences(force = false): Promise<number> {
     count++;
   }
 
-  console.log(`✅ Заполнено ${count} пуш-последовательностей`);
+  if (count > 0) console.log(`✅ Добавлено ${count} новых пуш-последовательностей`);
+  else console.log(`⏭ push_sequences: все ${seeds.length} seed-ов уже есть`);
   return count;
 }

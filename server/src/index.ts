@@ -16,7 +16,7 @@ import { adminPanelRouter } from './routes/admin-panel';
 import { serveTempFile } from './services/kling-direct';
 import { processHeldReferrals } from './services/referral';
 import { startTaskWorker } from './services/task-worker';
-import { seedPushData } from './db/migrate';
+import { seedPushSequences } from './services/push-seed';
 import { LANDING_HTML } from './landing';
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
@@ -141,7 +141,8 @@ migrate()
     startTaskWorker();
 
     // Заполняем пуш-последовательности при первом запуске
-    seedPushData().then(n => { if (n) console.log('📥 Seed пушей: ' + n); }).catch(e => console.error('❌ Seed пушей:', e));
+    // Перезаписываем seed-тексты на новые (force=true)
+    seedPushSequences(true).then(n => { if (n) console.log('📥 Seed пушей: ' + n); }).catch(e => console.error('❌ Seed пушей:', e));
   })
   .catch((err) => {
     console.error('❌ Ошибка миграции:', err);

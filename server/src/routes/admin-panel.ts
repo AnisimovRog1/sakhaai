@@ -392,11 +392,22 @@ async function createPush(send){
   const name=document.getElementById('pushName').value,text=document.getElementById('pushText').value;
   const timing=document.querySelector('input[name="pushTiming"]:checked')?.value||'now';
   const scheduleAt=timing==='scheduled'?document.getElementById('pushScheduleAt').value:null;
-  const mediaType=uploadedMedia.type||null;
-  const mediaUrl=uploadedMedia.data||null;
+  var mediaType=uploadedMedia.type||null;
+  var mediaFileId=null;
   if(!name||!text){alert('Заполните название и текст');return}
   if(timing==='scheduled'&&!scheduleAt){alert('Укажите время отправки');return}
-  const r=await P('/admin/push/templates',{name,text,scheduleType:timing==='scheduled'?'scheduled':'manual',sendTime:scheduleAt,mediaType:mediaType,mediaFileId:mediaUrl});
+  // Загрузить медиа через upload-photo → получить Telegram file_id
+  if(uploadedMedia.data&&uploadedMedia.type){
+    try{
+      var blob=await fetch(uploadedMedia.data).then(r=>r.blob());
+      var ext=uploadedMedia.type==='video'?'mp4':'jpg';
+      var fd=new FormData();fd.append('photo',blob,uploadedMedia.name||('file.'+ext));
+      var ur=await fetch(API+'/admin/upload-photo',{method:'POST',headers:{'Authorization':'Bearer '+TOKEN},body:fd});
+      var ud=await ur.json();
+      if(ud.file_id){mediaFileId=ud.file_id}else{alert('Ошибка загрузки медиа: '+(ud.error||''));return}
+    }catch(e){alert('Ошибка загрузки: '+e);return}
+  }
+  const r=await P('/admin/push/templates',{name,text,scheduleType:timing==='scheduled'?'scheduled':'manual',sendTime:scheduleAt,mediaType:mediaType,mediaFileId:mediaFileId});
   if(r.id){
     if(send&&timing==='now'){
       var sr=await P('/admin/push/send/'+r.id,{});

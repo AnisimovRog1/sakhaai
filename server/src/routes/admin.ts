@@ -317,28 +317,41 @@ adminRouter.post('/push/send/:id', async (req: Request, res: Response) => {
     if (!BOT_TOKEN) { res.status(503).json({ error: 'BOT_TOKEN не настроен' }); return; }
 
     let sent = 0, failed = 0;
-    const formatText = (s: string) => s.replace(/<<([^>]+)>>/g, '<b>$1</b>').replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/_([^_]+)_/g, '<i>$1</i>');
+    const formatText = (s: string) => {
+      // 1. Экранируем HTML спецсимволы
+      let t = s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      // 2. <<жирный>> → <b>жирный</b>
+      t = t.replace(/&lt;&lt;([^&]+?)&gt;&gt;/g, '<b>$1</b>');
+      // 3. **жирный** → <b>жирный</b>
+      t = t.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+      // 4. _курсив_ → <i>курсив</i>
+      t = t.replace(/(?<!\w)_(.+?)_(?!\w)/g, '<i>$1</i>');
+      return t;
+    };
 
     for (const u of users.rows) {
       try {
         const media = t.media_file_id;
+        const caption = formatText(t.text);
+        let resp;
         if (t.media_type === 'video' && media) {
-          await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendVideo`, {
+          resp = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendVideo`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: u.id, video: media, caption: formatText(t.text), parse_mode: 'HTML' })
+            body: JSON.stringify({ chat_id: u.id, video: media, caption, parse_mode: 'HTML' })
           });
         } else if (t.media_type === 'photo' && media) {
-          await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+          resp = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: u.id, photo: media, caption: formatText(t.text), parse_mode: 'HTML' })
+            body: JSON.stringify({ chat_id: u.id, photo: media, caption, parse_mode: 'HTML' })
           });
         } else {
-          await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+          resp = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: u.id, text: formatText(t.text), parse_mode: 'HTML' })
+            body: JSON.stringify({ chat_id: u.id, text: caption, parse_mode: 'HTML' })
           });
         }
-        sent++;
+        const result = await resp.json() as { ok: boolean; description?: string };
+        if (result.ok) { sent++; } else { failed++; console.error('[push] send error:', u.id, result.description); }
         if (sent % 25 === 0) await new Promise(r => setTimeout(r, 1000)); // rate limit
       } catch { failed++; }
     }

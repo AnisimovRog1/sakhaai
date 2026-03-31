@@ -141,8 +141,8 @@ migrate()
     startTaskWorker();
 
     // Заполняем пуш-последовательности при первом запуске
-    // Перезаписываем seed-тексты на новые (force=true)
-    seedPushSequences(true).then(n => { if (n) console.log('📥 Seed пушей: ' + n); }).catch(e => console.error('❌ Seed пушей:', e));
+    // Добавляем только отсутствующие seed-тексты (не трогаем отредактированные в админке)
+    seedPushSequences().then(n => { if (n) console.log('📥 Seed пушей: ' + n); }).catch(e => console.error('❌ Seed пушей:', e));
   })
   .catch((err) => {
     console.error('❌ Ошибка миграции:', err);

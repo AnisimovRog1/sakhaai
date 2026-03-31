@@ -333,6 +333,7 @@ let currentPeriod='today';
 
 async function loadStats(period){
   currentPeriod=period;
+  var btns=document.querySelectorAll('button[onclick^="loadStats"]');btns.forEach(function(b){b.classList.remove('btn-primary');b.classList.add('btn-ghost')});btns.forEach(function(b){if(b.getAttribute('onclick').indexOf(period)>-1){b.classList.remove('btn-ghost');b.classList.add('btn-primary')}});
   const s=await G('/admin/stats?period='+period);if(s.error)return;
   document.getElementById('lastUpdate').textContent='Обновлено: '+new Date().toLocaleTimeString('ru');
   document.getElementById('statsGrid').innerHTML=[

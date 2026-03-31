@@ -1,12 +1,10 @@
-import { GoogleGenAI } from '@google/genai';
+import { ai } from './genai-client';
 
 // Тип одного сообщения в истории чата
 export type ChatMessage = {
   role: 'user' | 'model';
   content: string;
 };
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
 // Системный промпт: AI определяет язык сообщения и отвечает на том же
 function buildSystemPrompt(_language: string): string {

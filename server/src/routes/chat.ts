@@ -5,7 +5,7 @@ import { sendToGemini, ChatMessage } from '../services/gemini';
 import { deduct } from '../services/balance';
 import { markAiRequest } from '../services/referral';
 
-import { GoogleGenAI } from '@google/genai';
+import { ai } from '../services/genai-client';
 
 // Стоимость одного сообщения (0.097 руб / 0.1 руб/кредит ≈ 1 кредит)
 const CHAT_COST = 1;
@@ -13,7 +13,6 @@ const CHAT_COST = 1;
 // Генерация осмысленного названия чата через Gemini
 async function generateChatTitle(chatId: number, firstMessage: string) {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: [{ parts: [{ text: `Придумай короткое название (максимум 5 слов) для чата, где первое сообщение пользователя: "${firstMessage}". Отвечай ТОЛЬКО названием, без кавычек и пояснений.` }] }],

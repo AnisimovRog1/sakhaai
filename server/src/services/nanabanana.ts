@@ -1,13 +1,11 @@
-// Генерация изображений через Gemini 2.5 Flash Image API
-// Используем тот же GEMINI_API_KEY что и для чата
+// Генерация изображений через Gemini Image API
+// Используем Vertex AI (Google Cloud $300 кредиты)
 
-import { GoogleGenAI } from '@google/genai';
+import { ai } from './genai-client';
 
 export type ImageGenResult = {
   imageUrl: string; // data:image/png;base64,... URL
 };
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
 // Маппинг UI моделей → Gemini модели
 const MODEL_MAP: Record<string, string> = {
@@ -75,7 +73,7 @@ function enrichPrompt(prompt: string, aspectRatio?: string, resolution?: string)
 
 // Текст → картинка
 export async function generateImage(prompt: string, model?: string, aspectRatio?: string, resolution?: string): Promise<ImageGenResult> {
-  if (!process.env.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY не задан');
+  if (!process.env.GEMINI_API_KEY && !process.env.GOOGLE_APPLICATION_CREDENTIALS && !process.env.GOOGLE_CREDENTIALS_JSON) throw new Error('Нет credentials для Gemini (ни API key, ни Vertex AI)');
 
   const translated = await translateToEnglish(prompt);
   const fullPrompt = enrichPrompt(translated, aspectRatio, resolution);
@@ -124,7 +122,7 @@ export async function editImage(
   aspectRatio?: string,
   resolution?: string
 ): Promise<ImageGenResult> {
-  if (!process.env.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY не задан');
+  if (!process.env.GEMINI_API_KEY && !process.env.GOOGLE_APPLICATION_CREDENTIALS && !process.env.GOOGLE_CREDENTIALS_JSON) throw new Error('Нет credentials для Gemini (ни API key, ни Vertex AI)');
   if (images.length === 0) throw new Error('Нужно хотя бы одно изображение');
 
   const translated = await translateToEnglish(prompt);

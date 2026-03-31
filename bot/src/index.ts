@@ -121,29 +121,16 @@ bot.command('start', async (ctx) => {
   await ctx.reply('⬇️', { reply_markup: replyKb });
 });
 
-// Premium emoji IDs
-const PE = {
-  rocket: '5188481279963715781',
-  fire: '5285313465135669781',
-  star: '5433614747381538714',
-  diamond: '5190498849440931467',
-  check: '5345970124320941088',
-  heart: '5359385849806994491',
-  gift: '5472055112702629499',
-  lightning: '5406745015365943482',
-  sparkle: '5334882760735598374',
-};
-function pe(id: string, fallback: string) { return `<tg-emoji emoji-id="${id}">${fallback}</tg-emoji>`; }
 
 // Обработка кнопок постоянной клавиатуры
 bot.hears('🚀 Открыть приложение', async (ctx) => {
-  const kb = new InlineKeyboard().webApp(`${pe(PE.rocket,'🚀')} Открыть UraanxAI`, WEBAPP_URL);
-  await ctx.reply(`${pe(PE.rocket,'🚀')} Нажми кнопку чтобы открыть приложение:`, { parse_mode: 'HTML', reply_markup: kb });
+  const kb = new InlineKeyboard().webApp('🚀 Открыть UraanxAI', WEBAPP_URL);
+  await ctx.reply('🚀 Нажми кнопку чтобы открыть приложение:', { reply_markup: kb });
 });
 
 bot.hears('🛟 Поддержка', async (ctx) => {
   await ctx.reply(
-    `${pe(PE.heart,'🛟')} <b>Поддержка UraanxAI</b>\n\n` +
+    `🛟 <b>Поддержка UraanxAI</b>\n\n` +
     `Напишите ваш вопрос прямо сюда - мы ответим в ближайшее время.\n\n` +
     `Или: 📧 uraanx.ai.project@gmail.com`,
     { parse_mode: 'HTML' }
@@ -152,13 +139,13 @@ bot.hears('🛟 Поддержка', async (ctx) => {
 
 bot.hears('📄 Документы', async (ctx) => {
   await ctx.reply(
-    `${pe(PE.star,'📄')} <b>Документация UraanxAI</b>\n\n` +
+    `📄 <b>Документация UraanxAI</b>\n\n` +
     `<b>§1 Пользовательское соглашение</b>\n` +
     `Использование сервиса и/или оплата = акцепт оферты.\n\n` +
     `<b>§2 Возврат</b>\n` +
-    `${pe(PE.check,'•')} Неиспользованные кредиты - возврат 14 дней\n` +
-    `${pe(PE.check,'•')} Частичное использование - пропорциональный возврат\n` +
-    `${pe(PE.check,'•')} Срок - до 10 рабочих дней\n\n` +
+    `✅ Неиспользованные кредиты - возврат 14 дней\n` +
+    `✅ Частичное использование - пропорциональный возврат\n` +
+    `✅ Срок - до 10 рабочих дней\n\n` +
     `<b>§3 Конфиденциальность</b>\n` +
     `Данные не передаются третьим лицам.\n\n` +
     `Полная версия: https://sakhaai-production.up.railway.app/landing`,
@@ -174,9 +161,9 @@ bot.hears('👥 Пригласить друга', async (ctx) => {
     .row()
     .url('🔗 Открыть ссылку', link);
   await ctx.reply(
-    `${pe(PE.gift,'👥')} <b>Пригласи друга - получи бонус!</b>\n\n` +
+    `👥 <b>Пригласи друга - получи бонус!</b>\n\n` +
     `Твоя реферальная ссылка:\n${link}\n\n` +
-    `Когда друг купит пакет - ты получишь бонусные кредиты ${pe(PE.diamond,'🎁')}`,
+    `Когда друг купит пакет - ты получишь бонусные кредиты 🎁`,
     { parse_mode: 'HTML', reply_markup: shareKb }
   );
 });
@@ -1236,9 +1223,8 @@ bot.on('message', async (ctx) => {
   } catch { /* ignore */ }
 
   await ctx.reply(
-    `${pe(PE.check,'✅')} Ваше сообщение передано в поддержку. Мы ответим в ближайшее время.\n\n` +
-    `📧 Также можете написать: uraanx.ai.project@gmail.com`,
-    { parse_mode: 'HTML' }
+    '✅ Ваше сообщение передано в поддержку. Мы ответим в ближайшее время.\n\n' +
+    '📧 Также можете написать: uraanx.ai.project@gmail.com'
   );
 });
 

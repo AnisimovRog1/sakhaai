@@ -1,4 +1,4 @@
-import { Bot, InlineKeyboard } from 'grammy';
+import { Bot, InlineKeyboard, Keyboard } from 'grammy';
 import * as dotenv from 'dotenv';
 import https from 'https';
 
@@ -108,6 +108,58 @@ bot.command('start', async (ctx) => {
       { reply_markup: keyboard }
     );
   }
+
+  // Постоянная клавиатура внизу
+  const replyKb = new Keyboard()
+    .text('🚀 Открыть приложение')
+    .row()
+    .text('🛟 Поддержка').text('📄 Документы')
+    .row()
+    .text('👥 Пригласить друга')
+    .resized().persistent();
+  await ctx.reply('⬇️ Используй меню ниже:', { reply_markup: replyKb });
+});
+
+// Обработка кнопок постоянной клавиатуры
+bot.hears('🚀 Открыть приложение', async (ctx) => {
+  const kb = new InlineKeyboard().webApp('🚀 Открыть UraanxAI', WEBAPP_URL);
+  await ctx.reply('Нажми кнопку чтобы открыть приложение:', { reply_markup: kb });
+});
+
+bot.hears('🛟 Поддержка', async (ctx) => {
+  await ctx.reply(
+    `🛟 <b>Поддержка UraanxAI</b>\n\n` +
+    `Напишите ваш вопрос прямо сюда — мы ответим в ближайшее время.\n\n` +
+    `Или: 📧 uraanx.ai.project@gmail.com`,
+    { parse_mode: 'HTML' }
+  );
+});
+
+bot.hears('📄 Документы', async (ctx) => {
+  await ctx.reply(
+    `📄 <b>Документация UraanxAI</b>\n\n` +
+    `<b>§1 Пользовательское соглашение</b>\n` +
+    `Использование сервиса и/или оплата = акцепт оферты.\n\n` +
+    `<b>§2 Возврат</b>\n` +
+    `• Неиспользованные кредиты — возврат 14 дней\n` +
+    `• Частичное использование — пропорциональный возврат\n` +
+    `• Срок — до 10 рабочих дней\n\n` +
+    `<b>§3 Конфиденциальность</b>\n` +
+    `Данные не передаются третьим лицам.\n\n` +
+    `Полная версия: https://sakhaai-production.up.railway.app/landing`,
+    { parse_mode: 'HTML' }
+  );
+});
+
+bot.hears('👥 Пригласить друга', async (ctx) => {
+  const userId = ctx.from?.id;
+  const link = `https://t.me/UraanxAI_bot?start=ref_${userId}`;
+  await ctx.reply(
+    `👥 <b>Пригласи друга — получи бонус!</b>\n\n` +
+    `Твоя реферальная ссылка:\n<code>${link}</code>\n\n` +
+    `Когда друг купит пакет — ты получишь бонусные кредиты 🎁`,
+    { parse_mode: 'HTML' }
+  );
 });
 
 bot.command('help', async (ctx) => {
@@ -1124,7 +1176,23 @@ async function processAutoSequences() {
 // ═══════════════════════════════════════════════════════
 
 bot.on('message', async (ctx) => {
-  // Админов и ботов пропускаем
+  // Админ отвечает reply на пересланное → отправляем юзеру
+  if (isAdmin(ctx.chat.id) && ctx.message.reply_to_message) {
+    const reply = ctx.message.reply_to_message;
+    // Ищем ID юзера в forwarded сообщении или в тексте заголовка
+    const fwdId = (reply as any).forward_from?.id;
+    const textMatch = reply.text?.match(/ID:\s*(\d+)/);
+    const targetId = fwdId || (textMatch ? parseInt(textMatch[1]) : null);
+    if (targetId && ctx.message.text) {
+      try {
+        await bot.api.sendMessage(targetId, `💬 <b>Ответ поддержки:</b>\n\n${ctx.message.text}`, { parse_mode: 'HTML' });
+        await ctx.reply('✅ Ответ отправлен');
+      } catch (e: any) { await ctx.reply('❌ Не удалось: ' + (e.message || e)); }
+    }
+    return;
+  }
+
+  // Обычные юзеры — пересылаем админу
   if (isAdmin(ctx.chat.id)) return;
   if (!ADMIN_CHAT_ID) return;
 

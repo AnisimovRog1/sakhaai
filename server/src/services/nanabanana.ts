@@ -84,7 +84,7 @@ export async function generateImage(prompt: string, model?: string, aspectRatio?
     model: resolveModel(model),
     contents: [{ parts: [{ text: fullPrompt }] }],
     config: {
-      responseModalities: ['IMAGE'],
+      responseModalities: ['TEXT', 'IMAGE'],
       maxOutputTokens: 8192,
       temperature: 1.0,
     },
@@ -141,7 +141,7 @@ export async function editImage(
       ],
     }],
     config: {
-      responseModalities: ['IMAGE'],
+      responseModalities: ['TEXT', 'IMAGE'],
       maxOutputTokens: 8192,
       temperature: 1.0,
     },

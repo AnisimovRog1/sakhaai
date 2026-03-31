@@ -192,27 +192,25 @@ input:focus,textarea:focus{border-color:rgba(139,92,246,.5);box-shadow:0 0 20px 
             <input type="file" id="fileInput" accept="image/*,video/*" class="hidden" onchange="handleFileSelect(event)">
           </div>
           <input type="hidden" id="pushType" value="manual">
-          <div class="flex items-center gap-3 flex-wrap">
-            <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="pushTiming" value="now" checked onchange="document.getElementById('pushScheduleTime').classList.add('hidden')"><span class="text-sm text-slate-300">Отправить сразу</span></label>
-            <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="pushTiming" value="scheduled" onchange="document.getElementById('pushScheduleTime').classList.remove('hidden')"><span class="text-sm text-slate-300">Запланировать</span></label>
-            <div id="pushScheduleTime" class="hidden flex items-center gap-2">
-              <input type="datetime-local" id="pushScheduleAt" class="bg-black/20 border border-white/8 rounded-lg px-2 py-1.5 text-sm text-slate-300">
+          <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="pushTiming" value="now" checked onchange="document.getElementById('pushScheduleTime').style.display='none'" style="accent-color:#7c3aed;width:16px;height:16px"><span class="text-sm text-slate-300">Отправить сразу</span></label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="pushTiming" value="scheduled" onchange="document.getElementById('pushScheduleTime').style.display='flex'" style="accent-color:#7c3aed;width:16px;height:16px"><span class="text-sm text-slate-300">Запланировать</span></label>
+            <div id="pushScheduleTime" style="display:none;align-items:center;gap:8px"><input type="datetime-local" id="pushScheduleAt" style="background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:6px 10px;color:#cbd5e1;font-size:13px"></div>
+          </div>
+          <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px 16px">
+            <div style="font-size:11px;color:#94a3b8;font-weight:600;margin-bottom:8px">👥 Получатели:</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;color:#cbd5e1"><input type="radio" name="pushRecipients" value="all" checked style="accent-color:#7c3aed;width:14px;height:14px">Все</label>
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;color:#cbd5e1"><input type="radio" name="pushRecipients" value="active" style="accent-color:#7c3aed;width:14px;height:14px">Активные</label>
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;color:#cbd5e1"><input type="radio" name="pushRecipients" value="purchased" style="accent-color:#7c3aed;width:14px;height:14px">Купившие</label>
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;color:#cbd5e1"><input type="radio" name="pushRecipients" value="not_purchased" style="accent-color:#7c3aed;width:14px;height:14px">Не купившие</label>
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;color:#cbd5e1"><input type="radio" name="pushRecipients" value="low_credits" style="accent-color:#7c3aed;width:14px;height:14px">Кредиты &lt;<input type="number" id="pushCreditsFilter" placeholder="500" style="width:50px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:3px 6px;color:#94a3b8;font-size:11px"></label>
             </div>
           </div>
-          <div class="glass p-4 rounded-xl space-y-2">
-            <div class="text-xs text-slate-400 font-semibold">👥 Получатели:</div>
-            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
-              <label class="flex items-center gap-2 cursor-pointer glass p-2 rounded-lg"><input type="radio" name="pushRecipients" value="all" checked class="accent-violet-500"><span class="text-slate-300">Все юзеры</span></label>
-              <label class="flex items-center gap-2 cursor-pointer glass p-2 rounded-lg"><input type="radio" name="pushRecipients" value="active" class="accent-violet-500"><span class="text-slate-300">Активные (&lt;7д)</span></label>
-              <label class="flex items-center gap-2 cursor-pointer glass p-2 rounded-lg"><input type="radio" name="pushRecipients" value="purchased" class="accent-violet-500"><span class="text-slate-300">Купившие</span></label>
-              <label class="flex items-center gap-2 cursor-pointer glass p-2 rounded-lg"><input type="radio" name="pushRecipients" value="not_purchased" class="accent-violet-500"><span class="text-slate-300">Не купившие</span></label>
-              <label class="flex items-center gap-2 cursor-pointer glass p-2 rounded-lg col-span-2 sm:col-span-2"><input type="radio" name="pushRecipients" value="low_credits" class="accent-violet-500"><span class="text-slate-300">Кредиты &lt;</span><input type="number" id="pushCreditsFilter" placeholder="500" class="w-16 bg-black/30 border border-white/10 rounded px-2 py-1 text-slate-400 text-xs"></label>
-            </div>
-          </div>
-          <div class="grid grid-cols-[auto_1fr_1fr] gap-3">
-            <button class="btn btn-ghost py-3 px-4 text-sm" onclick="previewPush()">👁</button>
-            <button class="btn btn-primary py-3 text-sm" onclick="createPush(false)">💾 Сохранить</button>
-            <button class="btn btn-success py-3 text-sm" onclick="createPush(true)">📨 Отправить</button>
+          <div style="display:flex;gap:10px">
+            <button class="btn btn-ghost" style="padding:10px 16px;font-size:13px" onclick="previewPush()">👁 Превью</button>
+            <button class="btn btn-primary" style="flex:1;padding:12px;font-size:13px" onclick="createPush(false)">💾 Сохранить</button>
+            <button class="btn btn-success" style="flex:1;padding:12px;font-size:13px" onclick="createPush(true)">📨 Отправить</button>
           </div>
         </div>
       </div>

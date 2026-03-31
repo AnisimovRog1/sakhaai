@@ -189,6 +189,38 @@ export async function migrate() {
     EXCEPTION WHEN duplicate_column THEN NULL;
     END $$;
 
+    -- Push sequences: расширенные настройки времени и приветствий
+    DO $$ BEGIN
+      ALTER TABLE push_sequences ADD COLUMN send_mode TEXT DEFAULT 'immediate';
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$;
+    DO $$ BEGIN
+      ALTER TABLE push_sequences ADD COLUMN strict_time TEXT;
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$;
+    DO $$ BEGIN
+      ALTER TABLE push_sequences ADD COLUMN preferred_time TEXT;
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$;
+    DO $$ BEGIN
+      ALTER TABLE push_sequences ADD COLUMN weekday TEXT;
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$;
+    DO $$ BEGIN
+      ALTER TABLE push_sequences ADD COLUMN greeting_mode TEXT DEFAULT 'none';
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$;
+    DO $$ BEGIN
+      ALTER TABLE push_sequences ADD COLUMN greeting_fixed TEXT;
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$;
+
+    -- Users: отслеживание последней активности для реактивации
+    DO $$ BEGIN
+      ALTER TABLE users ADD COLUMN last_seen TIMESTAMPTZ;
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$;
+
     -- Убрать UNIQUE constraint на push_sent чтобы daily пуши могли отправляться каждый день
     DO $$ BEGIN
       ALTER TABLE push_sent DROP CONSTRAINT IF EXISTS push_sent_user_id_sequence_id_key;

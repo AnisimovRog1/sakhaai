@@ -250,6 +250,8 @@ input:focus,textarea:focus{border-color:rgba(139,92,246,.5);box-shadow:0 0 20px 
           <button class="flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all seq-tab" onclick="filterSeq(this,'zero_credits')">🔴 Ноль<br><span class="text-[10px] font-normal opacity-60">7 шагов</span></button>
           <button class="flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all seq-tab" onclick="filterSeq(this,'daily')">📅 Ежедневные<br><span class="text-[10px] font-normal opacity-60">для всех</span></button>
           <button class="flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all seq-tab" onclick="filterSeq(this,'welcome')">👋 Приветствие<br><span class="text-[10px] font-normal opacity-60">новые юзеры</span></button>
+          <button class="flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all seq-tab" onclick="filterSeq(this,'reactivation')">🔄 Реактивация<br><span class="text-[10px] font-normal opacity-60">7+ дней</span></button>
+          <button class="flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all seq-tab" onclick="filterSeq(this,'first_generation')">🎨 1-я генерация<br><span class="text-[10px] font-normal opacity-60">после генерации</span></button>
         </div>
 
         <div id="seqList"></div>
@@ -465,7 +467,7 @@ function renderSeqs(){
   var list=seqData.filter(function(s){return s.trigger_type===seqFilter}).sort(function(a,b){return a.delay_minutes-b.delay_minutes});
   if(!list.length){el.innerHTML='<div class="text-center py-8 text-slate-600">Нет пушей в этой цепочке</div>';return}
 
-  var triggerDesc={no_purchase:'Юзер запустил бота но НЕ купил пакет',after_purchase:'Юзер купил пакет',low_credits:'Баланс юзера упал ниже порога',zero_credits:'Кредиты юзера закончились (= 0)',daily:'Ежедневный пуш — отправляется ВСЕМ активным юзерам раз в день',welcome:'Приветственный пуш — отправляется при ПЕРВОМ запуске бота'}[seqFilter]||'';
+  var triggerDesc={no_purchase:'Юзер запустил бота но НЕ купил пакет',after_purchase:'Юзер купил пакет',low_credits:'Баланс юзера упал ниже порога',zero_credits:'Кредиты юзера закончились (= 0)',daily:'Ежедневный пуш — отправляется ВСЕМ активным юзерам раз в день',welcome:'Приветственный пуш — отправляется при ПЕРВОМ запуске бота',reactivation:'Юзер не заходил 7+ дней — отправляется до 3 раз',first_generation:'Юзер завершил первую генерацию — через N минут'}[seqFilter]||'';
 
   var html='<div class="mb-4 p-3 rounded-lg bg-white/5 border border-white/8"><p class="text-xs text-slate-400">⚡ Триггер: <span class="text-cyan-300 font-medium">'+triggerDesc+'</span></p></div>';
 
@@ -529,6 +531,51 @@ function renderSeqs(){
     html+='<input class="flex-1 min-w-[160px] text-[11px] bg-black/20 border border-white/8 rounded-lg px-2 py-1.5 text-slate-400" placeholder="URL фото" value="'+esc(s.media_url||'')+'" id="seqimg-'+s.id+'" oninput="markSeqDirty('+s.id+')"><input type="hidden" id="seqfileid-'+s.id+'" value="'+esc(s.media_file_id||'')+'">';
     html+='<div class="flex items-center gap-1 text-[11px] text-slate-500"><span>⏱ Через</span><input type="number" class="w-16 bg-black/20 border border-white/8 rounded px-1.5 py-1 text-slate-400 text-center" value="'+s.delay_minutes+'" id="seqdelay-'+s.id+'" oninput="markSeqDirty('+s.id+')"><span>мин после триггера</span></div>';
     html+='<input type="hidden" id="seqhfrom-'+s.id+'" value="'+(s.allow_hour_from||9)+'"><input type="hidden" id="seqhto-'+s.id+'" value="'+(s.allow_hour_to||22)+'">';
+    html+='</div>';
+
+    // ═══ Режим отправки ═══
+    var sm=s.send_mode||'immediate';
+    html+='<div class="flex gap-2 mt-2 flex-wrap items-center text-[11px] text-slate-500">';
+    html+='<span>📤</span>';
+    html+='<label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="seqmode-'+s.id+'" value="immediate" '+(sm==='immediate'?'checked':'')+' onchange="markSeqDirty('+s.id+')"><span>Немедленно</span></label>';
+    html+='<label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="seqmode-'+s.id+'" value="strict_time" '+(sm==='strict_time'?'checked':'')+' onchange="markSeqDirty('+s.id+')"><span>Строго в</span></label>';
+    html+='<input type="text" class="w-14 bg-black/20 border border-white/8 rounded px-1.5 py-0.5 text-slate-400 text-center" placeholder="10:00" value="'+esc(s.strict_time||'')+'" id="seqstrict-'+s.id+'" oninput="markSeqDirty('+s.id+')">';
+    html+='<label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="seqmode-'+s.id+'" value="preferred_time" '+(sm==='preferred_time'?'checked':'')+' onchange="markSeqDirty('+s.id+')"><span>Preferred</span></label>';
+    html+='<input type="text" class="w-14 bg-black/20 border border-white/8 rounded px-1.5 py-0.5 text-slate-400 text-center" placeholder="12:00" value="'+esc(s.preferred_time||'')+'" id="seqpref-'+s.id+'" oninput="markSeqDirty('+s.id+')">';
+    html+='</div>';
+
+    // ═══ Приветствие ═══
+    var gm=s.greeting_mode||'none';
+    html+='<div class="flex gap-2 mt-1 flex-wrap items-center text-[11px] text-slate-500">';
+    html+='<span>👋</span>';
+    html+='<select class="bg-black/20 border border-white/8 rounded px-1.5 py-0.5 text-slate-400 text-[11px]" id="seqgreet-'+s.id+'" onchange="markSeqDirty('+s.id+');var f=document.getElementById(\'seqgreetfixed-'+s.id+'\');if(f)f.classList.toggle(\'hidden\',this.value!==\'fixed\')">';
+    html+='<option value="none" '+(gm==='none'?'selected':'')+'>Без приветствия</option>';
+    html+='<option value="dynamic" '+(gm==='dynamic'?'selected':'')+'>Динамическое (утро/день/вечер)</option>';
+    html+='<option value="fixed" '+(gm==='fixed'?'selected':'')+'>Фиксированное</option>';
+    html+='</select>';
+    html+='<input type="text" class="w-28 bg-black/20 border border-white/8 rounded px-1.5 py-0.5 text-slate-400 '+(gm==='fixed'?'':'hidden')+'" placeholder="Привет!" value="'+esc(s.greeting_fixed||'')+'" id="seqgreetfixed-'+s.id+'" oninput="markSeqDirty('+s.id+')">';
+    html+='</div>';
+
+    // ═══ День недели (только для daily) ═══
+    if(seqFilter==='daily'){
+      var wd=s.weekday||'';
+      html+='<div class="flex gap-2 mt-1 flex-wrap items-center text-[11px] text-slate-500">';
+      html+='<span>📅</span>';
+      html+='<select class="bg-black/20 border border-white/8 rounded px-1.5 py-0.5 text-slate-400 text-[11px]" id="seqweekday-'+s.id+'" onchange="markSeqDirty('+s.id+')">';
+      html+='<option value="" '+(wd===''?'selected':'')+'>Каждый день</option>';
+      html+='<option value="MON" '+(wd==='MON'?'selected':'')+'>Пн</option>';
+      html+='<option value="TUE" '+(wd==='TUE'?'selected':'')+'>Вт</option>';
+      html+='<option value="WED" '+(wd==='WED'?'selected':'')+'>Ср</option>';
+      html+='<option value="THU" '+(wd==='THU'?'selected':'')+'>Чт</option>';
+      html+='<option value="FRI" '+(wd==='FRI'?'selected':'')+'>Пт</option>';
+      html+='<option value="SAT" '+(wd==='SAT'?'selected':'')+'>Сб</option>';
+      html+='<option value="SUN" '+(wd==='SUN'?'selected':'')+'>Вс</option>';
+      html+='</select>';
+      html+='</div>';
+    }
+
+    // ═══ Кнопки сохранения/удаления ═══
+    html+='<div class="flex gap-2 mt-2 items-center">';
     html+='<button class="btn btn-primary text-[11px] hidden" id="seqsave-'+s.id+'" onclick="saveSeq('+s.id+')" style="padding:4px 12px">💾 Сохранить</button>';
     html+='<button class="text-red-400/50 hover:text-red-400 text-[11px]" onclick="delSeq('+s.id+')">🗑</button>';
     html+='</div>';
@@ -558,8 +605,14 @@ async function saveSeq(id){
   var delay_minutes=parseInt(document.getElementById('seqdelay-'+id).value)||0;
   var allow_hour_from=parseInt(document.getElementById('seqhfrom-'+id).value)||9;
   var allow_hour_to=parseInt(document.getElementById('seqhto-'+id).value)||22;
+  var send_mode=(document.querySelector('input[name="seqmode-'+id+'"]:checked')||{}).value||'immediate';
+  var strict_time=(document.getElementById('seqstrict-'+id)||{}).value||null;
+  var preferred_time=(document.getElementById('seqpref-'+id)||{}).value||null;
+  var weekday=(document.getElementById('seqweekday-'+id)||{}).value||null;
+  var greeting_mode=(document.getElementById('seqgreet-'+id)||{}).value||'none';
+  var greeting_fixed=(document.getElementById('seqgreetfixed-'+id)||{}).value||null;
   var s=seqData.find(function(x){return x.id===id});
-  var r=await P('/admin/push/sequences',{id:id,trigger_type:s.trigger_type,delay_minutes:delay_minutes,credits_threshold:s.credits_threshold,text:text,media_type:(media_url||media_file_id)?'photo':null,media_url:media_url,media_file_id:media_file_id,label:s.label,is_active:s.is_active,allow_hour_from:allow_hour_from,allow_hour_to:allow_hour_to});
+  var r=await P('/admin/push/sequences',{id:id,trigger_type:s.trigger_type,delay_minutes:delay_minutes,credits_threshold:s.credits_threshold,text:text,media_type:(media_url||media_file_id)?'photo':null,media_url:media_url,media_file_id:media_file_id,label:s.label,is_active:s.is_active,allow_hour_from:allow_hour_from,allow_hour_to:allow_hour_to,send_mode:send_mode,strict_time:strict_time,preferred_time:preferred_time,weekday:weekday,greeting_mode:greeting_mode,greeting_fixed:greeting_fixed});
   if(r.id){document.getElementById('seqsave-'+id).classList.add('hidden');loadSeqs()}
   else alert(r.error||'Ошибка')
 }

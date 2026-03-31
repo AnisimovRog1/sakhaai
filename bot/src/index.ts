@@ -1045,6 +1045,14 @@ function scheduleReports() {
 // АВТОМАТИЧЕСКИЕ ПУШ-ПОСЛЕДОВАТЕЛЬНОСТИ
 // ═══════════════════════════════════════════════════════
 
+// Динамическое приветствие по местному часу юзера
+function getGreeting(localHour: number): string {
+  if (localHour >= 5 && localHour < 12) return 'Доброе утро';
+  if (localHour >= 12 && localHour < 17) return 'Добрый день';
+  if (localHour >= 17 && localHour < 22) return 'Добрый вечер';
+  return 'Привет';
+}
+
 function formatText(raw: string): string {
   // 1. Экранируем HTML спецсимволы
   let t = raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -1067,19 +1075,27 @@ async function processAutoSequences() {
     let sent = 0;
     for (const p of pending) {
       try {
+        // Применяем приветствие
+        let text = p.text;
+        if (p.greeting_mode === 'dynamic' && p.user_local_hour !== undefined) {
+          text = getGreeting(p.user_local_hour) + '! ' + text;
+        } else if (p.greeting_mode === 'fixed' && p.greeting_fixed) {
+          text = p.greeting_fixed + ' ' + text;
+        }
+
         const media = p.media_file_id || p.media_url;
         if (p.media_type === 'video' && media) {
           await bot.api.sendVideo(Number(p.user_id), media, {
-            caption: formatText(p.text),
+            caption: formatText(text),
             parse_mode: 'HTML',
           });
         } else if (p.media_type === 'photo' && media) {
           await bot.api.sendPhoto(Number(p.user_id), media, {
-            caption: formatText(p.text),
+            caption: formatText(text),
             parse_mode: 'HTML',
           });
         } else {
-          await bot.api.sendMessage(Number(p.user_id), formatText(p.text), {
+          await bot.api.sendMessage(Number(p.user_id), formatText(text), {
             parse_mode: 'HTML',
           });
         }

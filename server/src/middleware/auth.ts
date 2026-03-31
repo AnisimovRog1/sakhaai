@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { pool } from '../db/pool';
 
 // Расширяем стандартный тип Request — добавляем поле userId
 declare global {
@@ -25,6 +26,8 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET!) as { userId: number };
     req.userId = payload.userId;
+    // Обновляем last_seen (fire-and-forget, не блокируем запрос)
+    pool.query('UPDATE users SET last_seen = NOW() WHERE id = $1', [payload.userId]).catch(() => {});
     next(); // всё ок — передаём управление дальше
   } catch {
     res.status(401).json({ error: 'Токен недействителен или истёк' });

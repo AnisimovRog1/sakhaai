@@ -8,6 +8,7 @@ import {
   checkMotionStatusDirect,
 } from '../services/kling-direct';
 import { generateTTS, generateAvatar } from '../services/fal-avatar';
+import voiceSamples from '../data/voice-samples.json';
 import { deduct, addCredits, TxType } from '../services/balance';
 import { saveGeneration } from '../services/generations';
 import { pool } from '../db/pool';
@@ -259,9 +260,20 @@ videoRouter.get('/motion-status/:requestId', async (req: Request, res: Response)
   }
 });
 
-// ─── POST /video/tts-preview — превью голоса (недоступно — Kling Direct не имеет TTS) ──
-videoRouter.post('/tts-preview', async (_req: Request, res: Response) => {
-  res.status(501).json({ error: 'Превью голоса временно недоступно. Голос можно выбрать при генерации аватара.' });
+// ─── POST /video/tts-preview — превью голоса (из кеша) ──
+
+videoRouter.post('/tts-preview', async (req: Request, res: Response) => {
+  try {
+    const { voiceId } = req.body;
+    const audioUrl = (voiceSamples as Record<string, string>)[voiceId];
+    if (!audioUrl) {
+      res.status(404).json({ error: 'Превью для этого голоса недоступно' });
+      return;
+    }
+    res.json({ audioUrl });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message ?? 'Ошибка превью голоса' });
+  }
 });
 
 // ─── POST /video/tts — TTS (недоступно) ──

@@ -310,7 +310,16 @@ adminRouter.post('/push/send/:id', async (req: Request, res: Response) => {
     const tmpl = await pool.query('SELECT * FROM push_templates WHERE id = $1', [req.params.id]);
     if (tmpl.rowCount === 0) { res.status(404).json({ error: 'Шаблон не найден' }); return; }
     const t = tmpl.rows[0];
-    const users = await pool.query('SELECT id FROM users WHERE is_banned = false');
+    // Фильтр получателей
+    const filter = req.body?.recipients || 'all';
+    const creditsFilter = req.body?.creditsFilter || 500;
+    let userQuery = 'SELECT id FROM users WHERE is_banned = false';
+    const params: any[] = [];
+    if (filter === 'active') { userQuery += ' AND last_seen >= NOW() - INTERVAL \'7 days\''; }
+    else if (filter === 'purchased') { userQuery += ' AND EXISTS (SELECT 1 FROM orders o WHERE o.user_id = users.id AND o.status = \'paid\')'; }
+    else if (filter === 'not_purchased') { userQuery += ' AND NOT EXISTS (SELECT 1 FROM orders o WHERE o.user_id = users.id AND o.status = \'paid\')'; }
+    else if (filter === 'low_credits') { params.push(creditsFilter); userQuery += ' AND credits < $' + params.length; }
+    const users = await pool.query(userQuery, params);
 
     // Отправка через бот (BOT_TOKEN)
     const BOT_TOKEN = process.env.BOT_TOKEN;
@@ -385,6 +394,22 @@ adminRouter.get('/push/log', async (_req: Request, res: Response) => {
       ORDER BY sent_at DESC LIMIT 50
     `);
     res.json(r.rows);
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+// Статистика пушей
+adminRouter.get('/push/stats', async (_req: Request, res: Response) => {
+  try {
+    const totalSent = await pool.query(`SELECT COALESCE(SUM(sent_count),0)::int as v FROM push_log`);
+    const autoToday = await pool.query(`SELECT COUNT(*)::int as v FROM push_sent WHERE sent_at >= CURRENT_DATE`);
+    const activeChains = await pool.query(`SELECT COUNT(*)::int as v FROM push_sequences WHERE is_active = true AND is_deleted = false`);
+    const totalTemplates = await pool.query(`SELECT COUNT(*)::int as v FROM push_templates`);
+    res.json({
+      totalSent: totalSent.rows[0].v,
+      autoToday: autoToday.rows[0].v,
+      activeChains: activeChains.rows[0].v,
+      totalTemplates: totalTemplates.rows[0].v,
+    });
   } catch (err: any) { res.status(500).json({ error: err.message }); }
 });
 

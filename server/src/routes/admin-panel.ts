@@ -199,12 +199,27 @@ input:focus,textarea:focus{border-color:rgba(139,92,246,.5);box-shadow:0 0 20px 
               <input type="datetime-local" id="pushScheduleAt" class="bg-black/20 border border-white/8 rounded-lg px-2 py-1.5 text-sm text-slate-300">
             </div>
           </div>
+          <div class="space-y-2">
+            <div class="text-xs text-slate-400 font-semibold">👥 Получатели:</div>
+            <div class="flex flex-wrap gap-2 text-xs">
+              <label class="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="pushRecipients" value="all" checked><span class="text-slate-300">Все юзеры</span></label>
+              <label class="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="pushRecipients" value="active"><span class="text-slate-300">Активные (&lt;7 дн)</span></label>
+              <label class="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="pushRecipients" value="purchased"><span class="text-slate-300">Купившие</span></label>
+              <label class="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="pushRecipients" value="not_purchased"><span class="text-slate-300">Не купившие</span></label>
+              <label class="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="pushRecipients" value="low_credits"><span class="text-slate-300">Кредиты &lt;</span></label>
+              <input type="number" id="pushCreditsFilter" placeholder="500" class="w-16 bg-black/20 border border-white/8 rounded px-1.5 py-0.5 text-slate-400 text-xs">
+            </div>
+          </div>
           <div class="flex gap-2">
+            <button class="btn btn-ghost py-3" onclick="previewPush()">👁 Preview</button>
             <button class="btn btn-primary flex-1 py-3" onclick="createPush(false)">💾 Сохранить</button>
-            <button class="btn btn-success flex-1 py-3" onclick="createPush(true)">📨 Отправить всем</button>
+            <button class="btn btn-success flex-1 py-3" onclick="createPush(true)">📨 Отправить</button>
           </div>
         </div>
       </div>
+
+      <!-- Статистика пушей -->
+      <div id="pushStatsGrid" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5"></div>
 
       <!-- Таблица пушей -->
       <h3 class="text-base font-bold mb-4 flex items-center gap-2"><span class="anim-pulse">📋</span> Разовые пуши</h3>
@@ -266,6 +281,33 @@ input:focus,textarea:focus{border-color:rgba(139,92,246,.5);box-shadow:0 0 20px 
   <div class="modal glass-neon glow-border p-6" id="userModalContent"></div>
 </div>
 
+<!-- SEQUENCE CREATE MODAL -->
+<div id="seqCreateModal" class="modal-bg hidden" onclick="if(event.target===this)closeSeqModal()">
+  <div class="modal glass-neon glow-border p-6" style="max-width:520px">
+    <h3 class="text-lg font-bold gradient-text mb-4">🔗 Создать новую цепочку</h3>
+    <div class="space-y-3">
+      <input id="seqCreateName" placeholder="📌 Название цепочки" class="w-full">
+      <div class="text-xs text-slate-400 font-semibold mb-1">Триггер срабатывания:</div>
+      <div class="grid grid-cols-2 gap-2 text-xs">
+        <label class="flex items-center gap-2 glass p-2.5 rounded-lg cursor-pointer hover:bg-white/5"><input type="radio" name="seqCreateTrigger" value="no_purchase" checked onchange="onSeqTriggerChange()"><span>🛒 Не купил пакет</span></label>
+        <label class="flex items-center gap-2 glass p-2.5 rounded-lg cursor-pointer hover:bg-white/5"><input type="radio" name="seqCreateTrigger" value="after_purchase" onchange="onSeqTriggerChange()"><span>✅ Купил пакет</span></label>
+        <label class="flex items-center gap-2 glass p-2.5 rounded-lg cursor-pointer hover:bg-white/5"><input type="radio" name="seqCreateTrigger" value="low_credits" onchange="onSeqTriggerChange()"><span>📉 Мало кредитов</span></label>
+        <label class="flex items-center gap-2 glass p-2.5 rounded-lg cursor-pointer hover:bg-white/5"><input type="radio" name="seqCreateTrigger" value="zero_credits" onchange="onSeqTriggerChange()"><span>🔴 Ноль кредитов</span></label>
+        <label class="flex items-center gap-2 glass p-2.5 rounded-lg cursor-pointer hover:bg-white/5"><input type="radio" name="seqCreateTrigger" value="daily" onchange="onSeqTriggerChange()"><span>📅 Ежедневно</span></label>
+        <label class="flex items-center gap-2 glass p-2.5 rounded-lg cursor-pointer hover:bg-white/5"><input type="radio" name="seqCreateTrigger" value="welcome" onchange="onSeqTriggerChange()"><span>👋 Приветствие</span></label>
+        <label class="flex items-center gap-2 glass p-2.5 rounded-lg cursor-pointer hover:bg-white/5"><input type="radio" name="seqCreateTrigger" value="reactivation" onchange="onSeqTriggerChange()"><span>🔄 Реактивация</span></label>
+        <label class="flex items-center gap-2 glass p-2.5 rounded-lg cursor-pointer hover:bg-white/5"><input type="radio" name="seqCreateTrigger" value="first_generation" onchange="onSeqTriggerChange()"><span>🎨 Первая генерация</span></label>
+      </div>
+      <div class="hidden"><label class="text-xs text-slate-500">Порог кредитов: <input id="seqCreateThreshold" type="number" placeholder="500" class="w-20 ml-2"></label></div>
+      <div class="hidden"><label class="text-xs text-slate-500">День недели: <select id="seqCreateWeekday" class="ml-2 bg-black/20 border border-white/8 rounded px-2 py-1 text-slate-400 text-xs"><option value="">Каждый день</option><option value="MON">Пн</option><option value="TUE">Вт</option><option value="WED">Ср</option><option value="THU">Чт</option><option value="FRI">Пт</option><option value="SAT">Сб</option><option value="SUN">Вс</option></select></label></div>
+      <div class="flex gap-2 mt-4">
+        <button class="btn btn-ghost flex-1" onclick="closeSeqModal()">Отмена</button>
+        <button class="btn btn-primary flex-1" onclick="submitNewSeq()">✨ Создать</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 let TOKEN=localStorage.getItem('at')||'';
 const API=location.origin;
@@ -286,7 +328,7 @@ function G(p){return apiFetch(p)}
 function P(p,d){return apiFetch(p,{method:'POST',body:JSON.stringify(d)})}
 function D(p){return apiFetch(p,{method:'DELETE'})}
 
-function showTab(el,n){document.querySelectorAll('[id^=tab-]').forEach(e=>e.classList.add('hidden'));document.getElementById('tab-'+n).classList.remove('hidden');document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));el.classList.add('active');if(n==='users')loadUsers();if(n==='pushes'){loadPushTemplates();loadPushLog();loadSeqs()}}
+function showTab(el,n){document.querySelectorAll('[id^=tab-]').forEach(e=>e.classList.add('hidden'));document.getElementById('tab-'+n).classList.remove('hidden');document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));el.classList.add('active');if(n==='users')loadUsers();if(n==='pushes'){loadPushTemplates();loadPushLog();loadSeqs();loadPushStats()}}
 
 // Auto-refresh every 30 sec
 function startAutoRefresh(){autoRefresh=setInterval(()=>loadStats(currentPeriod),30000)}
@@ -412,7 +454,9 @@ async function createPush(send){
   const r=await P('/admin/push/templates',{name,text,scheduleType:timing==='scheduled'?'scheduled':'manual',sendTime:scheduleAt,mediaType:mediaType,mediaFileId:mediaFileId});
   if(r.id){
     if(send&&timing==='now'){
-      var sr=await P('/admin/push/send/'+r.id,{});
+      var recipients=(document.querySelector('input[name="pushRecipients"]:checked')||{}).value||'all';
+      var creditsFilter=parseInt(document.getElementById('pushCreditsFilter')?.value)||500;
+      var sr=await P('/admin/push/send/'+r.id,{recipients:recipients,creditsFilter:creditsFilter});
       alert('📨 Отправлено: '+(sr.sent||0)+' пользователям');
     } else if(timing==='scheduled'){
       alert('📅 Пуш запланирован на '+new Date(scheduleAt).toLocaleString('ru'));
@@ -422,6 +466,27 @@ async function createPush(send){
     document.getElementById('pushName').value='';document.getElementById('pushText').value='';
     clearMedia();loadPushTemplates()
   } else alert('❌ '+(r.error||'Ошибка'))}
+
+async function loadPushStats(){
+  var s=await G('/admin/push/stats');if(s.error)return;
+  var el=document.getElementById('pushStatsGrid');if(!el)return;
+  el.innerHTML=[
+    sc('📨','Отправлено',s.totalSent,'neon'),
+    sc('🤖','Авто сегодня',s.autoToday,'cyan'),
+    sc('🔗','Активных цепочек',s.activeChains,'neon'),
+    sc('📝','Шаблонов',s.totalTemplates,'cyan'),
+  ].join('');
+}
+
+function previewPush(){
+  var text=document.getElementById('pushText').value;
+  if(!text){alert('Введите текст');return}
+  var formatted=text.replace(/<<([^>]+)>>/g,'<b>$1</b>').replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>').replace(/_([^_]+)_/g,'<i>$1</i>');
+  var hasMedia=uploadedMedia.data?'<div style="background:#111;border-radius:8px;padding:20px;text-align:center;margin-bottom:8px"><span style="color:#06b6d4">📸 Фото прикреплено</span></div>':'';
+  var modal=document.getElementById('userModal');
+  document.getElementById('userModalContent').innerHTML='<h3 class="text-lg font-bold gradient-text mb-3">👁 Preview пуша</h3><div class="glass p-4 rounded-xl">'+hasMedia+'<div class="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">'+formatted+'</div></div><p class="text-slate-600 text-[10px] mt-2">Так будет выглядеть в Telegram (приблизительно)</p><button class="btn btn-ghost w-full mt-3" onclick="closeUserModal()">Закрыть</button>';
+  modal.classList.remove('hidden');
+}
 
 async function loadPushTemplates(){
   const t=await G('/admin/push/templates');const el=document.getElementById('pushTable');
@@ -450,7 +515,9 @@ async function togglePush(id){await apiFetch('/admin/push/templates/'+id+'/toggl
 async function loadPushLog(){
   const l=await G('/admin/push/log');const el=document.getElementById('pushLogList');
   if(!Array.isArray(l)||!l.length){el.innerHTML='<p class="text-slate-600 text-sm">Рассылок не было</p>';return}
-  el.innerHTML=l.map(x=>{var icon=x.source==='auto'?'🤖':'📨';var date=x.sent_at?new Date(x.sent_at).toLocaleDateString('ru',''):'';return '<div class="flex justify-between items-center py-2.5 text-sm border-b border-white/5"><div class="flex items-center gap-2"><span>'+icon+'</span><span class="text-white font-medium">'+(x.label||'—')+'</span></div><span class="text-slate-500 text-xs">'+date+'</span><span class="text-green-400 font-bold">'+x.sent_count+' чел.</span></div>'}).join('')}
+  el.innerHTML='<div class="grid grid-cols-[auto_1fr_auto_auto_auto] gap-x-3 gap-y-2 text-sm items-center">'+
+    '<span class="text-slate-600 text-[10px] uppercase">Тип</span><span class="text-slate-600 text-[10px] uppercase">Название</span><span class="text-slate-600 text-[10px] uppercase">Дата</span><span class="text-slate-600 text-[10px] uppercase">Отправлено</span><span class="text-slate-600 text-[10px] uppercase">Ошибки</span>'+
+    l.map(x=>{var icon=x.source==='auto'?'🤖':'📨';var date=x.sent_at?new Date(x.sent_at).toLocaleDateString('ru'):'';var fail=x.failed_count>0?'<span class="text-red-400">'+x.failed_count+'</span>':'<span class="text-slate-600">0</span>';return '<span>'+icon+'</span><span class="text-white font-medium truncate">'+(x.label||'—')+'</span><span class="text-slate-500 text-xs">'+date+'</span><span class="text-green-400 font-bold">'+x.sent_count+'</span>'+fail}).join('')+'</div>'}
 
 // ═══ АВТОПУШ-ЦЕПОЧКИ ═══
 let seqData=[];
@@ -577,6 +644,7 @@ function renderSeqs(){
     // ═══ Кнопки сохранения/удаления ═══
     html+='<div class="flex gap-2 mt-2 items-center">';
     html+='<button class="btn btn-primary text-[11px] hidden" id="seqsave-'+s.id+'" onclick="saveSeq('+s.id+')" style="padding:4px 12px">💾 Сохранить</button>';
+    html+='<button class="text-cyan-400/50 hover:text-cyan-400 text-[11px]" onclick="dupeSeq('+s.id+')" title="Дублировать">📋</button>';
     html+='<button class="text-red-400/50 hover:text-red-400 text-[11px]" onclick="delSeq('+s.id+')">🗑</button>';
     html+='</div>';
 
@@ -619,6 +687,11 @@ async function saveSeq(id){
 
 async function toggleSeq(id){await apiFetch('/admin/push/sequences/'+id+'/toggle',{method:'PUT'});loadSeqs()}
 async function delSeq(id){if(!confirm('Удалить?'))return;await D('/admin/push/sequences/'+id);loadSeqs()}
+async function dupeSeq(id){
+  var s=seqData.find(function(x){return x.id===id});if(!s)return;
+  var r=await P('/admin/push/sequences',{trigger_type:s.trigger_type,delay_minutes:s.delay_minutes,credits_threshold:s.credits_threshold,text:s.text,media_type:s.media_type,media_url:s.media_url,media_file_id:s.media_file_id,label:s.label+' (копия)',is_active:false,allow_hour_from:s.allow_hour_from,allow_hour_to:s.allow_hour_to,send_mode:s.send_mode,strict_time:s.strict_time,preferred_time:s.preferred_time,weekday:s.weekday,greeting_mode:s.greeting_mode,greeting_fixed:s.greeting_fixed});
+  if(r.id)loadSeqs();else alert(r.error||'Ошибка')
+}
 
 // Форматирование через data-атрибуты
 function seqFmt(btn){
@@ -684,8 +757,28 @@ async function uploadSeqMedia(file,id){
 }
 
 function addNewSeq(){
-  var label=prompt('Название:');if(!label)return;
-  P('/admin/push/sequences',{trigger_type:seqFilter,delay_minutes:0,text:'Текст...',label:label,is_active:false}).then(function(){loadSeqs()})
+  var m=document.getElementById('seqCreateModal');if(m)m.classList.remove('hidden');
+  document.getElementById('seqCreateName').value='';
+  document.getElementById('seqCreateThreshold').parentElement.classList.add('hidden');
+  document.getElementById('seqCreateWeekday').parentElement.classList.add('hidden');
+}
+function closeSeqModal(){document.getElementById('seqCreateModal').classList.add('hidden')}
+function onSeqTriggerChange(){
+  var t=document.querySelector('input[name="seqCreateTrigger"]:checked').value;
+  var th=document.getElementById('seqCreateThreshold').parentElement;
+  var wd=document.getElementById('seqCreateWeekday').parentElement;
+  th.classList.toggle('hidden',t!=='low_credits');
+  wd.classList.toggle('hidden',t!=='daily');
+}
+function submitNewSeq(){
+  var label=document.getElementById('seqCreateName').value;
+  if(!label){alert('Введите название');return}
+  var trigger=document.querySelector('input[name="seqCreateTrigger"]:checked')?.value||seqFilter;
+  var threshold=trigger==='low_credits'?parseInt(document.getElementById('seqCreateThreshold').value)||null:null;
+  var weekday=trigger==='daily'?document.getElementById('seqCreateWeekday').value||null:null;
+  P('/admin/push/sequences',{trigger_type:trigger,delay_minutes:0,text:'Текст...',label:label,is_active:false,credits_threshold:threshold,weekday:weekday}).then(function(r){
+    if(r.id){closeSeqModal();seqFilter=trigger;loadSeqs()}else alert(r.error||'Ошибка')
+  })
 }
 
 // Корзина удалённых

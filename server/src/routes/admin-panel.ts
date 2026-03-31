@@ -600,9 +600,9 @@ function renderSeqs(){
 
     // ═══ Режим отправки ═══
     var sm=s.send_mode||'immediate';
-    html+='<div class="grid gap-2 mt-2 text-[11px] text-slate-500" style="grid-template-columns:auto 1fr">';
-    html+='<span class="pt-1">📤</span>';
-    html+='<div class="flex flex-col gap-1.5">';
+    html+='<div class="flex items-start gap-2 mt-2 text-[11px] text-slate-500">';
+    html+='<span class="pt-0.5">📤</span>';
+    html+='<div class="flex flex-col gap-1">';
     html+='<label class="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="seqmode-'+s.id+'" value="immediate" '+(sm==='immediate'?'checked':'')+' onchange="markSeqDirty('+s.id+')"><span>Немедленно</span></label>';
     html+='<label class="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="seqmode-'+s.id+'" value="strict_time" '+(sm==='strict_time'?'checked':'')+' onchange="markSeqDirty('+s.id+')"><span>Строго в</span><input type="text" class="w-14 bg-black/20 border border-white/8 rounded px-1.5 py-0.5 text-slate-400 text-center" placeholder="10:00" value="'+esc(s.strict_time||'')+'" id="seqstrict-'+s.id+'" oninput="markSeqDirty('+s.id+')"></label>';
     html+='<label class="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="seqmode-'+s.id+'" value="preferred_time" '+(sm==='preferred_time'?'checked':'')+' onchange="markSeqDirty('+s.id+')"><span>Preferred</span><input type="text" class="w-14 bg-black/20 border border-white/8 rounded px-1.5 py-0.5 text-slate-400 text-center" placeholder="12:00" value="'+esc(s.preferred_time||'')+'" id="seqpref-'+s.id+'" oninput="markSeqDirty('+s.id+')"></label>';
@@ -610,16 +610,15 @@ function renderSeqs(){
 
     // ═══ Приветствие ═══
     var gm=s.greeting_mode||'none';
-    html+='<div class="grid gap-2 mt-2 text-[11px] text-slate-500" style="grid-template-columns:auto 1fr">';
-    html+='<span class="pt-1">👋</span>';
-    html+='<div class="flex flex-wrap items-center gap-2">';
+    html+='<div class="flex items-center gap-2 mt-2 text-[11px] text-slate-500">';
+    html+='<span>👋</span>';
     html+='<select class="bg-black/20 border border-white/8 rounded px-1.5 py-0.5 text-slate-400 text-[11px]" id="seqgreet-'+s.id+'" onchange="markSeqDirty('+s.id+');toggleGreetFixed('+s.id+',this.value)">';
     html+='<option value="none" '+(gm==='none'?'selected':'')+'>Без приветствия</option>';
     html+='<option value="dynamic" '+(gm==='dynamic'?'selected':'')+'>Динамическое (утро/день/вечер)</option>';
     html+='<option value="fixed" '+(gm==='fixed'?'selected':'')+'>Фиксированное</option>';
     html+='</select>';
     html+='<input type="text" class="w-28 bg-black/20 border border-white/8 rounded px-1.5 py-0.5 text-slate-400 '+(gm==='fixed'?'':'hidden')+'" placeholder="Привет!" value="'+esc(s.greeting_fixed||'')+'" id="seqgreetfixed-'+s.id+'" oninput="markSeqDirty('+s.id+')">';
-    html+='</div></div>';
+    html+='</div>';
 
     // ═══ День недели (только для daily) ═══
     if(seqFilter==='daily'){

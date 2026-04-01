@@ -504,7 +504,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
       <h1 className="text-xl font-bold text-white">UraanxAI</h1>
 
       {/* ─── Section toggle: Create / Templates ─── */}
-      <div className="flex gap-1 bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md p-1">
+      <div className="flex gap-1 glass-neon rounded-xl p-1">
         <button
           onClick={() => setSection('create')}
           className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
@@ -528,7 +528,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
       </div>
 
       {/* ─── Tabs (видны всегда) ─── */}
-      <div className="flex gap-1 bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md p-1">
+      <div className="flex gap-1 glass-neon rounded-xl p-1">
         {([
           { id: 'video' as Tab, label: t('video.tab.video'), icon: <IconVideo size={14} /> },
           { id: 'motion' as Tab, label: t('video.tab.motion'), icon: <IconMotion size={14} /> },
@@ -566,7 +566,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
           <label className="text-white text-sm font-semibold">{t('video.model')}</label>
           <button
             onClick={() => setShowModelPicker(!showModelPicker)}
-            className="w-full flex items-center justify-between bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md px-4 py-3"
+            className="w-full flex items-center justify-between glass-neon rounded-xl px-4 py-3"
           >
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-green-800 to-green-950 flex items-center justify-center text-[10px] font-black text-green-300 border border-green-700/50">
@@ -581,7 +581,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
           </button>
 
           {showModelPicker && (
-            <div className="bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md overflow-hidden">
+            <div className="glass-neon rounded-xl overflow-hidden">
               {VIDEO_MODELS.map((m) => (
                 <button
                   key={m.id}
@@ -640,7 +640,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
                 onChange={(e) => setPrompt(e.target.value)}
                 placeholder="Опишите сцену, действия, камеру..."
                 rows={4}
-                className="w-full bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md p-4 pb-8 text-sm font-medium resize-none outline-none placeholder-slate-400 text-white focus:border-violet-500/50 transition-colors"
+                className="w-full glass-neon rounded-xl p-4 pb-8 text-sm font-medium resize-none outline-none placeholder-slate-400 text-white focus:border-violet-500/50 transition-colors"
               />
               <span className="absolute bottom-3 left-4 text-white text-xs">{prompt.length}</span>
             </div>
@@ -649,7 +649,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
           {/* Settings toggle */}
           <button
             onClick={() => setShowSettings(!showSettings)}
-            className="flex items-center gap-2 bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md px-4 py-2.5 text-sm text-white font-medium"
+            className="flex items-center gap-2 glass-neon rounded-xl px-4 py-2.5 text-sm text-white font-medium"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2m-9-11h2m18 0h2m-4.2-5.8l-1.4 1.4M6.6 17.4l-1.4 1.4m0-12.8l1.4 1.4m10.8 10.8l1.4 1.4"/>
@@ -659,7 +659,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
           </button>
 
           {showSettings && (
-            <div className="bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md p-4 space-y-4">
+            <div className="glass-neon rounded-xl p-4 space-y-4">
               {/* Mode */}
               <div className="space-y-2">
                 <label className="text-white text-xs font-semibold">Режим</label>
@@ -782,14 +782,14 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="Опишите сцену, окружение, стиль..."
               rows={3}
-              className="w-full bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md p-4 text-sm font-medium resize-none outline-none placeholder-slate-400 text-white focus:border-violet-500/50 transition-colors"
+              className="w-full glass-neon rounded-xl p-4 text-sm font-medium resize-none outline-none placeholder-slate-400 text-white focus:border-violet-500/50 transition-colors"
             />
           </div>
 
           {/* Motion Settings — качество для motion и motion-control */}
           <button
             onClick={() => setShowSettings(!showSettings)}
-            className="flex items-center gap-2 bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md px-4 py-2.5 text-sm text-white font-medium"
+            className="flex items-center gap-2 glass-neon rounded-xl px-4 py-2.5 text-sm text-white font-medium"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2m-9-11h2m18 0h2m-4.2-5.8l-1.4 1.4M6.6 17.4l-1.4 1.4m0-12.8l1.4 1.4m10.8 10.8l1.4 1.4"/>
@@ -798,7 +798,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
             <IconChevron open={showSettings} />
           </button>
           {showSettings && (
-            <div className="bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md p-4 space-y-4">
+            <div className="glass-neon rounded-xl p-4 space-y-4">
               <div className="space-y-2">
                 <label className="text-white text-xs font-semibold">Качество</label>
                 <PillSelector
@@ -850,7 +850,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
               onChange={(e) => setSpeechText(e.target.value)}
               placeholder="Введите текст, который персонаж произнесёт..."
               rows={3}
-              className="w-full bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md p-4 text-sm font-medium resize-none outline-none placeholder-slate-400 text-white focus:border-violet-500/50 transition-colors"
+              className="w-full glass-neon rounded-xl p-4 text-sm font-medium resize-none outline-none placeholder-slate-400 text-white focus:border-violet-500/50 transition-colors"
             />
           </div>
 
@@ -859,7 +859,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
             <label className="text-white text-sm font-semibold">{t('video.voice')}</label>
             <button
               onClick={() => setShowVoicePicker(!showVoicePicker)}
-              className="w-full flex items-center justify-between bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md px-4 py-3 text-sm text-white font-medium"
+              className="w-full flex items-center justify-between glass-neon rounded-xl px-4 py-3 text-sm text-white font-medium"
             >
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-600 to-cyan-500 flex items-center justify-center text-xs font-bold text-white">
@@ -871,7 +871,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
             </button>
 
             {showVoicePicker && (
-              <div className="bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md overflow-hidden max-h-48 overflow-y-auto">
+              <div className="glass-neon rounded-xl overflow-hidden max-h-48 overflow-y-auto">
                 {VOICES.map((v) => (
                   <div
                     key={v.name}
@@ -980,7 +980,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
               onChange={(e) => setAvatarPrompt(e.target.value)}
               placeholder="Действия, эмоции, жесты персонажа..."
               rows={3}
-              className="w-full bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md p-4 text-sm font-medium resize-none outline-none placeholder-slate-400 text-white focus:border-violet-500/50 transition-colors"
+              className="w-full glass-neon rounded-xl p-4 text-sm font-medium resize-none outline-none placeholder-slate-400 text-white focus:border-violet-500/50 transition-colors"
             />
           </div>
         </>
@@ -1030,7 +1030,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
 
       {/* ─── Loading ─── */}
       {loading && !videoUrl && (
-        <div className="bg-white/[0.08] border border-white/[0.12] rounded-2xl p-8 flex flex-col items-center gap-3">
+        <div className="glass-neon rounded-2xl p-8 flex flex-col items-center gap-3">
           <div className="w-12 h-12 rounded-2xl bg-violet-500/15 border border-violet-500/20 flex items-center justify-center">
             <svg className="animate-pulse" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <rect x="2" y="6" width="14" height="12" rx="2"/><path d="M16 10l6-4v12l-6-4V10z"/>

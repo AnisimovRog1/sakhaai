@@ -144,7 +144,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
       <h1 className="text-xl font-bold text-white">UraanxAI</h1>
 
       {/* ─── Section toggle: Create / Templates ─── */}
-      <div className="flex gap-1 bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md p-1">
+      <div className="flex gap-1 glass-neon rounded-xl p-1">
         <button
           onClick={() => setSection('create')}
           className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
@@ -176,7 +176,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
       {section === 'create' && <>
 
       {/* ─── Tabs ─── */}
-      <div className="flex gap-1 bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md p-1">
+      <div className="flex gap-1 glass-neon rounded-xl p-1">
         <button
           onClick={() => setTab('img2img')}
           className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
@@ -204,7 +204,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
         <label className="text-white text-sm font-semibold">{t('image.model')}</label>
         <button
           onClick={() => setShowModelPicker(!showModelPicker)}
-          className="w-full flex items-center justify-between bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md px-4 py-3 text-sm text-white font-medium"
+          className="w-full flex items-center justify-between glass-neon rounded-xl px-4 py-3 text-sm text-white font-medium"
         >
           <span>{selectedModel.name}</span>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className={`transition-transform ${showModelPicker ? 'rotate-180' : ''}`}>
@@ -213,7 +213,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
         </button>
 
         {showModelPicker && (
-          <div className="bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md overflow-hidden">
+          <div className="glass-neon rounded-xl overflow-hidden">
             {MODELS.map((m) => (
               <button
                 key={m.id}
@@ -301,7 +301,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
             placeholder={t('image.promptPlaceholder')}
             maxLength={20000}
             rows={4}
-            className="w-full bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md p-4 pb-8 text-sm font-medium resize-none outline-none placeholder-slate-400 text-white focus:border-violet-500/50 transition-colors"
+            className="w-full glass-neon rounded-xl p-4 pb-8 text-sm font-medium resize-none outline-none placeholder-slate-400 text-white focus:border-violet-500/50 transition-colors"
           />
           <span className="absolute bottom-3 left-4 text-slate-400 text-xs">{prompt.length} / 20000</span>
         </div>
@@ -332,7 +332,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
         <label className="text-white text-sm font-semibold">{t('image.aspectRatio')}</label>
         <button
           onClick={() => setShowAspectPicker(!showAspectPicker)}
-          className="w-full flex items-center justify-between bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md px-4 py-3 text-sm text-white font-medium"
+          className="w-full flex items-center justify-between glass-neon rounded-xl px-4 py-3 text-sm text-white font-medium"
         >
           <span>{aspect} ({ASPECT_RATIOS.find(a => a.id === aspect)?.desc})</span>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className={`transition-transform ${showAspectPicker ? 'rotate-180' : ''}`}>
@@ -341,7 +341,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
         </button>
 
         {showAspectPicker && (
-          <div className="bg-white/[0.10] border border-white/[0.14] rounded-xl backdrop-blur-md p-2 space-y-1">
+          <div className="glass-neon rounded-xl p-2 space-y-1">
             {ASPECT_RATIOS.map((ar) => (
               <button
                 key={ar.id}
@@ -439,7 +439,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
 
       {/* ─── Loading placeholder ─── */}
       {loading && imageUrls.length === 0 && (
-        <div className="bg-white/[0.08] border border-white/[0.12] rounded-2xl aspect-square flex items-center justify-center">
+        <div className="glass-neon rounded-2xl aspect-square flex items-center justify-center">
           <div className="text-center space-y-3">
             <div className="w-12 h-12 rounded-2xl bg-violet-500/15 border border-violet-500/20 flex items-center justify-center mx-auto">
               <svg className="animate-pulse" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">

@@ -61,7 +61,7 @@ export function Friends({ user }: Props) {
       </div>
 
       {/* Награды */}
-      <div className="bg-white/[0.08] border border-white/[0.12] rounded-2xl p-5 space-y-4 backdrop-blur-md">
+      <div className="glass-neon rounded-2xl p-5 space-y-4">
         <p className="text-white text-sm font-bold uppercase tracking-wider">{t('friends.rewards')}</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
           {Object.entries(REWARDS).map(([pkg, cr]) => (
@@ -75,7 +75,7 @@ export function Friends({ user }: Props) {
 
       {/* Статистика */}
       {loading ? (
-        <div className="bg-white/[0.08] border border-white/[0.12] rounded-2xl p-6 backdrop-blur-md flex items-center justify-center h-28">
+        <div className="glass-neon rounded-2xl p-6 flex items-center justify-center h-28">
           <div className="flex gap-2">
             {[0,1,2].map(i => (
               <div key={i} className="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
@@ -83,7 +83,7 @@ export function Friends({ user }: Props) {
           </div>
         </div>
       ) : stats && (
-        <div className="bg-white/[0.08] border border-white/[0.12] rounded-2xl p-5 backdrop-blur-md">
+        <div className="glass-neon rounded-2xl p-5">
           <p className="text-white text-sm font-bold uppercase tracking-wider mb-4">{t('friends.stats')}</p>
           <div className="grid grid-cols-3 gap-3">
             <div className="text-center">
@@ -104,7 +104,7 @@ export function Friends({ user }: Props) {
 
       {/* Список друзей */}
       {!loading && friends.length > 0 && (
-        <div className="bg-white/[0.08] border border-white/[0.12] rounded-2xl overflow-hidden backdrop-blur-md">
+        <div className="glass-neon rounded-2xl overflow-hidden">
           <div className="grid grid-cols-[1fr_auto_auto] gap-2 px-5 py-3 border-b border-white/[0.10]">
             <span className="text-slate-300 text-xs font-bold uppercase tracking-wider">Пользователь</span>
             <span className="text-slate-300 text-xs font-bold uppercase tracking-wider text-center w-20">План</span>
@@ -158,7 +158,7 @@ export function Friends({ user }: Props) {
 
       {/* Пусто */}
       {!loading && friends.length === 0 && (
-        <div className="bg-white/[0.08] border border-white/[0.12] rounded-2xl p-10 backdrop-blur-md flex flex-col items-center gap-4 text-center">
+        <div className="glass-neon rounded-2xl p-10 flex flex-col items-center gap-4 text-center">
           <div className="w-14 h-14 rounded-2xl bg-violet-500/15 border border-violet-500/25 flex items-center justify-center">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>

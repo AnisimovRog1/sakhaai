@@ -107,7 +107,7 @@ export function Chat({ chatId, chatTitle, onBack }: Props) {
               className={`max-w-[78%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
                 msg.role === 'user'
                   ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-br-sm'
-                  : 'bg-white/[0.08] border border-white/[0.10] text-slate-100 rounded-bl-sm'
+                  : 'glass-neon text-slate-100 rounded-bl-sm'
               }`}
             >
               <p className="whitespace-pre-wrap font-medium">{msg.content}</p>
@@ -122,7 +122,7 @@ export function Chat({ chatId, chatTitle, onBack }: Props) {
                 <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
               </svg>
             </div>
-            <div className="bg-white/[0.08] border border-white/[0.10] rounded-2xl rounded-bl-sm px-4 py-3.5">
+            <div className="glass-neon rounded-2xl rounded-bl-sm px-4 py-3.5">
               <div className="flex gap-1.5">
                 {[0, 1, 2].map((i) => (
                   <div key={i} className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />

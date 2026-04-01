@@ -148,7 +148,7 @@ export function Home({ user, onCreditsUpdate }: Props) {
                   className={`relative rounded-2xl p-4 text-left transition-all duration-200 active:scale-[0.97] ${
                     sel
                       ? 'bg-blue-500/20 border-2 border-blue-400/60 shadow-lg shadow-blue-500/15'
-                      : 'bg-white/[0.08] border border-white/[0.12]'
+                      : 'glass-subtle'
                   }`}
                 >
                   {pkg.popular && (

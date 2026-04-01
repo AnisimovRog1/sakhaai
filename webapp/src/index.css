@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -27,7 +29,7 @@ html, body, #root {
 body {
   background: #070b14;
   color: #f1f5f9;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
   font-size: 16px;
   line-height: 1.5;
   letter-spacing: -0.01em;
@@ -103,6 +105,72 @@ p { margin: 0; }
 }
 .glow-animate {
   animation: glow-pulse 3s ease-in-out infinite;
+}
+
+/* ─── Неон-бордер анимация (Luxury) ─── */
+@property --border-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes neon-spin {
+  to { --border-angle: 360deg; }
+}
+
+/* Основные карточки — вращающийся неон */
+.glass-neon {
+  position: relative;
+  background: rgba(255,255,255,0.06);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  overflow: visible;
+  border: none;
+}
+.glass-neon::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 17px;
+  padding: 1px;
+  background: conic-gradient(
+    from var(--border-angle),
+    transparent 50%,
+    rgba(139,92,246,0.4) 70%,
+    rgba(6,182,212,0.35) 80%,
+    rgba(167,139,250,0.3) 90%,
+    transparent 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: neon-spin 8s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+/* Контент карточки поверх ::before */
+.glass-neon > * { position: relative; z-index: 1; }
+
+/* Второстепенные элементы — статичный лёгкий бордер */
+.glass-subtle {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Интерактивные карточки — бордер ярче при нажатии */
+.glass-neon:active::before {
+  background: conic-gradient(
+    from var(--border-angle),
+    transparent 40%,
+    rgba(139,92,246,0.6) 65%,
+    rgba(6,182,212,0.5) 80%,
+    rgba(167,139,250,0.5) 90%,
+    transparent 100%
+  );
 }
 
 /* ─── Премиум CSS частицы ─── */

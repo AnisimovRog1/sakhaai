@@ -152,7 +152,7 @@ export function ChatList({ user, onNavigate }: Props) {
                       </div>
                     ) : (
                       /* Обычный чат */
-                      <div className="flex items-center gap-2 bg-white/[0.08] border border-white/[0.12] rounded-xl px-4 py-3.5 backdrop-blur-sm">
+                      <div className="flex items-center gap-2 glass-neon rounded-xl px-4 py-3.5">
                         <button
                           onClick={() => openChat(chat)}
                           className="flex items-center gap-3 flex-1 min-w-0"

@@ -103,26 +103,26 @@ export function Home({ user, onCreditsUpdate }: Props) {
         </div>
 
         {/* Balance Card — флаг Якутии */}
-        <div className="relative rounded-2xl p-5 overflow-hidden shadow-xl glow-animate home-balance" style={{ marginTop: '4vh' }}>
+        <div className="relative rounded-2xl p-6 overflow-hidden shadow-xl glow-animate home-balance" style={{ marginTop: '4vh' }}>
           <div className="absolute inset-0 bg-gradient-to-b from-[#1a6bc4] via-[#155da8] to-[#0e4a8a]" />
-          <div className="absolute -top-4 -right-4 w-24 h-24 rounded-full bg-white/[0.12] blur-xl" />
+          <div className="absolute -top-4 -right-4 w-28 h-28 rounded-full bg-white/[0.12] blur-xl" />
           <div className="absolute top-3 right-4 w-10 h-10 rounded-full bg-white/[0.15] shadow-[0_0_20px_rgba(255,255,255,0.2)]" />
           <div className="absolute bottom-0 left-0 right-0 h-[6px] flex">
             <div className="flex-1 bg-gradient-to-r from-red-500 to-red-400" />
             <div className="flex-1 bg-gradient-to-r from-green-500 to-green-400" />
           </div>
-          <div className="relative space-y-3">
-            <p className="text-blue-100/90 text-[10px] font-semibold uppercase tracking-[0.15em]">{t('home.balance')}</p>
+          <div className="relative space-y-4">
+            <p className="text-blue-100/90 text-[11px] font-semibold uppercase tracking-[0.15em]">{t('home.balance')}</p>
             <div className="flex items-baseline gap-2">
-              <p className="text-4xl md:text-5xl font-extrabold text-white drop-shadow-lg">{user.credits.toLocaleString('ru')}</p>
-              <span className="text-base font-medium text-blue-100/80">кр.</span>
+              <p className="text-5xl md:text-6xl font-extrabold text-white drop-shadow-lg">{user.credits.toLocaleString('ru')}</p>
+              <span className="text-lg font-medium text-blue-100/80">кр.</span>
             </div>
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs">
+            <div className="space-y-2.5">
+              <div className="flex justify-between text-[13px]">
                 <span className="text-blue-100/80">{t('home.level')}: <span className="text-white font-bold">{t(levelKey)}</span></span>
                 <span className="text-blue-100/80">{user.credits.toLocaleString('ru')} / {next.toLocaleString('ru')}</span>
               </div>
-              <div className="h-2.5 bg-white/[0.15] rounded-full overflow-hidden shadow-inner">
+              <div className="h-3 bg-white/[0.15] rounded-full overflow-hidden shadow-inner">
                 <div
                   className="h-full rounded-full transition-all duration-1000 progress-shimmer"
                   style={{

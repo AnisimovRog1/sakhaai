@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { api, setToken } from './api/client';
 import type { User, Screen } from './types';
 import { Home } from './screens/Home';
@@ -10,27 +10,10 @@ import { Friends } from './screens/Friends';
 import { BottomNav } from './components/BottomNav';
 import { LangProvider } from './LangContext';
 import type { Lang } from './i18n';
-import Particles, { initParticlesEngine } from '@tsparticles/react';
-import { loadSlim } from '@tsparticles/slim';
 
 function getInitData(): string {
   return window.Telegram?.WebApp?.initData ?? '';
 }
-
-// tsParticles конфиг — премиум микро-частицы
-const particlesConfig = {
-  fpsLimit: 30,
-  particles: {
-    number: { value: 50, density: { enable: true, width: 400, height: 400 } },
-    color: { value: ['#c4b5fd', '#a78bfa', '#818cf8', '#ffffff'] },
-    opacity: { value: { min: 0.1, max: 0.4 }, animation: { enable: true, speed: 0.3, sync: false } },
-    size: { value: { min: 1, max: 2.5 } },
-    move: { enable: true, speed: 0.3, direction: 'none' as const, outModes: { default: 'out' as const } },
-    links: { enable: false },
-  },
-  interactivity: { events: { onClick: { enable: false }, onHover: { enable: false } } },
-  detectRetina: true,
-};
 
 export function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -117,38 +100,20 @@ export function App() {
 
   if (!user) return null;
 
-  // Инициализация tsParticles
-  const [particlesReady, setParticlesReady] = useState(false);
-  useEffect(() => {
-    initParticlesEngine(async (engine) => {
-      await loadSlim(engine);
-    }).then(() => setParticlesReady(true));
-  }, []);
-
-  const particlesLoaded = useCallback(async () => {}, []);
-  const pOptions = useMemo(() => particlesConfig, []);
-
   return (
     <LangProvider initialLang={lang}>
     <div className="flex flex-col min-h-screen text-slate-100 relative">
 
-      {/* ─── Единый премиум фон: фиолетовый градиент + микро-частицы ─── */}
+      {/* ─── Единый премиум фон: фиолетовый градиент + CSS частицы ─── */}
       <div className="fixed inset-0 -z-10 overflow-hidden">
         {/* Градиент */}
         <div className="absolute inset-0 bg-gradient-to-br from-[#0f0520] via-[#1a0a3e] to-[#0d1033]" />
         {/* Свечение */}
         <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-violet-600/10 blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-600/8 blur-[100px]" />
-        {/* Частицы */}
-        {particlesReady && (
-          <Particles
-            id="bg-particles"
-            particlesLoaded={particlesLoaded}
-            options={pOptions}
-            className="absolute inset-0"
-          />
-        )}
-        {/* Лёгкий оверлей для глубины */}
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-500/[0.06] blur-[100px]" />
+        {/* CSS частицы */}
+        <div className="particles-container absolute inset-0" />
+        {/* Оверлей для глубины */}
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/30" />
       </div>
 

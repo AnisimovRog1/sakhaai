@@ -9,11 +9,11 @@ const BASE_URL = 'https://api-singapore.klingai.com';
 // ─── Маппинг моделей UI → Kling API ────────────────────────
 function resolveModelName(model?: string): string {
   const map: Record<string, string> = {
-    'video-3.0': 'kling-v2-master',
+    'video-3.0': 'kling-v3',
     'video-2.6': 'kling-v2-6',
     'video-2.5-turbo': 'kling-v2-5-turbo',
   };
-  return map[model || 'video-3.0'] || 'kling-v2-master';
+  return map[model || 'video-3.0'] || 'kling-v3';
 }
 
 function resolveMode(mode?: string): 'pro' | 'std' {

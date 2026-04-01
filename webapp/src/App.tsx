@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { api, setToken } from './api/client';
 import type { User, Screen } from './types';
 import { Home } from './screens/Home';
@@ -10,43 +10,27 @@ import { Friends } from './screens/Friends';
 import { BottomNav } from './components/BottomNav';
 import { LangProvider } from './LangContext';
 import type { Lang } from './i18n';
+import Particles, { initParticlesEngine } from '@tsparticles/react';
+import { loadSlim } from '@tsparticles/slim';
 
 function getInitData(): string {
   return window.Telegram?.WebApp?.initData ?? '';
 }
 
-// Фоновые фото — оптимизированные (300-400 КБ вместо 3 МБ)
-const base = import.meta.env.BASE_URL;
-const BG: Record<string, string> = {
-  home:     `${base}bg-home-opt.jpg`,
-  chatList: `${base}bg-chatlist-opt.jpg`,
-  chat:     `${base}bg-chat-opt.jpg`,
-  imageGen: `${base}bg-chat-opt.jpg`,
-  videoGen: `${base}bg-video-opt.jpg`,
-  friends:  `${base}bg-frends-opt.jpg`,
+// tsParticles конфиг — премиум микро-частицы
+const particlesConfig = {
+  fpsLimit: 30,
+  particles: {
+    number: { value: 50, density: { enable: true, width: 400, height: 400 } },
+    color: { value: ['#c4b5fd', '#a78bfa', '#818cf8', '#ffffff'] },
+    opacity: { value: { min: 0.1, max: 0.4 }, animation: { enable: true, speed: 0.3, sync: false } },
+    size: { value: { min: 1, max: 2.5 } },
+    move: { enable: true, speed: 0.3, direction: 'none' as const, outModes: { default: 'out' as const } },
+    links: { enable: false },
+  },
+  interactivity: { events: { onClick: { enable: false }, onHover: { enable: false } } },
+  detectRetina: true,
 };
-
-// Разные оверлеи для каждого экрана — подчёркивают уникальность каждого фото
-const OVERLAYS: Record<string, string> = {
-  // Ледяные скульптуры + Ленские столбы — лёгкий, максимально показываем красоту
-  home:     'bg-gradient-to-b from-transparent via-[#070b14]/20 to-[#070b14]/60',
-  // Цветные столбы — лёгкий синий оттенок сверху, тёмный низ для контента
-  chatList: 'bg-gradient-to-b from-indigo-950/20 via-[#070b14]/40 to-[#070b14]/90',
-  // Маяк + северное сияние — потемнее для читаемости чата
-  chat:     'bg-gradient-to-b from-[#070b14]/40 via-[#070b14]/65 to-[#070b14]/95',
-  // Генерация картинок — фиолетовый акцент (творчество)
-  imageGen: 'bg-gradient-to-b from-purple-950/25 via-[#070b14]/50 to-[#070b14]/90',
-  // Сэргэ-дерево — бирюзовый оттенок авроры
-  videoGen: 'bg-gradient-to-b from-teal-950/20 via-[#070b14]/35 to-[#070b14]/88',
-  // Ураса + сэргэ столбы — тёплый оттенок, снизу тёмный чтобы скрыть снег
-  friends:  'bg-gradient-to-b from-amber-950/15 via-[#070b14]/35 to-[#070b14]/95',
-};
-
-// Предзагрузка ВСЕХ фонов при загрузке модуля
-Object.values(BG).forEach(src => {
-  const img = new Image();
-  img.src = src;
-});
 
 export function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -109,7 +93,7 @@ export function App() {
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <img src={`${base}logo-mammoth-sm.png`} alt="" className="w-64 h-64" />
+        <img src={`${import.meta.env.BASE_URL}logo-mammoth-sm.png`} alt="" className="w-64 h-64" />
       </div>
     );
   }
@@ -117,11 +101,7 @@ export function App() {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-[#070b14] p-6">
-        <div
-          className="fixed inset-0 -z-10 bg-cover bg-center"
-          style={{ backgroundImage: `url(${BG.home})` }}
-        />
-        <div className="fixed inset-0 -z-10 bg-gradient-to-b from-black/50 to-[#070b14]/95" />
+        <div className="fixed inset-0 -z-10 bg-gradient-to-br from-[#0f0520] via-[#1a0a3e] to-[#0d1033]" />
         <div className="relative w-full max-w-sm bg-white/[0.06] border border-white/[0.08] rounded-3xl p-6 text-center space-y-3 backdrop-blur-md">
           <div className="w-12 h-12 rounded-2xl bg-red-500/15 border border-red-500/20 flex items-center justify-center mx-auto">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F87171" strokeWidth="2" strokeLinecap="round">
@@ -137,29 +117,39 @@ export function App() {
 
   if (!user) return null;
 
-  const currentOverlay = OVERLAYS[screen.name] ?? OVERLAYS.home;
+  // Инициализация tsParticles
+  const [particlesReady, setParticlesReady] = useState(false);
+  useEffect(() => {
+    initParticlesEngine(async (engine) => {
+      await loadSlim(engine);
+    }).then(() => setParticlesReady(true));
+  }, []);
+
+  const particlesLoaded = useCallback(async () => {}, []);
+  const pOptions = useMemo(() => particlesConfig, []);
 
   return (
     <LangProvider initialLang={lang}>
     <div className="flex flex-col min-h-screen text-slate-100 relative">
 
-      {/* ─── Фиксированный фон: все картинки рендерятся сразу, переключаем opacity ─── */}
+      {/* ─── Единый премиум фон: фиолетовый градиент + микро-частицы ─── */}
       <div className="fixed inset-0 -z-10 overflow-hidden">
-        {/* Все фоновые картинки — предзагружены, мгновенный crossfade */}
-        {Object.entries(BG).map(([key, src]) => (
-          <img
-            key={key}
-            src={src}
-            alt=""
-            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${
-              (BG[screen.name] ?? BG.home) === src ? 'opacity-100' : 'opacity-0'
-            }`}
+        {/* Градиент */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0f0520] via-[#1a0a3e] to-[#0d1033]" />
+        {/* Свечение */}
+        <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-violet-600/10 blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-600/8 blur-[100px]" />
+        {/* Частицы */}
+        {particlesReady && (
+          <Particles
+            id="bg-particles"
+            particlesLoaded={particlesLoaded}
+            options={pOptions}
+            className="absolute inset-0"
           />
-        ))}
-        {/* Градиентный оверлей — разный для каждого экрана */}
-        <div className={`absolute inset-0 ${currentOverlay} transition-all duration-200`} />
-        {/* Сэргэ на экране видео */}
-        {/* Силуэт сэргэ убран */}
+        )}
+        {/* Лёгкий оверлей для глубины */}
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/30" />
       </div>
 
       {/* ─── Контент экранов ─── */}

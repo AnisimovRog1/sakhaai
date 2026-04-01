@@ -318,7 +318,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
               className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${
                 count === n
                   ? 'bg-gradient-to-r from-violet-600 to-cyan-500 text-white shadow-md shadow-violet-500/20'
-                  : 'bg-white/[0.08] border border-white/[0.12] text-white'
+                  : 'glass-neon text-white'
               }`}
             >
               {n}
@@ -378,7 +378,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
               className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${
                 resolution === r
                   ? 'bg-gradient-to-r from-violet-600 to-cyan-500 text-white shadow-md shadow-violet-500/20'
-                  : 'bg-white/[0.08] border border-white/[0.12] text-white'
+                  : 'glass-neon text-white'
               }`}
             >
               {r}

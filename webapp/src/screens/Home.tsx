@@ -103,7 +103,7 @@ export function Home({ user, onCreditsUpdate }: Props) {
         </div>
 
         {/* Balance Card — флаг Якутии */}
-        <div className="relative rounded-2xl p-5 overflow-hidden shadow-xl glow-animate home-balance" style={{ marginTop: '4vh' }}>
+        <div className="glass-neon relative rounded-2xl p-5 overflow-hidden shadow-xl glow-animate home-balance" style={{ marginTop: '4vh' }}>
           <div className="absolute inset-0 bg-gradient-to-b from-[#1a6bc4] via-[#155da8] to-[#0e4a8a]" />
           <div className="absolute -top-4 -right-4 w-24 h-24 rounded-full bg-white/[0.12] blur-xl" />
           <div className="absolute top-3 right-4 w-10 h-10 rounded-full bg-white/[0.15] shadow-[0_0_20px_rgba(255,255,255,0.2)]" />
@@ -148,7 +148,7 @@ export function Home({ user, onCreditsUpdate }: Props) {
                   className={`relative rounded-2xl p-4 text-left transition-all duration-200 active:scale-[0.97] ${
                     sel
                       ? 'bg-blue-500/20 border-2 border-blue-400/60 shadow-lg shadow-blue-500/15'
-                      : 'glass-subtle'
+                      : 'glass-neon'
                   }`}
                 >
                   {pkg.popular && (
@@ -177,7 +177,7 @@ export function Home({ user, onCreditsUpdate }: Props) {
           className={`w-full py-4 rounded-2xl font-bold text-base transition-all duration-200 ${
             selectedPkg
               ? 'bg-gradient-to-r from-violet-600 to-cyan-500 shadow-lg shadow-violet-500/25 active:scale-[0.98] text-white'
-              : 'bg-white/[0.05] border border-white/[0.08] text-slate-500 cursor-not-allowed'
+              : 'glass-neon text-slate-500 cursor-not-allowed'
           }`}
         >
           {selectedPkg ? `${t('home.pay')} ${selectedPkg.price}` : t('home.selectPackage')}
@@ -188,7 +188,7 @@ export function Home({ user, onCreditsUpdate }: Props) {
       <div className="pb-3 pt-2">
         <button
           onClick={() => window.Telegram?.WebApp?.openTelegramLink?.('https://t.me/UraanxAI_support')}
-          className="w-full py-3 rounded-2xl text-sm font-semibold text-slate-400 bg-white/[0.04] border border-white/[0.08] active:bg-white/[0.08] transition-all flex items-center justify-center gap-2"
+          className="glass-neon w-full py-3 rounded-2xl text-sm font-semibold text-slate-400 active:bg-white/[0.08] transition-all flex items-center justify-center gap-2"
         >
           {t('home.support')}
         </button>

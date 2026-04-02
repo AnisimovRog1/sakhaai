@@ -8,6 +8,7 @@ import { ImageGen } from './screens/ImageGen';
 import { VideoGen } from './screens/VideoGen';
 import { Friends } from './screens/Friends';
 import { BottomNav } from './components/BottomNav';
+import SpaceBackground from './components/SpaceBackground';
 import { LangProvider } from './LangContext';
 import type { Lang } from './i18n';
 
@@ -104,18 +105,8 @@ export function App() {
     <LangProvider initialLang={lang}>
     <div className="flex flex-col min-h-screen text-slate-100 relative">
 
-      {/* ─── Единый премиум фон: фиолетовый градиент + CSS частицы ─── */}
-      <div className="fixed inset-0 -z-10 overflow-hidden">
-        {/* Градиент */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0f0520] via-[#1a0a3e] to-[#0d1033]" />
-        {/* Свечение */}
-        <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-violet-600/10 blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-500/[0.06] blur-[100px]" />
-        {/* CSS частицы */}
-        <div className="particles-container absolute inset-0" />
-        {/* Оверлей для глубины */}
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/30" />
-      </div>
+      {/* ─── Космический фон: звёзды + кометы + спутники ─── */}
+      <SpaceBackground />
 
       {/* ─── Контент экранов ─── */}
       {screen.name === 'chat' ? (

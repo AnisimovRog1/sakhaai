@@ -15,10 +15,10 @@ const PACKAGE_LABELS: Record<string, string> = {
 };
 
 const REWARDS: Record<string, number> = {
-  start:  200,
-  basic:  600,
-  pro:    1500,
-  max:    4000,
+  start:  310,
+  basic:  930,
+  pro:    2500,
+  max:    6200,
 };
 
 export function Friends({ user }: Props) {

@@ -229,11 +229,11 @@ export const LANDING_HTML = `<!DOCTYPE html>
   </div>
   <div class="glass p-5 mt-8 reveal">
     <div class="grid grid-cols-2 md:grid-cols-6 gap-4 text-center text-sm">
-      <div><span class="text-white font-bold">1</span> <span class="text-slate-500">кр/сообщение</span></div>
-      <div><span class="text-white font-bold">79</span> <span class="text-slate-500">кр/картинка</span></div>
-      <div><span class="text-white font-bold">608</span> <span class="text-slate-500">кр/видео</span></div>
-      <div><span class="text-white font-bold">608</span> <span class="text-slate-500">кр/motion</span></div>
-      <div><span class="text-white font-bold">810</span> <span class="text-slate-500">кр/аватар</span></div>
+      <div><span class="text-white font-bold">5</span> <span class="text-slate-500">кр/сообщение</span></div>
+      <div><span class="text-white font-bold">155</span> <span class="text-slate-500">кр/картинка</span></div>
+      <div><span class="text-white font-bold">580</span> <span class="text-slate-500">кр/видео</span></div>
+      <div><span class="text-white font-bold">870</span> <span class="text-slate-500">кр/motion</span></div>
+      <div><span class="text-white font-bold">1350</span> <span class="text-slate-500">кр/аватар</span></div>
       <div><span class="text-violet-400 font-bold">50</span> <span class="text-slate-500">бесплатно</span></div>
     </div>
   </div>

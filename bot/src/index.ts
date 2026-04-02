@@ -1215,7 +1215,7 @@ bot.start({
       await bot.api.setMyName('UraanxAI');
       await bot.api.setMyDescription(''); // очистить — пуши работают сами
       await bot.api.setMyShortDescription(
-        'AI-генерация фото и видео. Умный чат. Контент будущего — прямо в Telegram ✨'
+        'Контент будущего уже здесь. Генерируй фото и видео с помощью AI — будь на шаг впереди ✨'
       );
       console.log('✅ Профиль бота обновлён');
     } catch (e) {

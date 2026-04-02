@@ -255,6 +255,7 @@ export const LANDING_HTML = `<!DOCTYPE html>
       <p class="mt-2"><strong class="text-slate-200">Обязанности Заказчика:</strong> не создавать запрещённый контент, не передавать доступ третьим лицам.</p>
       <p class="mt-2"><strong class="text-slate-200">Обязанности Исполнителя:</strong> обеспечивать работоспособность, сохранность данных, начислять кредиты после оплаты.</p>
       <p class="mt-2"><strong class="text-slate-200">Акцепт:</strong> использование сервиса и/или оплата является безоговорочным акцептом оферты.</p>
+      <p class="mt-2 text-slate-500 text-xs leading-relaxed">Возврат неиспользованных кредитов возможен в течение 14 дней с момента покупки. При частичном использовании — пропорциональный возврат за вычетом потраченных кредитов. Полностью использованные и бесплатные кредиты возврату не подлежат. Возврат осуществляется тем же способом оплаты в течение 10 рабочих дней. Обращения: <a href="https://t.me/UraanxAI_support" class="text-slate-400 hover:underline">@UraanxAI_support</a>, uraanx.ai.project@gmail.com.</p>
     </div>
     <div class="border-t border-white/5 pt-8">
       <h3 class="font-bold text-white text-lg mb-3 flex items-center gap-2"><span class="text-cyan-400">§2</span> Политика обработки персональных данных</h3>
@@ -263,14 +264,6 @@ export const LANDING_HTML = `<!DOCTYPE html>
       <p class="mt-2"><strong class="text-slate-200">Передача:</strong> данные не передаются третьим лицам, за исключением случаев, предусмотренных законодательством РФ.</p>
       <p class="mt-2"><strong class="text-slate-200">Хранение:</strong> защищённые серверы. Удаление по запросу через поддержку.</p>
       <p class="mt-2">Используя сервис, вы даёте согласие на обработку в соответствии с ФЗ №152 «О персональных данных».</p>
-    </div>
-    <div class="border-t border-white/5 pt-8">
-      <h3 class="font-bold text-white text-lg mb-3 flex items-center gap-2"><span class="text-violet-400">§3</span> Условия возврата</h3>
-      <p>Возврат неиспользованных кредитов — в течение 14 дней с момента покупки.</p>
-      <p class="mt-2">При частичном использовании — пропорциональный возврат за вычетом потраченных кредитов.</p>
-      <p class="mt-2">Обращение: <a href="https://t.me/UraanxAI_support" class="text-violet-400 hover:underline">@UraanxAI_support</a> или uraanx.ai.project@gmail.com.</p>
-      <p class="mt-2">Возврат — тем же способом оплаты, в течение 10 рабочих дней.</p>
-      <p class="mt-2">Полностью использованные и бесплатные кредиты возврату не подлежат.</p>
     </div>
   </div>
 </section>

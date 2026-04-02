@@ -76,9 +76,30 @@ export function Home({ user, onCreditsUpdate }: Props) {
     setShowPayment(true);
   }
 
-  function handleConfirmPay() {
-    // TODO: интеграция UnitPay — вызов API с selectedPkg и paymentMethod
-    setShowPayment(false);
+  const [paying, setPaying] = useState(false);
+
+  async function handleConfirmPay() {
+    if (!selectedPkg || paying) return;
+    setPaying(true);
+    try {
+      const res = await api.createPayment(selectedPkg.key);
+      if (res.paymentUrl) {
+        // Открываем страницу оплаты UnitPay
+        const tg = window.Telegram?.WebApp as any;
+        if (tg?.openLink) {
+          tg.openLink(res.paymentUrl);
+        } else {
+          window.open(res.paymentUrl, '_blank');
+        }
+        setShowPayment(false);
+      } else {
+        alert(res.message || 'Ошибка создания платежа');
+      }
+    } catch {
+      alert('Не удалось создать платёж. Попробуйте позже.');
+    } finally {
+      setPaying(false);
+    }
   }
 
   return (
@@ -247,9 +268,10 @@ export function Home({ user, onCreditsUpdate }: Props) {
             {/* Confirm */}
             <button
               onClick={handleConfirmPay}
-              className="w-full py-4 rounded-2xl font-bold text-base text-white bg-gradient-to-r from-violet-600 to-cyan-500 shadow-lg shadow-violet-500/25 active:scale-[0.98] transition-all"
+              disabled={paying}
+              className="w-full py-4 rounded-2xl font-bold text-base text-white bg-gradient-to-r from-violet-600 to-cyan-500 shadow-lg shadow-violet-500/25 active:scale-[0.98] transition-all disabled:opacity-60"
             >
-              {t('home.next')}
+              {paying ? 'Создаём платёж...' : t('home.next')}
             </button>
           </div>
         </div>

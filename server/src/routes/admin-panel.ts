@@ -371,44 +371,115 @@ async function loadExRate(){
   document.getElementById('exUpdated').textContent=d.updatedAt?new Date(d.updatedAt).toLocaleDateString('ru'):'—';
 }
 // API мониторинг
+function fmtDate(s){if(!s)return '—';const d=new Date(s);return d.toLocaleDateString('ru',{day:'2-digit',month:'2-digit'})}
+function daysLeft(dt){if(!dt)return 0;return Math.ceil((new Date(dt).getTime()-Date.now())/(86400000))}
+
 async function loadApiStats(){
   const d=await G('/admin/api-usage');if(!d||d.error)return;
   const cards=document.getElementById('apiCards');
-  function pbar(used,total){
-    if(!total)return '';
+
+  function bar(used,total,label){
+    if(!total||total<=0)return '';
     const pct=Math.min(100,Math.round(used/total*100));
-    const col=pct>80?'from-red-500 to-red-400':pct>60?'from-yellow-500 to-yellow-400':'from-violet-500 to-cyan-400';
-    return '<div class="w-full h-2 bg-white/10 rounded-full mt-2 overflow-hidden"><div class="h-full bg-gradient-to-r '+col+' rounded-full" style="width:'+pct+'%"></div></div><div class="text-xs text-slate-500 mt-1">'+pct+'% использовано'+(pct>80?' ⚠️ Пора пополнить':'')+'</div>';
+    const left=Math.max(0,total-used);
+    const col=pct>80?'#ef4444':pct>60?'#eab308':'#8b5cf6';
+    return '<div style="margin-top:12px">'+
+      '<div style="display:flex;justify-content:space-between;font-size:11px;color:#94a3b8;margin-bottom:4px">'+
+        '<span>Использовано: '+used.toFixed(1)+' '+label+'</span>'+
+        '<span>Осталось: <b style="color:'+(pct>80?'#ef4444':'#22d3ee')+'">'+left.toFixed(1)+'</b> '+label+'</span>'+
+      '</div>'+
+      '<div style="width:100%;height:10px;background:rgba(255,255,255,0.08);border-radius:8px;overflow:hidden">'+
+        '<div style="height:100%;width:'+pct+'%;background:'+col+';border-radius:8px;transition:width 0.5s"></div>'+
+      '</div>'+
+      '<div style="text-align:center;font-size:11px;margin-top:4px;color:'+(pct>80?'#ef4444':pct>60?'#eab308':'#64748b')+'">'+
+        pct+'%'+(pct>80?' — ⚠️ Пора пополнить!':'')+
+      '</div>'+
+    '</div>';
   }
-  function expiry(dt){if(!dt)return '';const d=new Date(dt);const diff=Math.ceil((d.getTime()-Date.now())/(1000*60*60*24));return '<div class="text-xs mt-1 '+(diff<14?'text-red-400':'text-slate-500')+'">Истекает: '+d.toLocaleDateString('ru')+' ('+diff+' дн)</div>'}
-  const kp=d.kling.package;
-  const gp=d.gemini.package;
+
+  function badge(dt,label){
+    if(!dt)return '';
+    const dl=daysLeft(dt);
+    const col=dl<14?'color:#ef4444':'color:#64748b';
+    return '<div style="margin-top:8px;padding:6px 10px;background:rgba(255,255,255,0.04);border-radius:8px;font-size:11px;'+col+'">'+
+      '⏳ '+label+': <b>'+fmtDate(dt)+'</b> ('+dl+' дн)'+
+    '</div>';
+  }
+
+  const kp=d.kling.package;const kSize=kp?+kp.package_size:0;const kLeft=Math.max(0,kSize-d.kling.units);
+  const gp=d.gemini.package;const gSize=gp?+gp.package_size:0;const gLeft=Math.max(0,gSize-d.gemini.costUsd);
+
   cards.innerHTML=
-    '<div class="glass-neon p-5"><h3 class="text-sm font-bold text-violet-400 mb-3">🎬 Kling Direct</h3>'+
-    '<div class="text-2xl font-bold text-white">'+d.kling.units+' <span class="text-sm text-slate-400">юнитов</span></div>'+
-    '<div class="text-xs text-slate-400 mt-1">'+d.kling.credits.toLocaleString()+' кредитов · '+d.kling.cnt+' генераций</div>'+
-    '<div class="text-xs text-slate-400">≈ $'+d.kling.costUsd+' · '+Math.round(d.kling.costRub)+'₽</div>'+
-    (kp?pbar(d.kling.units, +kp.package_size)+expiry(kp.package_expiry)+'<div class="text-xs text-slate-500 mt-1">'+kp.notes+'</div>':'')+
+    // KLING
+    '<div style="background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.2);border-radius:16px;padding:20px">'+
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">'+
+        '<span style="font-size:24px">🎬</span>'+
+        '<span style="font-weight:700;color:#a78bfa;font-size:15px">Kling Direct</span>'+
+      '</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px">'+
+        '<div style="background:rgba(255,255,255,0.05);border-radius:10px;padding:10px;text-align:center">'+
+          '<div style="font-size:22px;font-weight:800;color:#fff">'+d.kling.units+'</div>'+
+          '<div style="font-size:10px;color:#94a3b8">юнитов потрачено</div>'+
+        '</div>'+
+        '<div style="background:rgba(255,255,255,0.05);border-radius:10px;padding:10px;text-align:center">'+
+          '<div style="font-size:22px;font-weight:800;color:'+(kLeft<400?'#ef4444':'#22d3ee')+'">'+kLeft.toFixed(1)+'</div>'+
+          '<div style="font-size:10px;color:#94a3b8">юнитов осталось</div>'+
+        '</div>'+
+      '</div>'+
+      '<div style="font-size:11px;color:#64748b;text-align:center">'+d.kling.cnt+' генераций · $'+d.kling.costUsd+' · '+Math.round(d.kling.costRub)+'₽</div>'+
+      bar(d.kling.units,kSize,'юн.')+
+      badge(kp?.package_expiry,'Пакет истекает')+
+      (kp?'<div style="font-size:10px;color:#475569;margin-top:4px;text-align:center">'+kp.notes+'</div>':'')+
     '</div>'+
 
-    '<div class="glass-cyan p-5"><h3 class="text-sm font-bold text-cyan-400 mb-3">🧠 Google Gemini</h3>'+
-    '<div class="text-2xl font-bold text-white">$'+d.gemini.costUsd+' <span class="text-sm text-slate-400">потрачено</span></div>'+
-    '<div class="text-xs text-slate-400 mt-1">'+d.gemini.credits.toLocaleString()+' кредитов · '+d.gemini.chatCnt+' чатов · '+d.gemini.imageCnt+' фото</div>'+
-    (gp?pbar(d.gemini.costUsd, +gp.package_size)+expiry(gp.package_expiry)+'<div class="text-xs text-slate-500 mt-1">'+gp.notes+'</div>':'')+
+    // GEMINI
+    '<div style="background:rgba(6,182,212,0.08);border:1px solid rgba(6,182,212,0.2);border-radius:16px;padding:20px">'+
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">'+
+        '<span style="font-size:24px">🧠</span>'+
+        '<span style="font-weight:700;color:#22d3ee;font-size:15px">Google Gemini</span>'+
+      '</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px">'+
+        '<div style="background:rgba(255,255,255,0.05);border-radius:10px;padding:10px;text-align:center">'+
+          '<div style="font-size:22px;font-weight:800;color:#fff">$'+d.gemini.costUsd+'</div>'+
+          '<div style="font-size:10px;color:#94a3b8">потрачено</div>'+
+        '</div>'+
+        '<div style="background:rgba(255,255,255,0.05);border-radius:10px;padding:10px;text-align:center">'+
+          '<div style="font-size:22px;font-weight:800;color:'+(gLeft<50?'#ef4444':'#22d3ee')+'">$'+gLeft.toFixed(1)+'</div>'+
+          '<div style="font-size:10px;color:#94a3b8">осталось</div>'+
+        '</div>'+
+      '</div>'+
+      '<div style="font-size:11px;color:#64748b;text-align:center">'+d.gemini.chatCnt+' чатов · '+d.gemini.imageCnt+' фото</div>'+
+      bar(d.gemini.costUsd,gSize,'$')+
+      badge(gp?.package_expiry,'Кредиты истекают')+
+      (gp?'<div style="font-size:10px;color:#475569;margin-top:4px;text-align:center">'+gp.notes+'</div>':'')+
     '</div>'+
 
-    '<div class="glass p-5"><h3 class="text-sm font-bold text-emerald-400 mb-3">🎭 fal.ai</h3>'+
-    '<div class="text-2xl font-bold text-white">$'+d.fal.costUsd+' <span class="text-sm text-slate-400">потрачено</span></div>'+
-    '<div class="text-xs text-slate-400 mt-1">'+d.fal.credits.toLocaleString()+' кредитов · '+d.fal.cnt+' аватаров</div>'+
+    // FAL
+    '<div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:16px;padding:20px">'+
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">'+
+        '<span style="font-size:24px">🎭</span>'+
+        '<span style="font-weight:700;color:#34d399;font-size:15px">fal.ai</span>'+
+      '</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px">'+
+        '<div style="background:rgba(255,255,255,0.05);border-radius:10px;padding:10px;text-align:center">'+
+          '<div style="font-size:22px;font-weight:800;color:#fff">$'+d.fal.costUsd+'</div>'+
+          '<div style="font-size:10px;color:#94a3b8">потрачено</div>'+
+        '</div>'+
+        '<div style="background:rgba(255,255,255,0.05);border-radius:10px;padding:10px;text-align:center">'+
+          '<div style="font-size:22px;font-weight:800;color:#fff">'+d.fal.cnt+'</div>'+
+          '<div style="font-size:10px;color:#94a3b8">аватаров</div>'+
+        '</div>'+
+      '</div>'+
+      '<div style="font-size:11px;color:#64748b;text-align:center">'+d.fal.credits.toLocaleString()+' кредитов · Pay as you go</div>'+
     '</div>';
 
   // Таблица по дням
   const daily=document.getElementById('apiDaily');
-  if(!d.daily||!d.daily.length){daily.innerHTML='<div class="text-slate-500">Нет данных</div>';return}
+  if(!d.daily||!d.daily.length){daily.innerHTML='<div style="color:#475569">Нет данных</div>';return}
   const dates={};
   d.daily.forEach(r=>{if(!dates[r.date])dates[r.date]={kling:0,gemini:0,fal:0};if(['video','motion','motion-control'].includes(r.type))dates[r.date].kling+=r.credits;else if(['chat','image'].includes(r.type))dates[r.date].gemini+=r.credits;else if(r.type==='avatar')dates[r.date].fal+=r.credits});
-  let html='<table class="w-full text-xs"><tr class="text-slate-500"><th class="text-left py-1">Дата</th><th class="text-right">Kling</th><th class="text-right">Gemini</th><th class="text-right">fal.ai</th><th class="text-right">Всего</th></tr>';
-  Object.keys(dates).sort().reverse().forEach(dt=>{const r=dates[dt];const t=r.kling+r.gemini+r.fal;html+='<tr class="border-t border-white/5"><td class="py-1 text-slate-300">'+dt+'</td><td class="text-right text-violet-400">'+r.kling.toLocaleString()+'</td><td class="text-right text-cyan-400">'+r.gemini.toLocaleString()+'</td><td class="text-right text-emerald-400">'+r.fal.toLocaleString()+'</td><td class="text-right text-white font-bold">'+t.toLocaleString()+'</td></tr>'});
+  let html='<table style="width:100%;font-size:12px;border-collapse:collapse"><tr style="color:#64748b"><th style="text-align:left;padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.1)">Дата</th><th style="text-align:right;padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.1)">Kling</th><th style="text-align:right;padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.1)">Gemini</th><th style="text-align:right;padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.1)">fal.ai</th><th style="text-align:right;padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.1)">Всего</th></tr>';
+  Object.keys(dates).sort().reverse().forEach(dt=>{const r=dates[dt];const t=r.kling+r.gemini+r.fal;html+='<tr style="border-bottom:1px solid rgba(255,255,255,0.04)"><td style="padding:8px 4px;color:#cbd5e1">'+fmtDate(dt)+'</td><td style="text-align:right;padding:8px 4px;color:#a78bfa">'+(r.kling?r.kling.toLocaleString():'—')+'</td><td style="text-align:right;padding:8px 4px;color:#22d3ee">'+(r.gemini?r.gemini.toLocaleString():'—')+'</td><td style="text-align:right;padding:8px 4px;color:#34d399">'+(r.fal?r.fal.toLocaleString():'—')+'</td><td style="text-align:right;padding:8px 4px;color:#fff;font-weight:700">'+t.toLocaleString()+'</td></tr>'});
   html+='</table>';daily.innerHTML=html;
 }
 

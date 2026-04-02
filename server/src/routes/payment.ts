@@ -58,7 +58,7 @@ paymentRouter.post('/create', requireAuth, async (req: Request, res: Response) =
     }
 
     const apiRes = await fetch(`https://unitpay.money/api?${apiParams.toString()}`);
-    const apiData = await apiRes.json();
+    const apiData = await apiRes.json() as any;
 
     if (apiData.error) {
       console.error('UnitPay initPayment error:', apiData.error);

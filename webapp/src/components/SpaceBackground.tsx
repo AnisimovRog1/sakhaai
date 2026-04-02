@@ -2,19 +2,19 @@ import { memo, useEffect, useRef } from 'react';
 
 /* ─── Млечный Путь: медленный дрейф через галактику ─── */
 
-// Слои звёзд
-const FAR_COUNT = 200;
-const MID_COUNT = 120;
-const NEAR_COUNT = 40;
-const DUST_COUNT = 30;
+// Слои звёзд (меньше = не как снег)
+const FAR_COUNT = 100;
+const MID_COUNT = 60;
+const NEAR_COUNT = 20;
+const DUST_COUNT = 10;
 
-// Скорости дрейфа (px/sec) — диагональ: вправо-вниз
-const DRIFT_DIR_X = 0.6;  // направление
+// Скорости дрейфа — очень медленно
+const DRIFT_DIR_X = 0.6;
 const DRIFT_DIR_Y = 0.3;
-const FAR_SPEED = 0.8;
-const MID_SPEED = 2.0;
-const NEAR_SPEED = 4.5;
-const DUST_SPEED = 0.4;
+const FAR_SPEED = 0.15;
+const MID_SPEED = 0.4;
+const NEAR_SPEED = 1.0;
+const DUST_SPEED = 0.08;
 
 // Кометы
 const COMET_INTERVAL_MIN = 15000;
@@ -82,15 +82,15 @@ function makeComet(w: number, h: number): Comet {
   const fromRight = Math.random() > 0.4;
   const x = fromRight ? w + 20 : rnd(-20, w * 0.3);
   const y = rnd(-20, h * 0.3);
-  const speed = rnd(1.5, 3);
+  const speed = rnd(2.5, 4.5);
   const angle = fromRight ? rnd(210, 240) : rnd(300, 330);
   const rad = angle * Math.PI / 180;
   return {
     x, y,
     vx: Math.cos(rad) * speed,
     vy: -Math.sin(rad) * speed,
-    life: 0, maxLife: rnd(180, 300),
-    size: rnd(1.2, 2),
+    life: 0, maxLife: rnd(150, 250),
+    size: rnd(2, 3),
     trail: [],
   };
 }
@@ -241,34 +241,38 @@ const SpaceBackground = memo(function SpaceBackground() {
         cm.y += cm.vy * (dt / 16);
 
         const lifeRatio = cm.life / cm.maxLife;
-        const fade = lifeRatio > 0.75 ? 1 - (lifeRatio - 0.75) / 0.25 : Math.min(lifeRatio * 4, 1);
+        const fade = lifeRatio > 0.75 ? 1 - (lifeRatio - 0.75) / 0.25 : Math.min(lifeRatio * 3, 1);
 
         cm.trail.unshift({ x: cm.x, y: cm.y });
-        if (cm.trail.length > 35) cm.trail.length = 35;
+        if (cm.trail.length > 45) cm.trail.length = 45;
 
-        // Trail
+        // Переливающийся хвост: hue сдвигается по длине
         for (let t = 1; t < cm.trail.length; t++) {
           const p = cm.trail[t];
-          const ta = (1 - t / cm.trail.length) * 0.3 * fade;
-          const ts = cm.size * (1 - t / cm.trail.length) * 0.6;
+          const progress = t / cm.trail.length; // 0=голова, 1=конец
+          const ta = (1 - progress) * 0.55 * fade;
+          const ts = cm.size * (1 - progress * 0.7) * 0.7;
+          // Переливание: белый → голубой → синий → фиолетовый → розовый
+          const hue = 200 + progress * 160; // 200(голубой) → 360(розовый)
           c.beginPath();
           c.arc(p.x, p.y, ts, 0, Math.PI * 2);
-          c.fillStyle = `rgba(180, 210, 255, ${ta})`;
+          c.fillStyle = `hsla(${hue}, 80%, 75%, ${ta})`;
           c.fill();
         }
 
-        // Head
+        // Яркая голова — белое ядро
         c.beginPath();
-        c.arc(cm.x, cm.y, cm.size, 0, Math.PI * 2);
-        c.fillStyle = `rgba(255, 255, 255, ${fade * 0.9})`;
+        c.arc(cm.x, cm.y, cm.size * 1.2, 0, Math.PI * 2);
+        c.fillStyle = `rgba(255, 255, 255, ${fade})`;
         c.fill();
 
-        // Glow
+        // Большой яркий glow вокруг головы
         c.beginPath();
-        c.arc(cm.x, cm.y, cm.size * 5, 0, Math.PI * 2);
-        const cg = c.createRadialGradient(cm.x, cm.y, 0, cm.x, cm.y, cm.size * 5);
-        cg.addColorStop(0, `rgba(140, 180, 255, ${fade * 0.25})`);
-        cg.addColorStop(1, 'rgba(140, 180, 255, 0)');
+        c.arc(cm.x, cm.y, cm.size * 8, 0, Math.PI * 2);
+        const cg = c.createRadialGradient(cm.x, cm.y, 0, cm.x, cm.y, cm.size * 8);
+        cg.addColorStop(0, `rgba(200, 220, 255, ${fade * 0.5})`);
+        cg.addColorStop(0.3, `rgba(140, 180, 255, ${fade * 0.2})`);
+        cg.addColorStop(1, 'rgba(100, 140, 255, 0)');
         c.fillStyle = cg;
         c.fill();
 

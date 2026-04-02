@@ -1207,8 +1207,29 @@ bot.on('message', async (ctx) => {
 // ═══════════════════════════════════════════════════════
 
 bot.start({
-  onStart: () => {
+  onStart: async () => {
     console.log('Бот @UraanxAI_bot запущен');
+
+    // ─── Профиль бота в Telegram ───
+    try {
+      await bot.api.setMyName('UraanxAI');
+      await bot.api.setMyDescription(
+        '🚀 UraanxAI — нейросеть нового поколения\n\n' +
+        'Создавай потрясающие фото, видео и арт за секунды.\n' +
+        'Общайся с ИИ, который понимает тебя с полуслова.\n\n' +
+        '⚡ Генерация картинок и видео\n' +
+        '💬 Умный AI-чат\n' +
+        '🎭 Аватары и motion-видео\n\n' +
+        'Просто нажми «Начать» 👇'
+      );
+      await bot.api.setMyShortDescription(
+        'AI-генерация фото, видео и арта. Умный чат. Создавай контент будущего ✨'
+      );
+      console.log('✅ Профиль бота обновлён');
+    } catch (e) {
+      console.error('⚠️ Не удалось обновить профиль бота:', e);
+    }
+
     scheduleReports();
     // Автопуши каждые 2 минуты
     setInterval(processAutoSequences, 2 * 60 * 1000);

@@ -67,7 +67,12 @@ const SpaceBackground = memo(function SpaceBackground() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d', { willReadFrequently: false });
+    let ctx: CanvasRenderingContext2D | null = null;
+    try {
+      ctx = canvas.getContext('2d');
+    } catch {
+      ctx = null;
+    }
     if (!ctx) return;
 
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -78,10 +83,10 @@ const SpaceBackground = memo(function SpaceBackground() {
     function resize() {
       w = window.innerWidth;
       h = window.innerHeight;
-      canvas!.width = w * dpr;
-      canvas!.height = h * dpr;
-      canvas!.style.width = w + 'px';
-      canvas!.style.height = h + 'px';
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      canvas.style.width = w + 'px';
+      canvas.style.height = h + 'px';
       ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
     resize();

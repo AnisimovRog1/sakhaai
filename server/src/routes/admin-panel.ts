@@ -146,6 +146,28 @@ input:focus,textarea:focus{border-color:rgba(139,92,246,.5);box-shadow:0 0 20px 
         <button class="btn btn-ghost" onclick="loadStats('month')">📆 Месяц</button>
         <div class="ml-auto text-xs text-slate-500" id="lastUpdate"></div>
       </div>
+      <!-- Курс ЦБ -->
+      <div class="glass p-4 mb-5 flex flex-wrap items-center gap-4">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">💱</span>
+          <span class="text-xs text-slate-400">Курс ЦБ:</span>
+          <span id="exRate" class="text-white font-bold">—</span>
+          <span class="text-slate-500 text-xs">₽/$</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-slate-400">Базовый:</span>
+          <span id="exBase" class="text-slate-300">—</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-slate-400">Множитель:</span>
+          <span id="exMult" class="text-cyan-400 font-bold">—</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-slate-400">Обновлён:</span>
+          <span id="exUpdated" class="text-slate-300 text-xs">—</span>
+        </div>
+        <button class="btn btn-ghost text-xs ml-auto" onclick="updateExRate()">🔄 Обновить курс</button>
+      </div>
       <div id="statsGrid" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5"></div>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="glass-neon p-5"><h3 class="text-xs font-bold text-violet-400 uppercase tracking-wider mb-3"><span class="anim-bounce">🏆</span> Топ активных</h3><div id="topActive"></div></div>
@@ -317,7 +339,7 @@ async function login(){
   if(d.success){TOKEN=d.token;localStorage.setItem('at',TOKEN);showPanel()}
   else{const el=document.getElementById('loginError');el.textContent=d.error||'Неверный пароль';el.classList.remove('hidden')}}catch(e){alert(e)}
 }
-function showPanel(){document.getElementById('loginPage').classList.add('hidden');document.getElementById('panelPage').classList.remove('hidden');loadStats('today');startAutoRefresh()}
+function showPanel(){document.getElementById('loginPage').classList.add('hidden');document.getElementById('panelPage').classList.remove('hidden');loadStats('today');loadExRate();startAutoRefresh()}
 function logout(){TOKEN='';localStorage.removeItem('at');clearInterval(autoRefresh);location.reload()}
 
 async function apiFetch(p,o){const r=await fetch(API+p,{...o,headers:{'Authorization':'Bearer '+TOKEN,'Content-Type':'application/json',...(o?.headers||{})}});const t=await r.text();try{return JSON.parse(t)}catch{return{error:t}}}
@@ -326,6 +348,19 @@ function P(p,d){return apiFetch(p,{method:'POST',body:JSON.stringify(d)})}
 function D(p){return apiFetch(p,{method:'DELETE'})}
 
 function showTab(el,n){document.querySelectorAll('[id^=tab-]').forEach(e=>e.classList.add('hidden'));document.getElementById('tab-'+n).classList.remove('hidden');document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));el.classList.add('active');if(n==='users')loadUsers();if(n==='pushes'){loadPushTemplates();loadPushLog();loadSeqs();loadPushStats()}}
+
+// Курс ЦБ
+async function loadExRate(){
+  const d=await G('/admin/exchange-rate');if(!d||d.error)return;
+  document.getElementById('exRate').textContent=d.rate?.toFixed(2)||'—';
+  document.getElementById('exBase').textContent=d.baseRate?.toFixed(2)||'—';
+  document.getElementById('exMult').textContent='×'+(d.multiplier?.toFixed(4)||'1.0000');
+  document.getElementById('exUpdated').textContent=d.updatedAt?new Date(d.updatedAt).toLocaleDateString('ru'):'—';
+}
+async function updateExRate(){
+  const d=await P('/admin/exchange-rate/update');if(!d||d.error){alert('Ошибка: '+(d?.error||''));return}
+  alert('Курс обновлён: '+d.rate?.toFixed(2)+'₽/$');loadExRate();
+}
 
 // Auto-refresh every 30 sec
 function startAutoRefresh(){autoRefresh=setInterval(()=>loadStats(currentPeriod),30000)}

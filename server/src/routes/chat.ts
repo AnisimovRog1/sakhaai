@@ -7,8 +7,10 @@ import { markAiRequest } from '../services/referral';
 
 import { ai } from '../services/genai-client';
 
-// Стоимость одного сообщения (себест. 0.16₽ × 2.3 = 0.37₽ ≈ 5 кредитов)
-const CHAT_COST = 5;
+import { getMultiplier } from '../services/exchange-rate';
+
+// Базовая стоимость сообщения (себест. 0.16₽ × 2.3 = 0.37₽ ≈ 5 кредитов при курсе 80.62)
+const BASE_CHAT_COST = 5;
 
 // Генерация осмысленного названия чата через Gemini
 async function generateChatTitle(chatId: number, firstMessage: string) {
@@ -122,6 +124,7 @@ chatRouter.post('/:id/messages', async (req: Request, res: Response) => {
   }
 
   // 2. Списываем кредиты (сначала — чтобы не тратить Gemini при нехватке баланса)
+  const CHAT_COST = Math.ceil(BASE_CHAT_COST * getMultiplier());
   const creditsLeft = await deduct(
     req.userId!,
     CHAT_COST,

@@ -91,16 +91,15 @@ const EMOTION_KEYS: { id: Emotion; key: 'video.emotion.neutral' | 'video.emotion
   { id: 'surprised', key: 'video.emotion.surprised' },
 ];
 
-// Динамическая цена: baseRate (LP2) × duration × маржа ×2.3 × 1000
-function calcVideoCost(tab: Tab, durationStr: VideoLength, model: VideoModel, mode: VideoMode, audio: boolean, motionControl: boolean = false): number {
-  if (tab === 'avatar') return 1350; // ~5 сек (TTS 16 + видео 267×5)
+// Динамическая цена: baseRate (LP2) × duration × маржа ×2.3 × множитель курса × 1000
+function calcVideoCost(tab: Tab, durationStr: VideoLength, model: VideoModel, mode: VideoMode, audio: boolean, motionControl: boolean = false, exMult: number = 1): number {
+  if (tab === 'avatar') return Math.ceil(1350 * exMult); // ~5 сек (TTS 16 + видео 267×5)
 
   let baseRate: number;
 
   if (motionControl) {
-    // Motion Control V3.0: 0.9 (720p) / 1.2 (1080p) units/sec × $0.084
     baseRate = mode === '1080p' ? 0.1008 : 0.0756;
-    return Math.ceil(5 * baseRate * 2.3 * 1000);
+    return Math.ceil(5 * baseRate * 2.3 * 1000 * exMult);
   }
 
   const dur = parseInt(durationStr);
@@ -111,7 +110,6 @@ function calcVideoCost(tab: Tab, durationStr: VideoLength, model: VideoModel, mo
       baseRate = audio ? 0.042 : 0.0252;
     }
   } else {
-    // V3.0
     if (mode === '1080p') {
       baseRate = audio ? 0.1008 : 0.0672;
     } else {
@@ -119,7 +117,7 @@ function calcVideoCost(tab: Tab, durationStr: VideoLength, model: VideoModel, mo
     }
   }
 
-  return Math.ceil(dur * baseRate * 2.3 * 1000);
+  return Math.ceil(dur * baseRate * 2.3 * 1000 * exMult);
 }
 
 // ─── Icon components ───────────────────────────────────────
@@ -229,6 +227,8 @@ function PillSelector<T extends string>({ options, value, onChange, columns }: {
 // ─── Main component ──────────────────────────────────────
 export function VideoGen({ user, onCreditsUpdate }: Props) {
   const { t } = useLang();
+  const [exMult, setExMult] = useState(1);
+  useEffect(() => { api.getExchangeRate().then(d => setExMult(d.multiplier)).catch(() => {}); }, []);
   // Section toggle
   const [section, setSection] = useState<'create' | 'templates'>('create');
   // Tab
@@ -292,7 +292,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
   }
 
   const isMotionControl = tab === 'motion' && motionVideo !== null && motionImage !== null;
-  const cost = calcVideoCost(tab, videoLength, videoModel, videoMode, nativeAudio, isMotionControl);
+  const cost = calcVideoCost(tab, videoLength, videoModel, videoMode, nativeAudio, isMotionControl, exMult);
   const hasCredits = user.credits >= cost;
 
   const canGenerate = !loading && hasCredits && (

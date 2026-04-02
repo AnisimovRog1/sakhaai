@@ -17,6 +17,7 @@ import { serveTempFile } from './services/kling-direct';
 import { processHeldReferrals } from './services/referral';
 import { startTaskWorker } from './services/task-worker';
 import { seedPushSequences } from './services/push-seed';
+import { initExchangeRate, updateExchangeRate, getRateInfo } from './services/exchange-rate';
 import { LANDING_HTML } from './landing';
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
@@ -56,6 +57,11 @@ app.use('/panel', adminPanelRouter);
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'sakhaai-server' });
+});
+
+// Публичный endpoint: текущий курс и множитель (для фронта)
+app.get('/exchange-rate', (_req, res) => {
+  res.json(getRateInfo());
 });
 
 // Временные файлы для Kling API (data URL → HTTP URL)
@@ -139,6 +145,11 @@ migrate()
 
     // Фоновый worker: проверяет pending задачи через Kling Direct API каждые 30 сек
     startTaskWorker();
+
+    // Курс ЦБ: инициализация из БД + первый fetch через 10с + обновление каждые 7 дней
+    initExchangeRate().catch(console.error);
+    setTimeout(updateExchangeRate, 10_000);
+    setInterval(updateExchangeRate, 7 * 24 * 60 * 60 * 1000);
 
     // Заполняем пуш-последовательности при первом запуске
     // Добавляем только отсутствующие seed-тексты (не трогаем отредактированные в админке)

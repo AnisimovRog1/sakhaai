@@ -44,6 +44,8 @@ const IMAGE_COSTS: Record<string, Record<string, number>> = {
 
 export function ImageGen({ user, onCreditsUpdate }: Props) {
   const { t } = useLang();
+  const [exMult, setExMult] = useState(1);
+  useEffect(() => { api.getExchangeRate().then(d => setExMult(d.multiplier)).catch(() => {}); }, []);
   const [section, setSection] = useState<'create' | 'templates'>('create');
   const [tab, setTab] = useState<Tab>('txt2img');
   const [model, setModel] = useState<Model>('nano-banana-2');
@@ -76,7 +78,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
     api.getGenerations('image', 20).then(setHistory).catch(console.error).finally(() => setHistoryLoading(false));
   }
 
-  const costPerImage = IMAGE_COSTS[model]?.[resolution] ?? 155;
+  const costPerImage = Math.ceil((IMAGE_COSTS[model]?.[resolution] ?? 155) * exMult);
   const cost = costPerImage * count;
   const canGenerate = prompt.trim().length > 0 && user.credits >= cost && !loading
     && (tab === 'txt2img' || refImages.length > 0);

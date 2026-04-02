@@ -257,6 +257,17 @@ export async function migrate() {
 
     CREATE INDEX IF NOT EXISTS pending_tasks_active_idx ON pending_tasks (status) WHERE status IN ('pending', 'processing');
     CREATE INDEX IF NOT EXISTS pending_tasks_user_idx ON pending_tasks (user_id, created_at DESC);
+
+    -- Курс валют (для динамического ценообразования)
+    CREATE TABLE IF NOT EXISTS exchange_rates (
+      id          SERIAL PRIMARY KEY,
+      currency    TEXT NOT NULL UNIQUE,
+      rate        NUMERIC(12,4) NOT NULL,
+      base_rate   NUMERIC(12,4) NOT NULL DEFAULT 80.62,
+      updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    INSERT INTO exchange_rates (currency, rate, base_rate)
+    VALUES ('USD', 80.62, 80.62) ON CONFLICT (currency) DO NOTHING;
   `);
 
   console.log('✅ Миграции применены');

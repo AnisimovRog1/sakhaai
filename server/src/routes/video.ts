@@ -10,6 +10,7 @@ import {
 import { generateTTS, generateAvatar } from '../services/fal-avatar';
 import voiceSamples from '../data/voice-samples.json';
 import { deduct, addCredits, TxType } from '../services/balance';
+import { getMultiplier } from '../services/exchange-rate';
 import { saveGeneration } from '../services/generations';
 import { pool } from '../db/pool';
 import crypto from 'crypto';
@@ -40,8 +41,8 @@ function calcVideoCost(duration: number, type: 'video' | 'motion' | 'motion-cont
     }
   }
 
-  // Маржа ×2.3
-  return Math.ceil(duration * baseRate * 2.3 * 1000);
+  // Маржа ×2.3 × курсовой множитель
+  return Math.ceil(duration * baseRate * 2.3 * 1000 * getMultiplier());
 }
 
 // Аватар: TTS (фикс 16 кр) + видео (267 кр/сек)
@@ -51,7 +52,8 @@ const AVATAR_PER_SEC = 267;
 function calcAvatarCost(text: string): number {
   // ~15 символов/сек для русской речи
   const estimatedDuration = Math.max(3, Math.min(10, Math.ceil(text.length / 15)));
-  return AVATAR_TTS_COST + Math.ceil(estimatedDuration * AVATAR_PER_SEC);
+  const m = getMultiplier();
+  return Math.ceil(AVATAR_TTS_COST * m) + Math.ceil(estimatedDuration * AVATAR_PER_SEC * m);
 }
 
 const TX_META: Record<string, { type: TxType; label: string }> = {

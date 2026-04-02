@@ -5,6 +5,7 @@ import { addCredits, deduct } from '../services/balance';
 import { getAllSequences, getActiveSequences, getDeletedSequences, upsertSequence, deleteSequence, restoreSequence, toggleSequence, findPendingPushes, markPushSent } from '../services/push-sequences';
 import { seedPushSequences } from '../services/push-seed';
 import { klingRequest } from '../services/kling-direct';
+import { getRateInfo, updateExchangeRate } from '../services/exchange-rate';
 
 export const adminRouter = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -629,6 +630,26 @@ adminRouter.post('/test-motion', async (req: Request, res: Response) => {
     }
 
     res.json({ ok: true, results, note: 'Статус через 2 и 5 мин в логах' });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ─── Курс валют ─────────────────────────────────────────
+adminRouter.get('/exchange-rate', (_req: Request, res: Response) => {
+  try {
+    const info = getRateInfo();
+    res.json(info);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+adminRouter.post('/exchange-rate/update', async (_req: Request, res: Response) => {
+  try {
+    const result = await updateExchangeRate();
+    const info = getRateInfo();
+    res.json({ ...info, ...result });
   } catch (e: any) {
     res.status(500).json({ error: e.message });
   }

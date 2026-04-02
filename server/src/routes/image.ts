@@ -2,13 +2,14 @@ import { Router, Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth';
 import { generateImage, editImage, translateToEnglish } from '../services/nanabanana';
 import { deduct, addCredits } from '../services/balance';
+import { getMultiplier } from '../services/exchange-rate';
 import { saveGeneration } from '../services/generations';
 
 export const imageRouter = Router();
 imageRouter.use(requireAuth);
 
-// Цена за 1 фото (себестоимость × 2.3, по ставке Про 0.080₽/кр)
-function getImageCost(model?: string, resolution?: string): number {
+// Базовая цена за 1 фото (себестоимость × 2.3, при курсе 80.62)
+function getBaseImageCost(model?: string, resolution?: string): number {
   if (model === 'nano-banana-pro') {
     if (resolution === '4K') return 560;
     return 310; // 1K и 2K
@@ -17,6 +18,10 @@ function getImageCost(model?: string, resolution?: string): number {
   if (resolution === '4K') return 350;
   if (resolution === '2K') return 230;
   return 155; // 1K
+}
+
+function getImageCost(model?: string, resolution?: string): number {
+  return Math.ceil(getBaseImageCost(model, resolution) * getMultiplier());
 }
 
 // POST /image/generate

@@ -208,4 +208,8 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ package: pkg }),
     }),
+
+  // ── Курс валют ────────────────────────
+  getExchangeRate: () =>
+    request<{ rate: number; baseRate: number; multiplier: number; updatedAt: string | null }>('/exchange-rate'),
 };

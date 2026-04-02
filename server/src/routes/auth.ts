@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import https from 'https';
 import { pool } from '../db/pool';
 import { saveUserIp, registerReferral } from '../services/referral';
+import { calculateFraudScore, saveDeviceFingerprint } from '../services/antifraud';
 
 // HTTP GET запрос через https модуль (работает на любой версии Node.js)
 function httpGet(url: string): Promise<any> {
@@ -29,7 +30,7 @@ function getIp(req: Request): string {
 
 // POST /auth
 authRouter.post('/', async (req: Request, res: Response) => {
-  const { initData, referralCode, timezoneOffset } = req.body;
+  const { initData, referralCode, timezoneOffset, deviceId, headless } = req.body;
   // referralCode — передаётся webapp'ом, если URL был ?start=ref_123
 
   if (!initData) {
@@ -59,7 +60,7 @@ authRouter.post('/', async (req: Request, res: Response) => {
   // xmax = 0 означает INSERT (новый юзер), иначе UPDATE (существующий)
   const result = await pool.query(
     `INSERT INTO users (id, username, first_name, last_name, credits)
-     VALUES ($1, $2, $3, $4, 50)
+     VALUES ($1, $2, $3, $4, 0)
      ON CONFLICT (id) DO UPDATE
        SET username   = EXCLUDED.username,
            first_name = EXCLUDED.first_name,
@@ -77,7 +78,36 @@ authRouter.post('/', async (req: Request, res: Response) => {
     return;
   }
 
-  // 3.5. Сохраняем часовой пояс (если передан)
+  // 3.5. Антифрод-проверка для новых юзеров
+  if (user.is_new && ip) {
+    (async () => {
+      try {
+        const hasPhoto = !!(await httpGet(`https://api.telegram.org/bot${process.env.BOT_TOKEN!}/getUserProfilePhotos?user_id=${tgUser.id}&limit=1`)
+          .then((d: any) => d.ok && d.result?.photos?.length > 0).catch(() => false));
+
+        const result = await calculateFraudScore(ip, deviceId || null, {
+          id: tgUser.id,
+          username: tgUser.username,
+          isPremium: (tgUser as any).isPremium,
+          hasPhoto,
+        }, headless || null);
+
+        // Сохраняем score
+        await pool.query('UPDATE users SET fraud_score = $1 WHERE id = $2', [result.score, tgUser.id]);
+
+        // Сохраняем device fingerprint
+        if (deviceId) {
+          await saveDeviceFingerprint(Number(tgUser.id), deviceId);
+        }
+
+        console.log(`Antifraud: user=${tgUser.id}, score=${result.score}, bonus=${result.bonus}, reasons=${result.reasons.join(',')}`);
+      } catch (err) {
+        console.error('Antifraud error:', err);
+      }
+    })();
+  }
+
+  // 3.6. Сохраняем часовой пояс (если передан)
   if (typeof timezoneOffset === 'number') {
     pool.query('UPDATE users SET timezone_offset = $1 WHERE id = $2', [timezoneOffset, tgUser.id]).catch(console.error);
   }

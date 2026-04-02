@@ -10,6 +10,7 @@ import { Friends } from './screens/Friends';
 import { BottomNav } from './components/BottomNav';
 import SpaceBackground from './components/SpaceBackground';
 import { LangProvider } from './LangContext';
+import { getDeviceFingerprint } from './utils/fingerprint';
 import type { Lang } from './i18n';
 
 function getInitData(): string {
@@ -65,7 +66,10 @@ export function App() {
     }
 
     const timezoneOffset = -(new Date().getTimezoneOffset()); // минуты от UTC (положительное = восток)
-    api.auth(initData, referralCode, timezoneOffset)
+
+    // Собираем device fingerprint для антифрода
+    getDeviceFingerprint()
+      .then((fp) => api.auth(initData, referralCode, timezoneOffset, fp.deviceId, fp.headless))
       .then(({ token, user }) => {
         setToken(token);
         setUser(user);

@@ -4,6 +4,7 @@ import { generateImage, editImage, translateToEnglish } from '../services/nanaba
 import { deduct, addCredits } from '../services/balance';
 import { getMultiplier } from '../services/exchange-rate';
 import { saveGeneration } from '../services/generations';
+import { tryGrantWelcomeBonus } from '../services/antifraud';
 
 export const imageRouter = Router();
 imageRouter.use(requireAuth);
@@ -31,6 +32,9 @@ imageRouter.post('/generate', async (req: Request, res: Response) => {
     res.status(400).json({ error: 'Промпт обязателен' });
     return;
   }
+
+  // Welcome-бонус при первом AI-запросе (антифрод)
+  await tryGrantWelcomeBonus(req.userId!).catch(console.error);
 
   const count = Math.min(Math.max(Number(rawCount) || 1, 1), 4);
   const costPerImage = getImageCost(model, resolution);

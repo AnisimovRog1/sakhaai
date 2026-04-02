@@ -4,6 +4,7 @@ import { requireAuth } from '../middleware/auth';
 import { sendToGemini, ChatMessage } from '../services/gemini';
 import { deduct } from '../services/balance';
 import { markAiRequest } from '../services/referral';
+import { tryGrantWelcomeBonus } from '../services/antifraud';
 
 import { ai } from '../services/genai-client';
 
@@ -123,7 +124,10 @@ chatRouter.post('/:id/messages', async (req: Request, res: Response) => {
     return;
   }
 
-  // 2. Списываем кредиты (сначала — чтобы не тратить Gemini при нехватке баланса)
+  // 2. Начисляем welcome-бонус при первом AI-запросе (антифрод)
+  await tryGrantWelcomeBonus(req.userId!).catch(console.error);
+
+  // 3. Списываем кредиты (сначала — чтобы не тратить Gemini при нехватке баланса)
   const CHAT_COST = Math.ceil(BASE_CHAT_COST * getMultiplier());
   const creditsLeft = await deduct(
     req.userId!,

@@ -64,10 +64,10 @@ export type TaskStatus = {
 
 // ── Auth ──────────────────────────────
 export const api = {
-  auth: (initData: string, referralCode?: string, timezoneOffset?: number) =>
+  auth: (initData: string, referralCode?: string, timezoneOffset?: number, deviceId?: string, headless?: Record<string, boolean>) =>
     request<{ token: string; user: import('../types').User }>('/auth', {
       method: 'POST',
-      body: JSON.stringify({ initData, referralCode, timezoneOffset }),
+      body: JSON.stringify({ initData, referralCode, timezoneOffset, deviceId, headless }),
     }),
 
   // ── Чаты ────────────────────────────

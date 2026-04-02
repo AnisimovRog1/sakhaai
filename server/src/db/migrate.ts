@@ -283,6 +283,35 @@ export async function migrate() {
       ('gemini', 300, '2026-06-28', '$300 free credits'),
       ('fal', 0, NULL, 'Pay as you go')
     ON CONFLICT (service) DO NOTHING;
+
+    -- ═══ Антифрод-система ═══
+
+    -- Device fingerprints (слой 1)
+    CREATE TABLE IF NOT EXISTS device_fingerprints (
+      id              SERIAL PRIMARY KEY,
+      user_id         BIGINT NOT NULL REFERENCES users(id),
+      fingerprint_hash TEXT NOT NULL,
+      created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_device_fp_hash ON device_fingerprints (fingerprint_hash);
+    CREATE INDEX IF NOT EXISTS idx_device_fp_user ON device_fingerprints (user_id);
+    -- Unique: один юзер — один fingerprint запись
+    DO $$ BEGIN
+      ALTER TABLE device_fingerprints ADD CONSTRAINT device_fp_unique UNIQUE (user_id, fingerprint_hash);
+    EXCEPTION WHEN duplicate_table THEN NULL;
+    END $$;
+
+    -- Fraud score в users
+    DO $$ BEGIN
+      ALTER TABLE users ADD COLUMN fraud_score INTEGER;
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$;
+
+    -- Welcome bonus granted flag
+    DO $$ BEGIN
+      ALTER TABLE users ADD COLUMN welcome_bonus_granted BOOLEAN NOT NULL DEFAULT false;
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$;
   `);
 
   console.log('✅ Миграции применены');

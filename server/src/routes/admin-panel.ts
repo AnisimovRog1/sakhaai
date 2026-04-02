@@ -129,7 +129,6 @@ input:focus,textarea:focus{border-color:rgba(139,92,246,.5);box-shadow:0 0 20px 
       <div class="tab active" onclick="showTab(this,'dashboard')"><span class="anim-pulse">📊</span> Дашборд</div>
       <div class="tab" onclick="showTab(this,'users')"><span class="anim-bounce">👥</span> Юзеры</div>
       <div class="tab" onclick="showTab(this,'pushes')"><span class="anim-spin">📢</span> Пуши</div>
-      <div class="tab" onclick="showTab(this,'api')"><span class="anim-bounce">🔌</span> API</div>
     </div>
     <div class="flex items-center gap-3">
       <div class="flex items-center gap-1.5 text-xs text-green-400"><div class="live-dot"></div>Live</div>
@@ -328,15 +327,6 @@ input:focus,textarea:focus{border-color:rgba(139,92,246,.5);box-shadow:0 0 20px 
   </div>
 </div>
 
-    <!-- API MONITORING -->
-    <div id="tab-api" class="hidden">
-      <h2 class="text-lg font-bold text-white mb-4">🔌 Мониторинг API сервисов</h2>
-      <div id="apiCards" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5"></div>
-      <div class="glass p-5">
-        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">📅 Расход по дням (14 дней)</h3>
-        <div id="apiDaily" class="text-sm"></div>
-      </div>
-    </div>
 
 </div>
 
@@ -360,7 +350,7 @@ function G(p){return apiFetch(p)}
 function P(p,d){return apiFetch(p,{method:'POST',body:JSON.stringify(d)})}
 function D(p){return apiFetch(p,{method:'DELETE'})}
 
-function showTab(el,n){document.querySelectorAll('[id^=tab-]').forEach(e=>e.classList.add('hidden'));document.getElementById('tab-'+n).classList.remove('hidden');document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));el.classList.add('active');if(n==='users')loadUsers();if(n==='pushes'){loadPushTemplates();loadPushLog();loadSeqs();loadPushStats()}if(n==='api')loadApiStats()}
+function showTab(el,n){document.querySelectorAll('[id^=tab-]').forEach(e=>e.classList.add('hidden'));document.getElementById('tab-'+n).classList.remove('hidden');document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));el.classList.add('active');if(n==='users')loadUsers();if(n==='pushes'){loadPushTemplates();loadPushLog();loadSeqs();loadPushStats()}}
 
 // Курс ЦБ
 async function loadExRate(){
@@ -369,116 +359,6 @@ async function loadExRate(){
   document.getElementById('exBase').textContent=d.baseRate?.toFixed(2)||'—';
   document.getElementById('exMult').textContent='×'+(d.multiplier?.toFixed(4)||'1.0000');
   document.getElementById('exUpdated').textContent=d.updatedAt?new Date(d.updatedAt).toLocaleDateString('ru'):'—';
-}
-// API мониторинг
-function fmtDate(s){if(!s)return '—';const d=new Date(s);return d.toLocaleDateString('ru',{day:'2-digit',month:'2-digit'})}
-function daysLeft(dt){if(!dt)return 0;return Math.ceil((new Date(dt).getTime()-Date.now())/(86400000))}
-
-async function loadApiStats(){
-  const d=await G('/admin/api-usage');if(!d||d.error)return;
-  const cards=document.getElementById('apiCards');
-
-  function bar(used,total,label){
-    if(!total||total<=0)return '';
-    const pct=Math.min(100,Math.round(used/total*100));
-    const left=Math.max(0,total-used);
-    const col=pct>80?'#ef4444':pct>60?'#eab308':'#8b5cf6';
-    return '<div style="margin-top:12px">'+
-      '<div style="display:flex;justify-content:space-between;font-size:11px;color:#94a3b8;margin-bottom:4px">'+
-        '<span>Использовано: '+used.toFixed(1)+' '+label+'</span>'+
-        '<span>Осталось: <b style="color:'+(pct>80?'#ef4444':'#22d3ee')+'">'+left.toFixed(1)+'</b> '+label+'</span>'+
-      '</div>'+
-      '<div style="width:100%;height:10px;background:rgba(255,255,255,0.08);border-radius:8px;overflow:hidden">'+
-        '<div style="height:100%;width:'+pct+'%;background:'+col+';border-radius:8px;transition:width 0.5s"></div>'+
-      '</div>'+
-      '<div style="text-align:center;font-size:11px;margin-top:4px;color:'+(pct>80?'#ef4444':pct>60?'#eab308':'#64748b')+'">'+
-        pct+'%'+(pct>80?' — ⚠️ Пора пополнить!':'')+
-      '</div>'+
-    '</div>';
-  }
-
-  function badge(dt,label){
-    if(!dt)return '';
-    const dl=daysLeft(dt);
-    const col=dl<14?'color:#ef4444':'color:#64748b';
-    return '<div style="margin-top:8px;padding:6px 10px;background:rgba(255,255,255,0.04);border-radius:8px;font-size:11px;'+col+'">'+
-      '⏳ '+label+': <b>'+fmtDate(dt)+'</b> ('+dl+' дн)'+
-    '</div>';
-  }
-
-  const kp=d.kling.package;const kSize=kp?+kp.package_size:0;const kLeft=Math.max(0,kSize-d.kling.units);
-
-  cards.innerHTML=
-    // KLING
-    '<div style="background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.2);border-radius:16px;padding:20px">'+
-      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">'+
-        '<span style="font-size:24px">🎬</span>'+
-        '<span style="font-weight:700;color:#a78bfa;font-size:15px">Kling Direct</span>'+
-      '</div>'+
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px">'+
-        '<div style="background:rgba(255,255,255,0.05);border-radius:10px;padding:10px;text-align:center">'+
-          '<div style="font-size:22px;font-weight:800;color:#fff">'+d.kling.units+'</div>'+
-          '<div style="font-size:10px;color:#94a3b8">юнитов потрачено</div>'+
-        '</div>'+
-        '<div style="background:rgba(255,255,255,0.05);border-radius:10px;padding:10px;text-align:center">'+
-          '<div style="font-size:22px;font-weight:800;color:'+(kLeft<400?'#ef4444':'#22d3ee')+'">'+kLeft.toFixed(1)+'</div>'+
-          '<div style="font-size:10px;color:#94a3b8">юнитов осталось</div>'+
-        '</div>'+
-      '</div>'+
-      '<div style="font-size:11px;color:#64748b;text-align:center">'+d.kling.cnt+' генераций · $'+d.kling.costUsd+' · '+Math.round(d.kling.costRub)+'₽</div>'+
-      bar(d.kling.units,kSize,'юн.')+
-      badge(kp?.package_expiry,'Пакет истекает')+
-      (kp?'<div style="font-size:10px;color:#475569;margin-top:4px;text-align:center">'+kp.notes+'</div>':'')+
-    '</div>'+
-
-    // GEMINI — Postpay
-    '<div style="background:rgba(6,182,212,0.08);border:1px solid rgba(6,182,212,0.2);border-radius:16px;padding:20px">'+
-      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">'+
-        '<span style="font-size:24px">🧠</span>'+
-        '<span style="font-weight:700;color:#22d3ee;font-size:15px">Google Gemini</span>'+
-        '<span style="font-size:10px;color:#64748b;background:rgba(255,255,255,0.06);padding:2px 8px;border-radius:6px;margin-left:auto">Postpay</span>'+
-      '</div>'+
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px">'+
-        '<div style="background:rgba(255,255,255,0.05);border-radius:10px;padding:10px;text-align:center">'+
-          '<div style="font-size:22px;font-weight:800;color:#fff">$'+d.gemini.costThisMonth+'</div>'+
-          '<div style="font-size:10px;color:#94a3b8">в этом месяце</div>'+
-        '</div>'+
-        '<div style="background:rgba(255,255,255,0.05);border-radius:10px;padding:10px;text-align:center">'+
-          '<div style="font-size:22px;font-weight:800;color:#64748b">$'+d.gemini.costLastMonth+'</div>'+
-          '<div style="font-size:10px;color:#94a3b8">в прошлом месяце</div>'+
-        '</div>'+
-      '</div>'+
-      '<div style="font-size:11px;color:#64748b;text-align:center;margin-bottom:8px">'+d.gemini.chatThisMonth+' чатов · '+d.gemini.imgThisMonth+' фото (этот месяц)</div>'+
-      '<div style="font-size:11px;color:#475569;text-align:center">Всего за всё время: $'+d.gemini.costUsd+' · '+d.gemini.cnt+' запросов</div>'+
-    '</div>'+
-
-    // FAL
-    '<div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:16px;padding:20px">'+
-      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">'+
-        '<span style="font-size:24px">🎭</span>'+
-        '<span style="font-weight:700;color:#34d399;font-size:15px">fal.ai</span>'+
-      '</div>'+
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px">'+
-        '<div style="background:rgba(255,255,255,0.05);border-radius:10px;padding:10px;text-align:center">'+
-          '<div style="font-size:22px;font-weight:800;color:#fff">$'+d.fal.costUsd+'</div>'+
-          '<div style="font-size:10px;color:#94a3b8">потрачено</div>'+
-        '</div>'+
-        '<div style="background:rgba(255,255,255,0.05);border-radius:10px;padding:10px;text-align:center">'+
-          '<div style="font-size:22px;font-weight:800;color:#fff">'+d.fal.cnt+'</div>'+
-          '<div style="font-size:10px;color:#94a3b8">аватаров</div>'+
-        '</div>'+
-      '</div>'+
-      '<div style="font-size:11px;color:#64748b;text-align:center">'+d.fal.credits.toLocaleString()+' кредитов · Pay as you go</div>'+
-    '</div>';
-
-  // Таблица по дням
-  const daily=document.getElementById('apiDaily');
-  if(!d.daily||!d.daily.length){daily.innerHTML='<div style="color:#475569">Нет данных</div>';return}
-  const dates={};
-  d.daily.forEach(r=>{if(!dates[r.date])dates[r.date]={kling:0,gemini:0,fal:0};if(['video','motion','motion-control'].includes(r.type))dates[r.date].kling+=r.credits;else if(['chat','image'].includes(r.type))dates[r.date].gemini+=r.credits;else if(r.type==='avatar')dates[r.date].fal+=r.credits});
-  let html='<table style="width:100%;font-size:12px;border-collapse:collapse"><tr style="color:#64748b"><th style="text-align:left;padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.1)">Дата</th><th style="text-align:right;padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.1)">Kling</th><th style="text-align:right;padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.1)">Gemini</th><th style="text-align:right;padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.1)">fal.ai</th><th style="text-align:right;padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.1)">Всего</th></tr>';
-  Object.keys(dates).sort().reverse().forEach(dt=>{const r=dates[dt];const t=r.kling+r.gemini+r.fal;html+='<tr style="border-bottom:1px solid rgba(255,255,255,0.04)"><td style="padding:8px 4px;color:#cbd5e1">'+fmtDate(dt)+'</td><td style="text-align:right;padding:8px 4px;color:#a78bfa">'+(r.kling?r.kling.toLocaleString():'—')+'</td><td style="text-align:right;padding:8px 4px;color:#22d3ee">'+(r.gemini?r.gemini.toLocaleString():'—')+'</td><td style="text-align:right;padding:8px 4px;color:#34d399">'+(r.fal?r.fal.toLocaleString():'—')+'</td><td style="text-align:right;padding:8px 4px;color:#fff;font-weight:700">'+t.toLocaleString()+'</td></tr>'});
-  html+='</table>';daily.innerHTML=html;
 }
 
 async function updateExRate(){

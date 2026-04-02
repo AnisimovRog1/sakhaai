@@ -77,7 +77,7 @@ bot.command('start', async (ctx) => {
   const replyKb = new Keyboard()
     .text('🚀 Открыть приложение')
     .row()
-    .text('🛟 Поддержка').text('📄 Документы')
+    .text('Поддержка').text('📄 Документы')
     .row()
     .text('👥 Пригласить друга')
     .resized().persistent();
@@ -114,27 +114,21 @@ bot.hears('🚀 Открыть приложение', async (ctx) => {
   await ctx.reply('🚀 Нажми кнопку чтобы открыть приложение:', { reply_markup: kb });
 });
 
-bot.hears('🛟 Поддержка', async (ctx) => {
+bot.hears('Поддержка', async (ctx) => {
   await ctx.reply(
-    `🛟 <b>Поддержка UraanxAI</b>\n\n` +
+    `<b>Поддержка UraanxAI</b>\n\n` +
     `Напишите ваш вопрос прямо сюда - мы ответим в ближайшее время.\n\n` +
-    `Или: 📧 uraanx.ai.project@gmail.com`,
+    `📧 uraanx.ai.project@gmail.com\n` +
+    `💬 @UraanxAI_support`,
     { parse_mode: 'HTML' }
   );
 });
 
 bot.hears('📄 Документы', async (ctx) => {
   await ctx.reply(
-    `📄 <b>Документация UraanxAI</b>\n\n` +
-    `<b>§1 Пользовательское соглашение</b>\n` +
-    `Использование сервиса и/или оплата = акцепт оферты.\n\n` +
-    `<b>§2 Возврат</b>\n` +
-    `✅ Неиспользованные кредиты - возврат 14 дней\n` +
-    `✅ Частичное использование - пропорциональный возврат\n` +
-    `✅ Срок - до 10 рабочих дней\n\n` +
-    `<b>§3 Конфиденциальность</b>\n` +
-    `Данные не передаются третьим лицам.\n\n` +
-    `Полная версия: https://sakhaai-production.up.railway.app/landing`,
+    `📄 <b>Документы UraanxAI</b>\n\n` +
+    `Пользовательское соглашение, политика конфиденциальности и другие документы доступны на сайте:\n\n` +
+    `https://sakhaai-production.up.railway.app/landing#terms`,
     { parse_mode: 'HTML' }
   );
 });
@@ -202,10 +196,10 @@ bot.command('docs', async (ctx) => {
 
 bot.command('support', async (ctx) => {
   await ctx.reply(
-    `🛟 *Поддержка UraanxAI*\n\n` +
+    `*Поддержка UraanxAI*\n\n` +
     `Напишите ваш вопрос прямо сюда - мы ответим в ближайшее время.\n\n` +
-    `Или свяжитесь с нами:\n` +
-    `📧 uraanx.ai.project@gmail.com`,
+    `📧 uraanx.ai.project@gmail.com\n` +
+    `💬 @UraanxAI\\_support`,
     { parse_mode: 'Markdown' }
   );
 });

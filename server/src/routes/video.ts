@@ -85,7 +85,10 @@ videoRouter.post('/generate', async (req: Request, res: Response) => {
   await tryGrantWelcomeBonus(req.userId!).catch(console.error);
 
   const dur = [5, 10].includes(Number(duration)) ? Number(duration) : 5;
-  const cost = calcVideoCost(dur, 'video', model, mode, !!generateAudio);
+  // Audio поддерживается: V3.0 (все), V2.6 1080p. V2.5 Turbo и V2.6 720p — нет.
+  const audioSupported = model === 'video-3.0' || model === undefined || (model === 'video-2.6' && mode === '1080p');
+  const useAudio = !!generateAudio && audioSupported;
+  const cost = calcVideoCost(dur, 'video', model, mode, useAudio);
 
   const creditsLeft = await charge(req, res, 'video', cost);
   if (creditsLeft === null) return;
@@ -113,7 +116,7 @@ videoRouter.post('/generate', async (req: Request, res: Response) => {
         model,
         mode,
         aspectRatio,
-        generateAudio: !!generateAudio,
+        generateAudio: useAudio,
       });
       klingTaskId = result.klingTaskId;
       klingEndpoint = '/v1/videos/text2video';
@@ -124,7 +127,7 @@ videoRouter.post('/generate', async (req: Request, res: Response) => {
       `INSERT INTO pending_tasks (task_id, kling_task_id, user_id, type, kling_endpoint, cost, prompt, metadata)
        VALUES ($1, $2, $3, 'video', $4, $5, $6, $7)`,
       [taskId, klingTaskId, req.userId!, klingEndpoint, cost, prompt.trim(),
-       JSON.stringify({ model, mode, duration: dur, aspectRatio, generateAudio: !!generateAudio })]
+       JSON.stringify({ model, mode, duration: dur, aspectRatio, generateAudio: useAudio })]
     );
 
     res.json({ taskId, async: true, creditsLeft, cost });

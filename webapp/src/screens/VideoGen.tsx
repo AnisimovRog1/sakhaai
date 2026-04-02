@@ -597,7 +597,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
               {VIDEO_MODELS.map((m) => (
                 <button
                   key={m.id}
-                  onClick={() => { setVideoModel(m.id); setShowModelPicker(false); }}
+                  onClick={() => { setVideoModel(m.id); setShowModelPicker(false); if (m.id === 'video-2.5-turbo') setNativeAudio(false); }}
                   className={`w-full text-left px-4 py-3.5 flex items-center gap-3 transition-colors ${
                     videoModel === m.id ? 'bg-white/[0.06]' : ''
                   }`}
@@ -681,7 +681,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
                     { id: '1080p' as VideoMode, label: '1080p' },
                   ]}
                   value={videoMode}
-                  onChange={setVideoMode}
+                  onChange={(m) => { setVideoMode(m); if (m === '720p' && videoModel === 'video-2.6') setNativeAudio(false); }}
                 />
               </div>
 
@@ -716,16 +716,18 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
             </div>
           )}
 
-          {/* Native Audio */}
-          <button
-            onClick={() => setNativeAudio(!nativeAudio)}
-            className="flex items-center gap-3 px-1"
-          >
-            <div className={`w-10 h-6 rounded-full transition-colors flex items-center px-0.5 ${nativeAudio ? 'bg-violet-600' : 'bg-white/[0.10]'}`}>
-              <div className={`w-5 h-5 rounded-full bg-white shadow-md transition-transform ${nativeAudio ? 'translate-x-4' : ''}`} />
-            </div>
-            <span className="text-sm text-white font-medium">{t('video.nativeAudio')}</span>
-          </button>
+          {/* Native Audio — только V3.0 (все режимы) и V2.6 1080p */}
+          {(videoModel === 'video-3.0' || (videoModel === 'video-2.6' && videoMode === '1080p')) && (
+            <button
+              onClick={() => setNativeAudio(!nativeAudio)}
+              className="flex items-center gap-3 px-1"
+            >
+              <div className={`w-10 h-6 rounded-full transition-colors flex items-center px-0.5 ${nativeAudio ? 'bg-violet-600' : 'bg-white/[0.10]'}`}>
+                <div className={`w-5 h-5 rounded-full bg-white shadow-md transition-transform ${nativeAudio ? 'translate-x-4' : ''}`} />
+              </div>
+              <span className="text-sm text-white font-medium">{t('video.nativeAudio')}</span>
+            </button>
+          )}
         </>
       )}
 

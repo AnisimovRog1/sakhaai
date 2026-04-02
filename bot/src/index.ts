@@ -1213,7 +1213,9 @@ bot.start({
     // ─── Профиль бота в Telegram (только имя + короткое описание для поиска) ───
     try {
       await bot.api.setMyName('UraanxAI');
-      await bot.api.setMyDescription(''); // очистить — пуши работают сами
+      await bot.api.setMyDescription(
+        'Контент будущего уже здесь. Генерируй фото и видео с помощью AI — будь на шаг впереди ✨'
+      );
       await bot.api.setMyShortDescription(
         'Контент будущего уже здесь. Генерируй фото и видео с помощью AI — будь на шаг впереди ✨'
       );

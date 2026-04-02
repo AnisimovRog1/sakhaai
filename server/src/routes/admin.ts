@@ -655,7 +655,7 @@ adminRouter.get('/api-usage', async (_req: Request, res: Response) => {
 
     // Обратная формула: кредиты → юниты Kling
     const klingCredits = (typeMap.video?.credits || 0) + (typeMap.motion?.credits || 0) + (typeMap['motion-control']?.credits || 0);
-    const klingUnits = klingCredits / (2.3 * 1000 * rate.multiplier);
+    const klingUnits = klingCredits / (2.3 * 1007.75 * rate.multiplier);
     const klingCostUsd = klingUnits * 0.084;
 
     // Gemini: чат + фото (всё время)

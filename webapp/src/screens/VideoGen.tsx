@@ -91,15 +91,19 @@ const EMOTION_KEYS: { id: Emotion; key: 'video.emotion.neutral' | 'video.emotion
   { id: 'surprised', key: 'video.emotion.surprised' },
 ];
 
-// Динамическая цена: baseRate (LP2) × duration × маржа ×2.3 × множитель курса × 1000
-function calcVideoCost(tab: Tab, durationStr: VideoLength, model: VideoModel, mode: VideoMode, audio: boolean, motionControl: boolean = false, exMult: number = 1): number {
-  if (tab === 'avatar') return Math.ceil(1350 * exMult); // ~5 сек (TTS 16 + видео 267×5)
+// Динамическая цена: baseRate (LP2) × duration × маржа ×2.3 × множитель курса × 1007.75 (80.62/0.080)
+function calcVideoCost(tab: Tab, durationStr: VideoLength, model: VideoModel, mode: VideoMode, audio: boolean, motionControl: boolean = false, exMult: number = 1, avatarText: string = ''): number {
+  if (tab === 'avatar') {
+    const estDur = Math.max(3, Math.min(10, Math.ceil((avatarText.length || 75) / 15)));
+    return Math.ceil(16 * exMult) + Math.ceil(estDur * 267 * exMult);
+  }
 
   let baseRate: number;
 
   if (motionControl) {
-    baseRate = mode === '1080p' ? 0.1008 : 0.0756;
-    return Math.ceil(5 * baseRate * 2.3 * 1000 * exMult);
+    // Motion Control V2.6: 0.5 (720p) / 0.8 (1080p) units/sec (API всегда kling-v2-6)
+    baseRate = mode === '1080p' ? 0.0672 : 0.042;
+    return Math.ceil(5 * baseRate * 2.3 * 1007.75 * exMult);
   }
 
   const dur = parseInt(durationStr);
@@ -117,7 +121,7 @@ function calcVideoCost(tab: Tab, durationStr: VideoLength, model: VideoModel, mo
     }
   }
 
-  return Math.ceil(dur * baseRate * 2.3 * 1000 * exMult);
+  return Math.ceil(dur * baseRate * 2.3 * 1007.75 * exMult);
 }
 
 // ─── Icon components ───────────────────────────────────────
@@ -292,7 +296,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
   }
 
   const isMotionControl = tab === 'motion' && motionVideo !== null && motionImage !== null;
-  const cost = calcVideoCost(tab, videoLength, videoModel, videoMode, nativeAudio, isMotionControl, exMult);
+  const cost = calcVideoCost(tab, videoLength, videoModel, videoMode, nativeAudio, isMotionControl, exMult, speechText);
   const hasCredits = user.credits >= cost;
 
   const canGenerate = !loading && hasCredits && (

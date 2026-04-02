@@ -38,8 +38,8 @@ const RESOLUTIONS: Resolution[] = ['1K', '2K', '4K'];
 
 // Цены: себестоимость × 2.3 (по ставке Про 0.080₽/кр)
 const IMAGE_COSTS: Record<string, Record<string, number>> = {
-  'nano-banana-2': { '1K': 155, '2K': 230, '4K': 350 },
-  'nano-banana-pro': { '1K': 310, '2K': 310, '4K': 560 },
+  'nano-banana-2': { '1K': 155, '2K': 234, '4K': 350 },
+  'nano-banana-pro': { '1K': 310, '2K': 310, '4K': 556 },
 };
 
 export function ImageGen({ user, onCreditsUpdate }: Props) {

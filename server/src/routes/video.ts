@@ -19,14 +19,14 @@ import crypto from 'crypto';
 export const videoRouter = Router();
 videoRouter.use(requireAuth);
 
-// Динамическая цена: baseRate (LP2 $0.084/unit) × duration × маржа ×2.3 × 1000
+// Динамическая цена: baseRate (LP2 $0.084/unit) × duration × маржа ×2.3 × 1007.75 (80.62/0.080)
 function calcVideoCost(duration: number, type: 'video' | 'motion' | 'motion-control', model?: string, mode?: string, audio?: boolean): number {
   // baseRate = units_per_sec × LP2_unit_cost ($0.084)
   let baseRate: number;
 
   if (type === 'motion-control') {
-    // Motion Control V3.0: 0.9 (720p) / 1.2 (1080p) units/sec
-    baseRate = mode === '1080p' ? 0.1008 : 0.0756;
+    // Motion Control V2.6: 0.5 (720p) / 0.8 (1080p) units/sec (API всегда kling-v2-6)
+    baseRate = mode === '1080p' ? 0.0672 : 0.042;
   } else if (model === 'video-2.6' || model === 'video-2.5-turbo') {
     if (mode === '1080p') {
       baseRate = audio ? 0.084 : 0.042;
@@ -42,8 +42,8 @@ function calcVideoCost(duration: number, type: 'video' | 'motion' | 'motion-cont
     }
   }
 
-  // Маржа ×2.3 × курсовой множитель
-  return Math.ceil(duration * baseRate * 2.3 * 1000 * getMultiplier());
+  // Маржа ×2.3 × курсовой множитель (1007.75 = BASE_RATE/Pro_rate = 80.62/0.080)
+  return Math.ceil(duration * baseRate * 2.3 * 1007.75 * getMultiplier());
 }
 
 // Аватар: TTS (фикс 16 кр) + видео (267 кр/сек)

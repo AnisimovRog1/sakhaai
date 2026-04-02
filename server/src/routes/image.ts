@@ -12,12 +12,12 @@ imageRouter.use(requireAuth);
 // Базовая цена за 1 фото (себестоимость × 2.3, при курсе 80.62)
 function getBaseImageCost(model?: string, resolution?: string): number {
   if (model === 'nano-banana-pro') {
-    if (resolution === '4K') return 560;
+    if (resolution === '4K') return 556;
     return 310; // 1K и 2K
   }
   // nano-banana-2
   if (resolution === '4K') return 350;
-  if (resolution === '2K') return 230;
+  if (resolution === '2K') return 234;
   return 155; // 1K
 }
 

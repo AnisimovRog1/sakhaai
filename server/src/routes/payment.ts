@@ -53,7 +53,7 @@ paymentRouter.post('/create', requireAuth, async (req: Request, res: Response) =
 
     const sign = unitpaySign('initPayment', params);
 
-    const paymentUrl = `https://unitpay.ru/pay/${UNITPAY_PUBLIC_KEY}?sum=${params.sum}&account=${params.account}&desc=${encodeURIComponent(params.desc)}&currency=RUB&signature=${sign}` +
+    const paymentUrl = `https://unitpay.money/pay/${UNITPAY_PUBLIC_KEY}?sum=${params.sum}&account=${params.account}&desc=${encodeURIComponent(params.desc)}&currency=RUB&signature=${sign}` +
       (paymentMethod ? `&paymentType=${paymentMethod}` : '');
 
     res.json({ orderId, paymentUrl });

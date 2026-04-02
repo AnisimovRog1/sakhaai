@@ -658,12 +658,24 @@ adminRouter.get('/api-usage', async (_req: Request, res: Response) => {
     const klingUnits = klingCredits / (2.3 * 1000 * rate.multiplier);
     const klingCostUsd = klingUnits * 0.084;
 
-    // Gemini: чат + фото
+    // Gemini: чат + фото (всё время)
     const geminiChatCredits = typeMap.chat?.credits || 0;
     const geminiImageCredits = typeMap.image?.credits || 0;
     const geminiCredits = geminiChatCredits + geminiImageCredits;
-    // Примерный расход: чат ~$0.002/сообщ, фото ~$0.1/шт
     const geminiCostUsd = (typeMap.chat?.cnt || 0) * 0.002 + (typeMap.image?.cnt || 0) * 0.1;
+
+    // Gemini: расход за текущий и прошлый месяц
+    const { rows: geminiMonthly } = await pool.query(
+      `SELECT
+        COALESCE(SUM(CASE WHEN created_at >= DATE_TRUNC('month', NOW()) THEN 1 ELSE 0 END), 0)::int as chat_this,
+        COALESCE(SUM(CASE WHEN created_at >= DATE_TRUNC('month', NOW()) AND type = 'image' THEN 1 ELSE 0 END), 0)::int as img_this,
+        COALESCE(SUM(CASE WHEN created_at >= DATE_TRUNC('month', NOW() - INTERVAL '1 month') AND created_at < DATE_TRUNC('month', NOW()) THEN 1 ELSE 0 END), 0)::int as chat_last,
+        COALESCE(SUM(CASE WHEN created_at >= DATE_TRUNC('month', NOW() - INTERVAL '1 month') AND created_at < DATE_TRUNC('month', NOW()) AND type = 'image' THEN 1 ELSE 0 END), 0)::int as img_last
+       FROM generations WHERE type IN ('chat', 'image')`
+    );
+    const gm = geminiMonthly[0] || { chat_this: 0, img_this: 0, chat_last: 0, img_last: 0 };
+    const geminiThisMonth = (+gm.chat_this - +gm.img_this) * 0.002 + +gm.img_this * 0.1;
+    const geminiLastMonth = (+gm.chat_last - +gm.img_last) * 0.002 + +gm.img_last * 0.1;
 
     // fal.ai: аватары
     const falCredits = typeMap.avatar?.credits || 0;
@@ -688,9 +700,13 @@ adminRouter.get('/api-usage', async (_req: Request, res: Response) => {
       gemini: {
         credits: geminiCredits,
         costUsd: Math.round(geminiCostUsd * 100) / 100,
+        costThisMonth: Math.round(geminiThisMonth * 100) / 100,
+        costLastMonth: Math.round(geminiLastMonth * 100) / 100,
         cnt: (typeMap.chat?.cnt || 0) + (typeMap.image?.cnt || 0),
         chatCnt: typeMap.chat?.cnt || 0,
         imageCnt: typeMap.image?.cnt || 0,
+        chatThisMonth: +gm.chat_this - +gm.img_this,
+        imgThisMonth: +gm.img_this,
         package: pkgMap.gemini || null,
       },
       fal: {

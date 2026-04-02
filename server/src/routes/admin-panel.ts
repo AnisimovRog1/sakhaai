@@ -407,7 +407,6 @@ async function loadApiStats(){
   }
 
   const kp=d.kling.package;const kSize=kp?+kp.package_size:0;const kLeft=Math.max(0,kSize-d.kling.units);
-  const gp=d.gemini.package;const gSize=gp?+gp.package_size:0;const gLeft=Math.max(0,gSize-d.gemini.costUsd);
 
   cards.innerHTML=
     // KLING
@@ -432,26 +431,25 @@ async function loadApiStats(){
       (kp?'<div style="font-size:10px;color:#475569;margin-top:4px;text-align:center">'+kp.notes+'</div>':'')+
     '</div>'+
 
-    // GEMINI
+    // GEMINI — Postpay
     '<div style="background:rgba(6,182,212,0.08);border:1px solid rgba(6,182,212,0.2);border-radius:16px;padding:20px">'+
       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">'+
         '<span style="font-size:24px">🧠</span>'+
         '<span style="font-weight:700;color:#22d3ee;font-size:15px">Google Gemini</span>'+
+        '<span style="font-size:10px;color:#64748b;background:rgba(255,255,255,0.06);padding:2px 8px;border-radius:6px;margin-left:auto">Postpay</span>'+
       '</div>'+
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px">'+
         '<div style="background:rgba(255,255,255,0.05);border-radius:10px;padding:10px;text-align:center">'+
-          '<div style="font-size:22px;font-weight:800;color:#fff">$'+d.gemini.costUsd+'</div>'+
-          '<div style="font-size:10px;color:#94a3b8">потрачено</div>'+
+          '<div style="font-size:22px;font-weight:800;color:#fff">$'+d.gemini.costThisMonth+'</div>'+
+          '<div style="font-size:10px;color:#94a3b8">в этом месяце</div>'+
         '</div>'+
         '<div style="background:rgba(255,255,255,0.05);border-radius:10px;padding:10px;text-align:center">'+
-          '<div style="font-size:22px;font-weight:800;color:'+(gLeft<50?'#ef4444':'#22d3ee')+'">$'+gLeft.toFixed(1)+'</div>'+
-          '<div style="font-size:10px;color:#94a3b8">осталось</div>'+
+          '<div style="font-size:22px;font-weight:800;color:#64748b">$'+d.gemini.costLastMonth+'</div>'+
+          '<div style="font-size:10px;color:#94a3b8">в прошлом месяце</div>'+
         '</div>'+
       '</div>'+
-      '<div style="font-size:11px;color:#64748b;text-align:center">'+d.gemini.chatCnt+' чатов · '+d.gemini.imageCnt+' фото</div>'+
-      bar(d.gemini.costUsd,gSize,'$')+
-      badge(gp?.package_expiry,'Кредиты истекают')+
-      (gp?'<div style="font-size:10px;color:#475569;margin-top:4px;text-align:center">'+gp.notes+'</div>':'')+
+      '<div style="font-size:11px;color:#64748b;text-align:center;margin-bottom:8px">'+d.gemini.chatThisMonth+' чатов · '+d.gemini.imgThisMonth+' фото (этот месяц)</div>'+
+      '<div style="font-size:11px;color:#475569;text-align:center">Всего за всё время: $'+d.gemini.costUsd+' · '+d.gemini.cnt+' запросов</div>'+
     '</div>'+
 
     // FAL

@@ -129,6 +129,7 @@ input:focus,textarea:focus{border-color:rgba(139,92,246,.5);box-shadow:0 0 20px 
       <div class="tab active" onclick="showTab(this,'dashboard')"><span class="anim-pulse">📊</span> Дашборд</div>
       <div class="tab" onclick="showTab(this,'users')"><span class="anim-bounce">👥</span> Юзеры</div>
       <div class="tab" onclick="showTab(this,'pushes')"><span class="anim-spin">📢</span> Пуши</div>
+      <div class="tab" onclick="showTab(this,'api')"><span class="anim-bounce">🔌</span> API</div>
     </div>
     <div class="flex items-center gap-3">
       <div class="flex items-center gap-1.5 text-xs text-green-400"><div class="live-dot"></div>Live</div>
@@ -327,6 +328,18 @@ input:focus,textarea:focus{border-color:rgba(139,92,246,.5);box-shadow:0 0 20px 
   </div>
 </div>
 
+    <!-- API MONITORING -->
+    <div id="tab-api" class="hidden">
+      <h2 class="text-lg font-bold text-white mb-4">🔌 Мониторинг API сервисов</h2>
+      <div id="apiCards" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5"></div>
+      <div class="glass p-5">
+        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">📅 Расход по дням (14 дней)</h3>
+        <div id="apiDaily" class="text-sm"></div>
+      </div>
+    </div>
+
+</div>
+
 <script>
 let TOKEN=localStorage.getItem('at')||'';
 const API=location.origin;
@@ -347,7 +360,7 @@ function G(p){return apiFetch(p)}
 function P(p,d){return apiFetch(p,{method:'POST',body:JSON.stringify(d)})}
 function D(p){return apiFetch(p,{method:'DELETE'})}
 
-function showTab(el,n){document.querySelectorAll('[id^=tab-]').forEach(e=>e.classList.add('hidden'));document.getElementById('tab-'+n).classList.remove('hidden');document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));el.classList.add('active');if(n==='users')loadUsers();if(n==='pushes'){loadPushTemplates();loadPushLog();loadSeqs();loadPushStats()}}
+function showTab(el,n){document.querySelectorAll('[id^=tab-]').forEach(e=>e.classList.add('hidden'));document.getElementById('tab-'+n).classList.remove('hidden');document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));el.classList.add('active');if(n==='users')loadUsers();if(n==='pushes'){loadPushTemplates();loadPushLog();loadSeqs();loadPushStats()}if(n==='api')loadApiStats()}
 
 // Курс ЦБ
 async function loadExRate(){
@@ -357,6 +370,48 @@ async function loadExRate(){
   document.getElementById('exMult').textContent='×'+(d.multiplier?.toFixed(4)||'1.0000');
   document.getElementById('exUpdated').textContent=d.updatedAt?new Date(d.updatedAt).toLocaleDateString('ru'):'—';
 }
+// API мониторинг
+async function loadApiStats(){
+  const d=await G('/admin/api-usage');if(!d||d.error)return;
+  const cards=document.getElementById('apiCards');
+  function pbar(used,total){
+    if(!total)return '';
+    const pct=Math.min(100,Math.round(used/total*100));
+    const col=pct>80?'from-red-500 to-red-400':pct>60?'from-yellow-500 to-yellow-400':'from-violet-500 to-cyan-400';
+    return '<div class="w-full h-2 bg-white/10 rounded-full mt-2 overflow-hidden"><div class="h-full bg-gradient-to-r '+col+' rounded-full" style="width:'+pct+'%"></div></div><div class="text-xs text-slate-500 mt-1">'+pct+'% использовано'+(pct>80?' ⚠️ Пора пополнить':'')+'</div>';
+  }
+  function expiry(dt){if(!dt)return '';const d=new Date(dt);const diff=Math.ceil((d.getTime()-Date.now())/(1000*60*60*24));return '<div class="text-xs mt-1 '+(diff<14?'text-red-400':'text-slate-500')+'">Истекает: '+d.toLocaleDateString('ru')+' ('+diff+' дн)</div>'}
+  const kp=d.kling.package;
+  const gp=d.gemini.package;
+  cards.innerHTML=
+    '<div class="glass-neon p-5"><h3 class="text-sm font-bold text-violet-400 mb-3">🎬 Kling Direct</h3>'+
+    '<div class="text-2xl font-bold text-white">'+d.kling.units+' <span class="text-sm text-slate-400">юнитов</span></div>'+
+    '<div class="text-xs text-slate-400 mt-1">'+d.kling.credits.toLocaleString()+' кредитов · '+d.kling.cnt+' генераций</div>'+
+    '<div class="text-xs text-slate-400">≈ $'+d.kling.costUsd+' · '+Math.round(d.kling.costRub)+'₽</div>'+
+    (kp?pbar(d.kling.units, +kp.package_size)+expiry(kp.package_expiry)+'<div class="text-xs text-slate-500 mt-1">'+kp.notes+'</div>':'')+
+    '</div>'+
+
+    '<div class="glass-cyan p-5"><h3 class="text-sm font-bold text-cyan-400 mb-3">🧠 Google Gemini</h3>'+
+    '<div class="text-2xl font-bold text-white">$'+d.gemini.costUsd+' <span class="text-sm text-slate-400">потрачено</span></div>'+
+    '<div class="text-xs text-slate-400 mt-1">'+d.gemini.credits.toLocaleString()+' кредитов · '+d.gemini.chatCnt+' чатов · '+d.gemini.imageCnt+' фото</div>'+
+    (gp?pbar(d.gemini.costUsd, +gp.package_size)+expiry(gp.package_expiry)+'<div class="text-xs text-slate-500 mt-1">'+gp.notes+'</div>':'')+
+    '</div>'+
+
+    '<div class="glass p-5"><h3 class="text-sm font-bold text-emerald-400 mb-3">🎭 fal.ai</h3>'+
+    '<div class="text-2xl font-bold text-white">$'+d.fal.costUsd+' <span class="text-sm text-slate-400">потрачено</span></div>'+
+    '<div class="text-xs text-slate-400 mt-1">'+d.fal.credits.toLocaleString()+' кредитов · '+d.fal.cnt+' аватаров</div>'+
+    '</div>';
+
+  // Таблица по дням
+  const daily=document.getElementById('apiDaily');
+  if(!d.daily||!d.daily.length){daily.innerHTML='<div class="text-slate-500">Нет данных</div>';return}
+  const dates={};
+  d.daily.forEach(r=>{if(!dates[r.date])dates[r.date]={kling:0,gemini:0,fal:0};if(['video','motion','motion-control'].includes(r.type))dates[r.date].kling+=r.credits;else if(['chat','image'].includes(r.type))dates[r.date].gemini+=r.credits;else if(r.type==='avatar')dates[r.date].fal+=r.credits});
+  let html='<table class="w-full text-xs"><tr class="text-slate-500"><th class="text-left py-1">Дата</th><th class="text-right">Kling</th><th class="text-right">Gemini</th><th class="text-right">fal.ai</th><th class="text-right">Всего</th></tr>';
+  Object.keys(dates).sort().reverse().forEach(dt=>{const r=dates[dt];const t=r.kling+r.gemini+r.fal;html+='<tr class="border-t border-white/5"><td class="py-1 text-slate-300">'+dt+'</td><td class="text-right text-violet-400">'+r.kling.toLocaleString()+'</td><td class="text-right text-cyan-400">'+r.gemini.toLocaleString()+'</td><td class="text-right text-emerald-400">'+r.fal.toLocaleString()+'</td><td class="text-right text-white font-bold">'+t.toLocaleString()+'</td></tr>'});
+  html+='</table>';daily.innerHTML=html;
+}
+
 async function updateExRate(){
   const d=await P('/admin/exchange-rate/update');if(!d||d.error){alert('Ошибка: '+(d?.error||''));return}
   alert('Курс обновлён: '+d.rate?.toFixed(2)+'₽/$');loadExRate();

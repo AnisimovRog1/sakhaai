@@ -635,6 +635,95 @@ adminRouter.post('/test-motion', async (req: Request, res: Response) => {
   }
 });
 
+// ─── API Usage ──────────────────────────────────────────
+adminRouter.get('/api-usage', async (_req: Request, res: Response) => {
+  try {
+    const rate = getRateInfo();
+
+    // Расход по типам (всё время)
+    const { rows: byType } = await pool.query(
+      `SELECT type, COALESCE(SUM(cost),0)::int as credits, COUNT(*)::int as cnt
+       FROM generations GROUP BY type`
+    );
+    const typeMap: Record<string, { credits: number; cnt: number }> = {};
+    for (const r of byType) typeMap[r.type] = { credits: +r.credits, cnt: +r.cnt };
+
+    // Пакеты
+    const { rows: pkgs } = await pool.query(`SELECT * FROM api_packages ORDER BY service`);
+    const pkgMap: Record<string, any> = {};
+    for (const p of pkgs) pkgMap[p.service] = p;
+
+    // Обратная формула: кредиты → юниты Kling
+    const klingCredits = (typeMap.video?.credits || 0) + (typeMap.motion?.credits || 0) + (typeMap['motion-control']?.credits || 0);
+    const klingUnits = klingCredits / (2.3 * 1000 * rate.multiplier);
+    const klingCostUsd = klingUnits * 0.084;
+
+    // Gemini: чат + фото
+    const geminiChatCredits = typeMap.chat?.credits || 0;
+    const geminiImageCredits = typeMap.image?.credits || 0;
+    const geminiCredits = geminiChatCredits + geminiImageCredits;
+    // Примерный расход: чат ~$0.002/сообщ, фото ~$0.1/шт
+    const geminiCostUsd = (typeMap.chat?.cnt || 0) * 0.002 + (typeMap.image?.cnt || 0) * 0.1;
+
+    // fal.ai: аватары
+    const falCredits = typeMap.avatar?.credits || 0;
+    const falCostUsd = (typeMap.avatar?.cnt || 0) * 0.6; // ~$0.6/аватар в среднем
+
+    // Расход по дням (14 дней)
+    const { rows: daily } = await pool.query(
+      `SELECT DATE(created_at) as date, type, COALESCE(SUM(cost),0)::int as credits, COUNT(*)::int as cnt
+       FROM generations WHERE created_at > NOW() - INTERVAL '14 days'
+       GROUP BY 1, 2 ORDER BY 1 DESC`
+    );
+
+    res.json({
+      kling: {
+        credits: klingCredits,
+        units: Math.round(klingUnits * 100) / 100,
+        costUsd: Math.round(klingCostUsd * 100) / 100,
+        costRub: Math.round(klingCostUsd * rate.rate * 100) / 100,
+        cnt: (typeMap.video?.cnt || 0) + (typeMap.motion?.cnt || 0) + (typeMap['motion-control']?.cnt || 0),
+        package: pkgMap.kling || null,
+      },
+      gemini: {
+        credits: geminiCredits,
+        costUsd: Math.round(geminiCostUsd * 100) / 100,
+        cnt: (typeMap.chat?.cnt || 0) + (typeMap.image?.cnt || 0),
+        chatCnt: typeMap.chat?.cnt || 0,
+        imageCnt: typeMap.image?.cnt || 0,
+        package: pkgMap.gemini || null,
+      },
+      fal: {
+        credits: falCredits,
+        costUsd: Math.round(falCostUsd * 100) / 100,
+        cnt: typeMap.avatar?.cnt || 0,
+        package: pkgMap.fal || null,
+      },
+      rate,
+      daily,
+    });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+adminRouter.post('/api-packages/:service', async (req: Request, res: Response) => {
+  try {
+    const { service } = req.params;
+    const { packageSize, packageExpiry, notes } = req.body;
+    await pool.query(
+      `UPDATE api_packages SET package_size = COALESCE($1, package_size),
+       package_expiry = COALESCE($2, package_expiry),
+       notes = COALESCE($3, notes), updated_at = NOW()
+       WHERE service = $4`,
+      [packageSize, packageExpiry, notes, service]
+    );
+    res.json({ ok: true });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ─── Курс валют ─────────────────────────────────────────
 adminRouter.get('/exchange-rate', (_req: Request, res: Response) => {
   try {

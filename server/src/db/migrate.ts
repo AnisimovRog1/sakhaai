@@ -268,6 +268,21 @@ export async function migrate() {
     );
     INSERT INTO exchange_rates (currency, rate, base_rate)
     VALUES ('USD', 80.62, 80.62) ON CONFLICT (currency) DO NOTHING;
+
+    -- Настройки API-пакетов (для мониторинга расходов)
+    CREATE TABLE IF NOT EXISTS api_packages (
+      id              SERIAL PRIMARY KEY,
+      service         TEXT NOT NULL UNIQUE,
+      package_size    NUMERIC DEFAULT 0,
+      package_expiry  TIMESTAMPTZ,
+      notes           TEXT,
+      updated_at      TIMESTAMPTZ DEFAULT NOW()
+    );
+    INSERT INTO api_packages (service, package_size, package_expiry, notes) VALUES
+      ('kling', 2000, '2026-06-30', 'Limited Pack 2'),
+      ('gemini', 300, '2026-06-28', '$300 free credits'),
+      ('fal', 0, NULL, 'Pay as you go')
+    ON CONFLICT (service) DO NOTHING;
   `);
 
   console.log('✅ Миграции применены');

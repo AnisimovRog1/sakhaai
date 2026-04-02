@@ -36,7 +36,11 @@ const ASPECT_RATIOS: { id: AspectRatio; label: string; desc: string }[] = [
 ];
 const RESOLUTIONS: Resolution[] = ['1K', '2K', '4K'];
 
-const MODEL_COSTS: Record<string, number> = { 'nano-banana-pro': 119, 'nano-banana-2': 79 };
+// Цены: себестоимость × 2.3 (по ставке Про 0.080₽/кр)
+const IMAGE_COSTS: Record<string, Record<string, number>> = {
+  'nano-banana-2': { '1K': 155, '2K': 230, '4K': 350 },
+  'nano-banana-pro': { '1K': 310, '2K': 310, '4K': 560 },
+};
 
 export function ImageGen({ user, onCreditsUpdate }: Props) {
   const { t } = useLang();
@@ -72,9 +76,8 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
     api.getGenerations('image', 20).then(setHistory).catch(console.error).finally(() => setHistoryLoading(false));
   }
 
-  const resMultiplier = resolution === '4K' ? 2.0 : resolution === '2K' ? 1.5 : 1.0;
-  const baseCost = MODEL_COSTS[model] || 79;
-  const cost = Math.ceil(baseCost * resMultiplier) * count;
+  const costPerImage = IMAGE_COSTS[model]?.[resolution] ?? 155;
+  const cost = costPerImage * count;
   const canGenerate = prompt.trim().length > 0 && user.credits >= cost && !loading
     && (tab === 'txt2img' || refImages.length > 0);
 

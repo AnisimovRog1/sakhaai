@@ -91,27 +91,35 @@ const EMOTION_KEYS: { id: Emotion; key: 'video.emotion.neutral' | 'video.emotion
   { id: 'surprised', key: 'video.emotion.surprised' },
 ];
 
-// Динамическая цена: fal.ai baseRate/сек × 2 (маржа) × 1000 (кредиты)
+// Динамическая цена: baseRate (LP2) × duration × маржа ×2.3 × 1000
 function calcVideoCost(tab: Tab, durationStr: VideoLength, model: VideoModel, mode: VideoMode, audio: boolean, motionControl: boolean = false): number {
-  if (tab === 'avatar') return 1150;
+  if (tab === 'avatar') return 1350; // ~5 сек (TTS 16 + видео 267×5)
 
-  // Motion-control: 5с, baseRate 0.168, поддерживает 720p/1080p
+  let baseRate: number;
+
   if (motionControl) {
-    let baseRate = 0.168;
-    if (mode === '1080p') baseRate *= 1.5;
-    return Math.ceil(5 * baseRate * 2 * 1000);
+    // Motion Control V3.0: 0.9 (720p) / 1.2 (1080p) units/sec × $0.084
+    baseRate = mode === '1080p' ? 0.1008 : 0.0756;
+    return Math.ceil(5 * baseRate * 2.3 * 1000);
   }
 
   const dur = parseInt(durationStr);
-  let baseRate: number;
   if (model === 'video-2.6' || model === 'video-2.5-turbo') {
-    baseRate = audio ? 0.14 : 0.07;
+    if (mode === '1080p') {
+      baseRate = audio ? 0.084 : 0.042;
+    } else {
+      baseRate = audio ? 0.042 : 0.0252;
+    }
   } else {
-    baseRate = audio ? 0.126 : 0.084;
+    // V3.0
+    if (mode === '1080p') {
+      baseRate = audio ? 0.1008 : 0.0672;
+    } else {
+      baseRate = audio ? 0.0756 : 0.0504;
+    }
   }
-  if (mode === '1080p') baseRate *= 1.5;
 
-  return Math.ceil(dur * baseRate * 2 * 1000);
+  return Math.ceil(dur * baseRate * 2.3 * 1000);
 }
 
 // ─── Icon components ───────────────────────────────────────

@@ -19,7 +19,7 @@ const PACKAGES: Record<string, { label: string; amountRub: number; credits: numb
 };
 
 const REFERRAL_REWARDS: Record<string, number> = {
-  start: 200, basic: 600, pro: 1500, max: 4000,
+  start: 310, basic: 930, pro: 2500, max: 6200,
 };
 
 // ── Подпись UnitPay ──────────────────────────────────

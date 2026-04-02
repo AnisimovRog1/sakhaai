@@ -7,8 +7,8 @@ import { markAiRequest } from '../services/referral';
 
 import { ai } from '../services/genai-client';
 
-// Стоимость одного сообщения (0.097 руб / 0.1 руб/кредит ≈ 1 кредит)
-const CHAT_COST = 1;
+// Стоимость одного сообщения (себест. 0.16₽ × 2.3 = 0.37₽ ≈ 5 кредитов)
+const CHAT_COST = 5;
 
 // Генерация осмысленного названия чата через Gemini
 async function generateChatTitle(chatId: number, firstMessage: string) {

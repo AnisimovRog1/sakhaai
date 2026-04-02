@@ -17,27 +17,42 @@ import crypto from 'crypto';
 export const videoRouter = Router();
 videoRouter.use(requireAuth);
 
-// Динамическая цена: baseRate × duration × маржа x2 × 1000 (кредиты/$)
+// Динамическая цена: baseRate (LP2 $0.084/unit) × duration × маржа ×2.3 × 1000
 function calcVideoCost(duration: number, type: 'video' | 'motion' | 'motion-control', model?: string, mode?: string, audio?: boolean): number {
+  // baseRate = units_per_sec × LP2_unit_cost ($0.084)
   let baseRate: number;
 
   if (type === 'motion-control') {
-    baseRate = 0.168; // motion-control is expensive
+    // Motion Control V3.0: 0.9 (720p) / 1.2 (1080p) units/sec
+    baseRate = mode === '1080p' ? 0.1008 : 0.0756;
   } else if (model === 'video-2.6' || model === 'video-2.5-turbo') {
-    baseRate = audio ? 0.14 : 0.07;
+    if (mode === '1080p') {
+      baseRate = audio ? 0.084 : 0.042;
+    } else {
+      baseRate = audio ? 0.042 : 0.0252;
+    }
   } else {
-    // v3 standard
-    baseRate = audio ? 0.126 : 0.084;
+    // V3.0
+    if (mode === '1080p') {
+      baseRate = audio ? 0.1008 : 0.0672;
+    } else {
+      baseRate = audio ? 0.0756 : 0.0504;
+    }
   }
 
-  // 1080p/pro costs ~50% more
-  if (mode === '1080p') baseRate *= 1.5;
-
-  // Margin x2
-  return Math.ceil(duration * baseRate * 2 * 1000);
+  // Маржа ×2.3
+  return Math.ceil(duration * baseRate * 2.3 * 1000);
 }
 
-const AVATAR_COST = 1150;
+// Аватар: TTS (фикс 16 кр) + видео (267 кр/сек)
+const AVATAR_TTS_COST = 16;
+const AVATAR_PER_SEC = 267;
+
+function calcAvatarCost(text: string): number {
+  // ~15 символов/сек для русской речи
+  const estimatedDuration = Math.max(3, Math.min(10, Math.ceil(text.length / 15)));
+  return AVATAR_TTS_COST + Math.ceil(estimatedDuration * AVATAR_PER_SEC);
+}
 
 const TX_META: Record<string, { type: TxType; label: string }> = {
   video:  { type: 'video',  label: 'Видео' },
@@ -287,7 +302,8 @@ videoRouter.post('/avatar', async (req: Request, res: Response) => {
   if (!imageUrl) { res.status(400).json({ error: 'imageUrl обязателен' }); return; }
   if (!text?.trim()) { res.status(400).json({ error: 'Текст обязателен' }); return; }
 
-  const creditsLeft = await charge(req, res, 'avatar', AVATAR_COST);
+  const avatarCost = calcAvatarCost(text.trim());
+  const creditsLeft = await charge(req, res, 'avatar', avatarCost);
   if (creditsLeft === null) return;
 
   try {
@@ -300,11 +316,11 @@ videoRouter.post('/avatar', async (req: Request, res: Response) => {
     const result = await generateAvatar(imageUrl, ttsResult.audioUrl, prompt);
 
     // Сохранить в историю
-    await saveGeneration(req.userId!, 'avatar', text.trim(), result.videoUrl, AVATAR_COST).catch(console.error);
+    await saveGeneration(req.userId!, 'avatar', text.trim(), result.videoUrl, avatarCost).catch(console.error);
 
-    res.json({ videoUrl: result.videoUrl, creditsLeft, cost: AVATAR_COST });
+    res.json({ videoUrl: result.videoUrl, creditsLeft, cost: avatarCost });
   } catch (e: any) {
-    await addCredits(req.userId!, AVATAR_COST, 'avatar', `Рефанд: ошибка avatar`).catch(console.error);
+    await addCredits(req.userId!, avatarCost, 'avatar', `Рефанд: ошибка avatar`).catch(console.error);
     console.error('[avatar] error + refund:', e?.message);
     res.status(500).json({ error: e.message ?? 'Ошибка генерации' });
   }

@@ -1,12 +1,12 @@
 import { pool } from '../db/pool';
 import { addCredits } from './balance';
 
-// Награды за каждый пакет (из бизнес-плана)
+// Награды за каждый пакет (25% от пакета)
 export const REFERRAL_REWARDS: Record<string, number> = {
-  start:  200,
-  basic:  600,
-  pro:    1500,
-  max:    4000,
+  start:  310,
+  basic:  930,
+  pro:    2500,
+  max:    6200,
 };
 
 // Без лимита — чем больше приглашает, тем лучше для масштабирования

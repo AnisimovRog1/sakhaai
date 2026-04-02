@@ -143,7 +143,7 @@ bot.hears('👥 Пригласить друга', async (ctx) => {
   const userId = ctx.from?.id;
   const link = `https://t.me/UraanxAI_bot?start=ref_${userId}`;
   const shareKb = new InlineKeyboard()
-    .url('📤 Поделиться ссылкой', `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Пока ты думаешь — другие уже генерят контент будущего 🚀\n\nФото и видео за секунды. Нейросеть прямо в Telegram.\nПопробуй, пока это бесплатно 👇')}`)
+    .url('📤 Поделиться ссылкой', `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Пока ты думаешь - другие уже генерят контент будущего 🚀\n\nФото и видео за секунды. Нейросеть прямо в Telegram.\nПопробуй, пока это бесплатно 👇')}`)
     .row()
     .url('🔗 Открыть ссылку', link);
   await ctx.reply(
@@ -1214,10 +1214,10 @@ bot.start({
     try {
       await bot.api.setMyName('UraanxAI');
       await bot.api.setMyDescription(
-        'Контент будущего уже здесь. Генерируй фото и видео с помощью AI — будь на шаг впереди ✨'
+        'Контент будущего уже здесь. Генерируй фото и видео с помощью AI - будь на шаг впереди ✨'
       );
       await bot.api.setMyShortDescription(
-        'Контент будущего уже здесь. Генерируй фото и видео с помощью AI — будь на шаг впереди ✨'
+        'Контент будущего уже здесь. Генерируй фото и видео с помощью AI - будь на шаг впереди ✨'
       );
       console.log('✅ Профиль бота обновлён');
     } catch (e) {

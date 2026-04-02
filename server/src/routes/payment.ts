@@ -52,10 +52,8 @@ paymentRouter.post('/create', requireAuth, async (req: Request, res: Response) =
       'params[account]': orderId,
       'params[desc]': `UraanxAI — пакет "${pack.label}"`,
       'params[currency]': 'RUB',
+      'params[paymentType]': paymentMethod || 'sbp',
     });
-    if (paymentMethod) {
-      apiParams.set('params[paymentType]', paymentMethod);
-    }
 
     const apiRes = await fetch(`https://unitpay.money/api?${apiParams.toString()}`);
     const apiData = await apiRes.json() as any;

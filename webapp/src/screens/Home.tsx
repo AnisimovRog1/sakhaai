@@ -8,7 +8,7 @@ type Props = {
   onCreditsUpdate?: (credits: number) => void;
 };
 
-type PaymentMethod = 'card' | 'sbp' | 'crypto';
+type PaymentMethod = 'sbp';
 
 const PACKAGES = [
   { key: 'start', labelKey: 'home.start' as const, price: '99₽',   credits: 1100,  popular: false },
@@ -17,31 +17,13 @@ const PACKAGES = [
   { key: 'max',   labelKey: 'home.max' as const,   price: '1990₽', credits: 28000, popular: false },
 ];
 
-const PAYMENT_METHODS: { id: PaymentMethod; labelKey: 'home.card' | 'home.sbp' | 'home.crypto'; icon: React.ReactNode }[] = [
-  {
-    id: 'card',
-    labelKey: 'home.card',
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="1" y="4" width="22" height="16" rx="3"/><line x1="1" y1="10" x2="23" y2="10"/>
-      </svg>
-    ),
-  },
+const PAYMENT_METHODS: { id: PaymentMethod; labelKey: 'home.sbp'; icon: React.ReactNode }[] = [
   {
     id: 'sbp',
     labelKey: 'home.sbp',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
-      </svg>
-    ),
-  },
-  {
-    id: 'crypto',
-    labelKey: 'home.crypto',
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10"/><path d="M9.5 8h5a2.5 2.5 0 010 5H9.5V8z"/><path d="M9.5 13h5.5a2.5 2.5 0 010 5H9.5v-5z"/><line x1="12" y1="6" x2="12" y2="8"/><line x1="12" y1="18" x2="12" y2="20"/>
       </svg>
     ),
   },
@@ -57,7 +39,7 @@ function getLevel(credits: number) {
 export function Home({ user, onCreditsUpdate }: Props) {
   const [selectedPkg, setSelectedPkg] = useState<typeof PACKAGES[0] | null>(null);
   const [showPayment, setShowPayment] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('sbp');
   const { t } = useLang();
 
   // Обновляем баланс при входе на главный экран

@@ -43,19 +43,30 @@ paymentRouter.post('/create', requireAuth, async (req: Request, res: Response) =
       [orderId, req.userId, pkg, pack.amountRub, pack.credits],
     );
 
-    // Формируем URL оплаты UnitPay
-    const params: Record<string, string> = {
-      sum: String(pack.amountRub),
-      account: orderId,
-      desc: `UraanxAI — пакет "${pack.label}"`,
-      currency: 'RUB',
-    };
+    // Вызываем UnitPay API — initPayment
+    const apiParams = new URLSearchParams({
+      method: 'initPayment',
+      'params[projectId]': UNITPAY_PROJECT_ID,
+      'params[secretKey]': UNITPAY_SECRET,
+      'params[sum]': String(pack.amountRub),
+      'params[account]': orderId,
+      'params[desc]': `UraanxAI — пакет "${pack.label}"`,
+      'params[currency]': 'RUB',
+    });
+    if (paymentMethod) {
+      apiParams.set('params[paymentType]', paymentMethod);
+    }
 
-    const sign = unitpaySign('initPayment', params);
+    const apiRes = await fetch(`https://unitpay.money/api?${apiParams.toString()}`);
+    const apiData = await apiRes.json();
 
-    const paymentUrl = `https://unitpay.money/pay/${UNITPAY_PUBLIC_KEY}?sum=${params.sum}&account=${params.account}&desc=${encodeURIComponent(params.desc)}&currency=RUB&signature=${sign}` +
-      (paymentMethod ? `&paymentType=${paymentMethod}` : '');
+    if (apiData.error) {
+      console.error('UnitPay initPayment error:', apiData.error);
+      res.status(400).json({ error: apiData.error.message || 'Ошибка UnitPay' });
+      return;
+    }
 
+    const paymentUrl = apiData.result?.redirectUrl || null;
     res.json({ orderId, paymentUrl });
   } catch (err: any) {
     console.error('payment/create error:', err);

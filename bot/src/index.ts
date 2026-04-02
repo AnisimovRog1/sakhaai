@@ -1210,18 +1210,10 @@ bot.start({
   onStart: async () => {
     console.log('Бот @UraanxAI_bot запущен');
 
-    // ─── Профиль бота в Telegram ───
+    // ─── Профиль бота в Telegram (только имя + короткое описание для поиска) ───
     try {
       await bot.api.setMyName('UraanxAI');
-      await bot.api.setMyDescription(
-        '🚀 UraanxAI — нейросеть нового поколения\n\n' +
-        'Создавай потрясающие фото, видео и арт за секунды.\n' +
-        'Общайся с ИИ, который понимает тебя с полуслова.\n\n' +
-        '⚡ Генерация картинок и видео\n' +
-        '💬 Умный AI-чат\n' +
-        '🎭 Аватары и motion-видео\n\n' +
-        'Просто нажми «Начать» 👇'
-      );
+      await bot.api.setMyDescription(''); // очистить — пуши работают сами
       await bot.api.setMyShortDescription(
         'AI-генерация фото, видео и арта. Умный чат. Создавай контент будущего ✨'
       );

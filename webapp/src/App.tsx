@@ -77,7 +77,7 @@ export function App() {
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <img src={`${import.meta.env.BASE_URL}logo-mammoth-sm.png`} alt="" className="w-64 h-64" />
+        <img src={`${import.meta.env.BASE_URL}logo-mammoth.png`} alt="" className="w-80 h-80" />
       </div>
     );
   }

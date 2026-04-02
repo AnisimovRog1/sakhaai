@@ -143,7 +143,7 @@ bot.hears('👥 Пригласить друга', async (ctx) => {
   const userId = ctx.from?.id;
   const link = `https://t.me/UraanxAI_bot?start=ref_${userId}`;
   const shareKb = new InlineKeyboard()
-    .url('📤 Поделиться ссылкой', `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Попробуй UraanxAI - AI генерация фото и видео!')}`)
+    .url('📤 Поделиться ссылкой', `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Пока ты думаешь — другие уже генерят контент будущего 🚀\n\nФото и видео за секунды. Нейросеть прямо в Telegram.\nПопробуй, пока это бесплатно 👇')}`)
     .row()
     .url('🔗 Открыть ссылку', link);
   await ctx.reply(

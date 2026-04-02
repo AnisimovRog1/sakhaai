@@ -43,17 +43,33 @@ export async function deduct(userId: number, amount: number, type: TxType, descr
 }
 
 export async function addCredits(userId: number, amount: number, type: TxType, description: string): Promise<number> {
-  const result = await pool.query('UPDATE users SET credits = credits + $1, updated_at = NOW() WHERE id = $2 RETURNING credits', [amount, userId]);
-  await pool.query('INSERT INTO transactions (user_id, type, amount, description) VALUES ($1, $2, $3, $4)', [userId, type, amount, description]);
-  const newBalance: number = result.rows[0].credits;
-  await memCache.setex(BALANCE_KEY(userId), BALANCE_TTL, newBalance);
-  // При пополнении: сбрасываем zero_credits трекинг и пуш-цепочки
-  if (type === 'topup') {
-    clearCreditsZero(userId).catch(() => {});
-    resetZeroCreditsPushes(userId).catch(() => {});
-    resetNoPurchasePushes(userId).catch(() => {});
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const updated = await client.query(
+      'UPDATE users SET credits = credits + $1, updated_at = NOW() WHERE id = $2 RETURNING credits',
+      [amount, userId]
+    );
+    await client.query(
+      'INSERT INTO transactions (user_id, type, amount, description) VALUES ($1, $2, $3, $4)',
+      [userId, type, amount, description]
+    );
+    await client.query('COMMIT');
+    const newBalance: number = updated.rows[0].credits;
+    await memCache.setex(BALANCE_KEY(userId), BALANCE_TTL, newBalance);
+    // При пополнении: сбрасываем zero_credits трекинг и пуш-цепочки
+    if (type === 'topup') {
+      clearCreditsZero(userId).catch(() => {});
+      resetZeroCreditsPushes(userId).catch(() => {});
+      resetNoPurchasePushes(userId).catch(() => {});
+    }
+    return newBalance;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
   }
-  return newBalance;
 }
 
 export async function getTransactions(userId: number, limit = 20) {

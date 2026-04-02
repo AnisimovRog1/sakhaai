@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { requireAuth } from '../middleware/auth';
 import { pool } from '../db/pool';
 import { addCredits } from '../services/balance';
+import { REFERRAL_REWARDS } from '../services/referral';
 
 export const paymentRouter = Router();
 
@@ -16,10 +17,6 @@ const PACKAGES: Record<string, { label: string; amountRub: number; credits: numb
   basic: { label: 'Базовый', amountRub: 299,  credits: 3500  },
   pro:   { label: 'Про',     amountRub: 799,  credits: 10000 },
   max:   { label: 'Макс',    amountRub: 1990, credits: 28000 },
-};
-
-const REFERRAL_REWARDS: Record<string, number> = {
-  start: 310, basic: 930, pro: 2500, max: 6200,
 };
 
 // ── Подпись UnitPay ──────────────────────────────────
@@ -124,54 +121,65 @@ paymentRouter.get('/unitpay', async (req: Request, res: Response) => {
     }
 
     if (method === 'pay') {
-      // Оплата прошла — начисляем кредиты
-      const orderResult = await pool.query(
-        `SELECT * FROM orders WHERE id = $1`,
-        [account]
-      );
-      const order = orderResult.rows[0];
+      // Оплата прошла — начисляем кредиты (с блокировкой от двойного начисления)
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
 
-      if (!order) {
-        res.json({ error: { message: 'Заказ не найден' } });
-        return;
-      }
-
-      if (order.status === 'paid') {
-        // Уже обработан — просто подтверждаем
-        res.json({ result: { message: 'Уже обработан' } });
-        return;
-      }
-
-      // Начисляем кредиты
-      await addCredits(
-        order.user_id,
-        order.credits,
-        'topup',
-        `Пакет "${PACKAGES[order.package]?.label}" — ${order.amount_rub}₽`
-      );
-
-      // Обновляем заказ
-      await pool.query(
-        `UPDATE orders SET status = 'paid', paid_at = NOW() WHERE id = $1`,
-        [account]
-      );
-
-      // Обновляем реферал — переводим в held
-      const rewardCredits = REFERRAL_REWARDS[order.package] || 0;
-      if (rewardCredits > 0) {
-        await pool.query(
-          `UPDATE referrals SET status = 'held', package = $1, reward_credits = $2, paid_at = NOW()
-           WHERE referee_id = $3 AND status = 'pending'`,
-          [order.package, rewardCredits, order.user_id]
+        const orderResult = await client.query(
+          `SELECT * FROM orders WHERE id = $1 FOR UPDATE`,
+          [account]
         );
+        const order = orderResult.rows[0];
+
+        if (!order) {
+          await client.query('ROLLBACK');
+          res.json({ error: { message: 'Заказ не найден' } });
+          return;
+        }
+
+        if (order.status === 'paid') {
+          await client.query('ROLLBACK');
+          res.json({ result: { message: 'Уже обработан' } });
+          return;
+        }
+
+        // Обновляем заказ ПЕРВЫМ — блокируем повторные начисления
+        await client.query(
+          `UPDATE orders SET status = 'paid', paid_at = NOW() WHERE id = $1`,
+          [account]
+        );
+
+        await client.query('COMMIT');
+
+        // Начисляем кредиты (addCredits имеет свою транзакцию)
+        await addCredits(
+          order.user_id,
+          order.credits,
+          'topup',
+          `Пакет "${PACKAGES[order.package]?.label}" — ${order.amount_rub}₽`
+        );
+
+        // Обновляем реферал — переводим в held
+        const rewardCredits = REFERRAL_REWARDS[order.package] || 0;
+        if (rewardCredits > 0) {
+          await pool.query(
+            `UPDATE referrals SET status = 'held', package = $1, reward_credits = $2, paid_at = NOW()
+             WHERE referee_id = $3 AND status = 'pending'`,
+            [order.package, rewardCredits, order.user_id]
+          );
+        }
+
+        console.log(`✅ Оплата UnitPay: user=${order.user_id}, пакет=${order.package}, +${order.credits} кр.`);
+        notifyAdmins(order).catch(console.error);
+
+        res.json({ result: { message: 'Оплата обработана' } });
+      } catch (err) {
+        await client.query('ROLLBACK').catch(() => {});
+        throw err;
+      } finally {
+        client.release();
       }
-
-      console.log(`✅ Оплата UnitPay: user=${order.user_id}, пакет=${order.package}, +${order.credits} кр.`);
-
-      // Уведомляем админов через бота (если BOT_TOKEN есть)
-      notifyAdmins(order).catch(console.error);
-
-      res.json({ result: { message: 'Оплата обработана' } });
       return;
     }
 

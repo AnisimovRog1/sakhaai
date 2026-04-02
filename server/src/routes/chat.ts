@@ -114,6 +114,11 @@ chatRouter.post('/:id/messages', async (req: Request, res: Response) => {
     return;
   }
 
+  if (message.length > 10000) {
+    res.status(400).json({ error: 'Максимум 10 000 символов' });
+    return;
+  }
+
   // 1. Проверяем доступ к чату
   const chatResult = await pool.query(
     `SELECT id FROM chats WHERE id = $1 AND user_id = $2`,

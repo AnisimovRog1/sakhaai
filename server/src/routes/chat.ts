@@ -19,7 +19,7 @@ async function generateChatTitle(chatId: number, firstMessage: string) {
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
-      contents: [{ parts: [{ text: `Придумай короткое название (максимум 5 слов) для чата, где первое сообщение пользователя: "${firstMessage}". Отвечай ТОЛЬКО названием, без кавычек и пояснений.` }] }],
+      contents: [{ parts: [{ text: `Определи главную тему или суть этого сообщения и дай короткое название (2-4 слова) на русском. Как ChatGPT называет чаты — ловит суть запроса. Без кавычек, без пояснений, ТОЛЬКО название.\n\nСообщение: "${firstMessage}"` }] }],
       config: { maxOutputTokens: 30, temperature: 0.3 },
     });
     const title = (response.text ?? '').trim().slice(0, 60);
@@ -108,14 +108,18 @@ chatRouter.get('/:id/messages', async (req: Request, res: Response) => {
 chatRouter.post('/:id/messages', async (req: Request, res: Response) => {
   try {
   const chatId = Number(req.params.id);
-  const { message } = req.body;
+  const { message, attachments } = req.body;
 
-  if (!message?.trim()) {
-    res.status(400).json({ error: 'Сообщение не может быть пустым' });
+  // Разрешаем отправку только с вложением (без текста) или с текстом
+  const hasText = message?.trim();
+  const hasAttachments = Array.isArray(attachments) && attachments.length > 0;
+
+  if (!hasText && !hasAttachments) {
+    res.status(400).json({ error: 'Сообщение или вложение обязательно' });
     return;
   }
 
-  if (message.length > 10000) {
+  if (message && message.length > 10000) {
     res.status(400).json({ error: 'Максимум 10 000 символов' });
     return;
   }
@@ -173,13 +177,24 @@ chatRouter.post('/:id/messages', async (req: Request, res: Response) => {
   const history: ChatMessage[] = historyResult.rows;
 
   // 5. Сохраняем сообщение пользователя в БД
+  // Парсим вложения (base64 data URLs)
+  const parsedAttachments = hasAttachments
+    ? attachments.slice(0, 4).map((dataUrl: string) => {
+        const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+        if (!match) return null;
+        return { mimeType: match[1], base64: match[2] };
+      }).filter(Boolean)
+    : undefined;
+
+  const msgText = message?.trim() || (hasAttachments ? '[Вложение]' : '');
+
   await pool.query(
     `INSERT INTO messages (chat_id, role, content) VALUES ($1, 'user', $2)`,
-    [chatId, message]
+    [chatId, msgText]
   );
 
   // 5. Отправляем в Gemini и получаем ответ
-  const aiReply = await sendToGemini(history, message, language);
+  const aiReply = await sendToGemini(history, msgText, language, parsedAttachments as any);
 
   // 6. Сохраняем ответ AI в БД
   const savedReply = await pool.query(

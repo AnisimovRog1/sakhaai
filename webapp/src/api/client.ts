@@ -87,10 +87,10 @@ export const api = {
   getMessages: (chatId: number) =>
     request<import('../types').Message[]>(`/chats/${chatId}/messages`),
 
-  sendMessage: (chatId: number, message: string) =>
+  sendMessage: (chatId: number, message: string, attachments?: string[]) =>
     request<import('../types').Message & { creditsLeft: number }>(`/chats/${chatId}/messages`, {
       method: 'POST',
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({ message, attachments }),
     }),
 
   getBalance: () =>

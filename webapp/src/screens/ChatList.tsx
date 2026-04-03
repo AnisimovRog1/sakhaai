@@ -82,7 +82,7 @@ export function ChatList({ user, onNavigate }: Props) {
     <div className="flex flex-col pb-24" style={{ minHeight: 'calc(var(--tg-viewport-height, 100vh) - var(--safe-top, 0px) - 8rem)' }}>
 
       {/* ─── Header ─── */}
-      <div className="flex items-center justify-between px-5 pb-4 pt-12">
+      <div className="flex items-center justify-between px-5 pb-4 pt-2">
         <h1 className="text-xl font-bold text-white">UraanxAI</h1>
         <div className="flex items-center gap-2">
           {/* Поиск */}

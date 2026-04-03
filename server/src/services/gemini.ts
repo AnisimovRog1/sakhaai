@@ -7,8 +7,10 @@ export type ChatMessage = {
   content: string;
 };
 
-// Лимит бесплатного Google Search grounding (1500/день)
-const DAILY_GROUNDING_LIMIT = 1500;
+// Лимит бесплатного Google Search grounding
+// Free Tier: 500/день, Paid Tier: 1500/день, после — $35/1000
+// Ставим 500 для безопасности (покрывает оба тарифа)
+const DAILY_GROUNDING_LIMIT = 500;
 
 async function canUseGrounding(): Promise<boolean> {
   const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD

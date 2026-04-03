@@ -495,6 +495,17 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
   const [previewLoading, setPreviewLoading] = useState<string | null>(null);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Cleanup audio при unmount
+  useEffect(() => {
+    return () => {
+      if (previewAudioRef.current) {
+        previewAudioRef.current.pause();
+        previewAudioRef.current.src = '';
+        previewAudioRef.current = null;
+      }
+    };
+  }, []);
+
   const [previewPlaying, setPreviewPlaying] = useState<string | null>(null);
 
   async function playVoicePreview(voiceName: string) {

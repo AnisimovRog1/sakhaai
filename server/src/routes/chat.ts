@@ -21,7 +21,7 @@ async function generateChatTitle(chatId: number, firstMessage: string) {
       contents: [{ parts: [{ text: `Придумай короткое название (максимум 5 слов) для чата, где первое сообщение пользователя: "${firstMessage}". Отвечай ТОЛЬКО названием, без кавычек и пояснений.` }] }],
       config: { maxOutputTokens: 30, temperature: 0.3 },
     });
-    const title = response.text?.trim().slice(0, 60);
+    const title = (response.text ?? '').trim().slice(0, 60);
     if (title) {
       await pool.query('UPDATE chats SET title = $1 WHERE id = $2', [title, chatId]);
     }

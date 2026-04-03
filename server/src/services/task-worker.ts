@@ -60,12 +60,17 @@ async function processTask(task: any) {
     await handleSuccess(task, result.resultUrl);
   } else if (result.status === 'failed') {
     await handleFailure(task, result.errorMsg || 'Kling generation failed');
-  } else if (task.status === 'pending' && result.status === 'processing') {
-    // Обновить статус
-    await pool.query(
-      `UPDATE pending_tasks SET status = 'processing', updated_at = NOW() WHERE id = $1`,
-      [task.id]
-    );
+  } else if (result.status === 'processing' || result.status === 'submitted') {
+    // Обновить статус (submitted/processing — ждём)
+    if (task.status === 'pending') {
+      await pool.query(
+        `UPDATE pending_tasks SET status = 'processing', updated_at = NOW() WHERE id = $1`,
+        [task.id]
+      );
+    }
+  } else {
+    // Неизвестный статус — логируем, таймаут разберётся
+    console.warn(`[task-worker] unknown status '${result.status}' for task ${task.task_id}`);
   }
 }
 

@@ -49,7 +49,7 @@ export function Home({ user, onCreditsUpdate }: Props) {
     }).catch(() => {});
   }, []);
   const { levelKey, next } = getLevel(user.credits);
-  const progress = Math.min((user.credits / next) * 100, 100);
+  const progress = Math.max(0, Math.min((user.credits / next) * 100, 100));
 
   const displayName = user.username ? `@${user.username}` : user.firstName;
 

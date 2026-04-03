@@ -144,15 +144,28 @@ paymentRouter.get('/unitpay', async (req: Request, res: Response) => {
           return;
         }
 
-        // Обновляем заказ ПЕРВЫМ — блокируем повторные начисления
+        // Обновляем заказ + реферал внутри одной транзакции
         await client.query(
           `UPDATE orders SET status = 'paid', paid_at = NOW() WHERE id = $1`,
           [account]
         );
 
+        // Реферальный бонус — обновляем статус внутри транзакции
+        const rewardCredits = REFERRAL_REWARDS[order.package] || 0;
+        let referrerId: number | null = null;
+        if (rewardCredits > 0) {
+          const refRow = await client.query(
+            `UPDATE referrals SET status = 'paid', package = $1, reward_credits = $2, paid_at = NOW(), reward_paid_at = NOW()
+             WHERE referee_id = $3 AND status = 'pending'
+             RETURNING referrer_id`,
+            [order.package, rewardCredits, order.user_id]
+          );
+          if (refRow.rows[0]) referrerId = refRow.rows[0].referrer_id;
+        }
+
         await client.query('COMMIT');
 
-        // Начисляем кредиты (addCredits имеет свою транзакцию)
+        // Начисляем кредиты покупателю (addCredits имеет свою транзакцию)
         await addCredits(
           order.user_id,
           order.credits,
@@ -160,24 +173,15 @@ paymentRouter.get('/unitpay', async (req: Request, res: Response) => {
           `Пакет "${PACKAGES[order.package]?.label}" — ${order.amount_rub}₽`
         );
 
-        // Реферальный бонус — сразу при оплате (без холда)
-        const rewardCredits = REFERRAL_REWARDS[order.package] || 0;
-        if (rewardCredits > 0) {
-          const refRow = await pool.query(
-            `UPDATE referrals SET status = 'paid', package = $1, reward_credits = $2, paid_at = NOW(), reward_paid_at = NOW()
-             WHERE referee_id = $3 AND status = 'pending'
-             RETURNING referrer_id`,
-            [order.package, rewardCredits, order.user_id]
+        // Начисляем бонус реферу (после commit — безопасно, статус уже paid)
+        if (referrerId && rewardCredits > 0) {
+          await addCredits(
+            referrerId,
+            rewardCredits,
+            'referral',
+            `Реферальная награда (${PACKAGES[order.package]?.label}): +${rewardCredits} кр.`
           );
-          if (refRow.rows[0]) {
-            await addCredits(
-              refRow.rows[0].referrer_id,
-              rewardCredits,
-              'referral',
-              `Реферальная награда (${PACKAGES[order.package]?.label}): +${rewardCredits} кр.`
-            );
-            console.log(`🎁 Реферал: +${rewardCredits} кр. реферу ${refRow.rows[0].referrer_id}`);
-          }
+          console.log(`🎁 Реферал: +${rewardCredits} кр. реферу ${referrerId}`);
         }
 
         console.log(`✅ Оплата UnitPay: user=${order.user_id}, пакет=${order.package}, +${order.credits} кр.`);

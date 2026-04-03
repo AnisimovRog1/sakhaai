@@ -106,7 +106,7 @@ async function findDailyUsers(seq: PushSequence): Promise<number[]> {
       AND NOT EXISTS (
         SELECT 1 FROM push_sent ps
         WHERE ps.user_id = u.id AND ps.sequence_id = $1
-          AND ps.sent_at >= CURRENT_DATE
+          AND ps.sent_at >= NOW() - INTERVAL '20 hours'
       )
   `, [seq.id]);
   return rows.map((r: any) => r.id);

@@ -22,12 +22,19 @@ function resolveMode(mode?: string): 'pro' | 'std' {
 
 // ─── Временное хранилище файлов ────────────────────────────
 // Kling скачивает файлы по HTTP URL → храним временно на нашем сервере
+const MAX_TEMP_FILES = 200;
 const tempFiles = new Map<string, { buffer: Buffer; mime: string; createdAt: number }>();
 
 setInterval(() => {
   const now = Date.now();
   for (const [id, file] of tempFiles) {
     if (now - file.createdAt > 60 * 60 * 1000) tempFiles.delete(id);
+  }
+  // Если превышен лимит — удаляем самые старые
+  if (tempFiles.size > MAX_TEMP_FILES) {
+    const sorted = [...tempFiles.entries()].sort((a, b) => a[1].createdAt - b[1].createdAt);
+    const toDelete = sorted.slice(0, tempFiles.size - MAX_TEMP_FILES);
+    for (const [id] of toDelete) tempFiles.delete(id);
   }
 }, 60_000);
 

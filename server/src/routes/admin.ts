@@ -27,7 +27,7 @@ adminRouter.use(requireBotAuth);
 adminRouter.get('/stats', async (req: Request, res: Response) => {
   try {
     const period = (req.query.period as string) || 'today';
-    let dateFilter = "created_at >= CURRENT_DATE"; // today
+    let dateFilter = "created_at >= CURRENT_DATE";
     let label = 'сегодня';
 
     if (period === '7d') {
@@ -37,7 +37,13 @@ adminRouter.get('/stats', async (req: Request, res: Response) => {
       dateFilter = "created_at >= date_trunc('month', CURRENT_DATE)";
       label = 'за текущий месяц';
     } else if (/^\d{4}-\d{2}$/.test(period)) {
-      dateFilter = `created_at >= '${period}-01' AND created_at < ('${period}-01'::date + INTERVAL '1 month')`;
+      // Безопасно: regex гарантирует формат YYYY-MM, вычисляем даты в JS
+      const startDate = new Date(`${period}-01T00:00:00Z`);
+      const endDate = new Date(startDate);
+      endDate.setUTCMonth(endDate.getUTCMonth() + 1);
+      const startISO = startDate.toISOString();
+      const endISO = endDate.toISOString();
+      dateFilter = `created_at >= '${startISO}'::timestamptz AND created_at < '${endISO}'::timestamptz`;
       label = `за ${period}`;
     }
 

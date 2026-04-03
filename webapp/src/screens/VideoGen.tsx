@@ -251,6 +251,12 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
   const [nativeAudio, setNativeAudio] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
+  // Сброс nativeAudio если модель/режим не поддерживает
+  useEffect(() => {
+    const supported = videoModel === 'video-3.0' || (videoModel === 'video-2.6' && videoMode === '1080p');
+    if (!supported && nativeAudio) setNativeAudio(false);
+  }, [videoModel, videoMode]);
+
   // Motion Control
   const [motionVideo, setMotionVideo] = useState<string | null>(null);
   const [motionImage, setMotionImage] = useState<string | null>(null);
@@ -495,6 +501,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
     // Остановить предыдущее воспроизведение
     if (previewAudioRef.current) {
       previewAudioRef.current.pause();
+      previewAudioRef.current.src = '';
       previewAudioRef.current = null;
     }
     setPreviewPlaying(null);
@@ -611,7 +618,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
               {VIDEO_MODELS.map((m) => (
                 <button
                   key={m.id}
-                  onClick={() => { setVideoModel(m.id); setShowModelPicker(false); if (m.id === 'video-2.5-turbo') setNativeAudio(false); }}
+                  onClick={() => { setVideoModel(m.id); setShowModelPicker(false); }}
                   className={`w-full text-left px-4 py-3.5 flex items-center gap-3 transition-colors ${
                     videoModel === m.id ? 'bg-white/[0.06]' : ''
                   }`}
@@ -695,7 +702,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
                     { id: '1080p' as VideoMode, label: '1080p' },
                   ]}
                   value={videoMode}
-                  onChange={(m) => { setVideoMode(m); if (m === '720p' && videoModel === 'video-2.6') setNativeAudio(false); }}
+                  onChange={setVideoMode}
                 />
               </div>
 

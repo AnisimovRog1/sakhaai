@@ -485,10 +485,17 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
     });
   }
 
-  // Проиграть пример голоса через Web Speech API
+  // Проиграть пример голоса (останавливает предыдущий)
   const [previewLoading, setPreviewLoading] = useState<string | null>(null);
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
 
   async function playVoicePreview(voiceName: string) {
+    // Остановить предыдущее воспроизведение
+    if (previewAudioRef.current) {
+      previewAudioRef.current.pause();
+      previewAudioRef.current = null;
+    }
+
     const voiceConfig = VOICES.find(v => v.name === voiceName);
     if (!voiceConfig) return;
     setPreviewLoading(voiceName);
@@ -500,6 +507,8 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
       );
       if (result.audioUrl) {
         const audio = new Audio(result.audioUrl);
+        previewAudioRef.current = audio;
+        audio.onended = () => { previewAudioRef.current = null; };
         audio.play().catch(() => {});
       }
     } catch {
@@ -885,28 +894,28 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
             </button>
 
             {showVoicePicker && (
-              <div className="glass-neon rounded-xl overflow-hidden max-h-48 overflow-y-auto">
+              <div className="glass-neon rounded-xl overflow-hidden" style={{ maxHeight: '240px', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
                 {VOICES.map((v) => (
                   <div
                     key={v.name}
-                    className={`w-full px-4 py-3 flex items-center justify-between transition-colors ${
+                    className={`w-full px-3 py-2.5 flex items-center justify-between transition-colors ${
                       selectedVoice === v.name ? 'bg-white/[0.06]' : ''
                     }`}
                   >
                     <button
                       onClick={() => { setSelectedVoice(v.name); setShowVoicePicker(false); }}
-                      className="flex items-center gap-3 flex-1 text-left"
+                      className="flex items-center gap-2.5 flex-1 text-left"
                     >
-                      <div className="w-8 h-8 rounded-full bg-white/[0.08] flex items-center justify-center text-xs font-bold text-white">
+                      <div className="w-7 h-7 rounded-full bg-white/[0.08] flex items-center justify-center text-xs font-bold text-white shrink-0">
                         {v.name[0]}
                       </div>
                       <span className="text-white text-sm font-medium">{v.name}</span>
                     </button>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 shrink-0">
                       <button
                         onClick={(e) => { e.stopPropagation(); playVoicePreview(v.name); }}
                         disabled={previewLoading === v.name}
-                        className="w-8 h-8 rounded-full bg-violet-500/20 border border-violet-500/30 flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50"
+                        className="w-7 h-7 rounded-full bg-violet-500/20 border border-violet-500/30 flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50"
                         title="Прослушать"
                       >
                         {previewLoading === v.name ? (
@@ -920,7 +929,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
                         )}
                       </button>
                       {selectedVoice === v.name && (
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="20 6 9 17 4 12"/>
                         </svg>
                       )}

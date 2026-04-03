@@ -1,5 +1,4 @@
 import { pool } from '../db/pool';
-import { addCredits } from './balance';
 
 // Награды за каждый пакет (25% от пакета)
 export const REFERRAL_REWARDS: Record<string, number> = {
@@ -11,9 +10,6 @@ export const REFERRAL_REWARDS: Record<string, number> = {
 
 // Без лимита — чем больше приглашает, тем лучше для масштабирования
 const MONTHLY_LIMIT = 999999;
-
-// Холд 24 часа в миллисекундах
-const HOLD_MS = 24 * 60 * 60 * 1000;
 
 // ─────────────────────────────────────────────────────────────────────
 // saveIp — запоминаем IP юзера (используется для антифрод-проверки)
@@ -78,94 +74,8 @@ export async function registerReferral(
   return { ok: true };
 }
 
-// ─────────────────────────────────────────────────────────────────────
-// onAiRequest — Правило 4: отмечаем что реферал сделал первый AI-запрос
-// ─────────────────────────────────────────────────────────────────────
-export async function markAiRequest(refereeId: number): Promise<void> {
-  await pool.query(
-    `UPDATE referrals SET has_ai_request = true
-     WHERE referee_id = $1 AND status IN ('pending', 'held')`,
-    [refereeId]
-  );
-
-  // Если оплата уже была — переводим в held (ждём 24ч)
-  await pool.query(
-    `UPDATE referrals SET status = 'held'
-     WHERE referee_id = $1 AND status = 'pending' AND paid_at IS NOT NULL AND has_ai_request = true`,
-    [refereeId]
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────
-// onPayment — вызывается когда реферал совершил первую оплату
-//
-// Правило 5: начинаем 24ч-холд
-// ─────────────────────────────────────────────────────────────────────
-export async function onPayment(
-  refereeId: number,
-  packageName: string
-): Promise<void> {
-  const reward = REFERRAL_REWARDS[packageName] ?? 0;
-  if (reward === 0) return;
-
-  await pool.query(
-    `UPDATE referrals
-     SET package        = $1,
-         reward_credits = $2,
-         paid_at        = NOW(),
-         status         = CASE
-           WHEN has_ai_request = true THEN 'held'
-           ELSE 'pending'
-         END
-     WHERE referee_id = $3 AND status = 'pending'`,
-    [packageName, reward, refereeId]
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────
-// processHeldReferrals — Правило 5: выплачиваем вознаграждения,
-// у которых прошло 24ч с момента оплаты.
-//
-// Вызывается при каждом запуске сервера и каждые N минут.
-// ─────────────────────────────────────────────────────────────────────
-export async function processHeldReferrals(): Promise<number> {
-  const holdCutoff = new Date(Date.now() - HOLD_MS);
-
-  // Берём все held-рефералы у которых прошёл холд
-  const ready = await pool.query(
-    `SELECT id, referrer_id, reward_credits, package
-     FROM referrals
-     WHERE status = 'held'
-       AND has_ai_request = true
-       AND paid_at <= $1
-     FOR UPDATE SKIP LOCKED`, // SKIP LOCKED — безопасно при параллельных вызовах
-    [holdCutoff]
-  );
-
-  let paid = 0;
-  for (const row of ready.rows) {
-    try {
-      await addCredits(
-        row.referrer_id,
-        row.reward_credits,
-        'referral',
-        `Реферальная награда (${row.package}): +${row.reward_credits} кр.`
-      );
-
-      await pool.query(
-        `UPDATE referrals SET status = 'paid', reward_paid_at = NOW() WHERE id = $1`,
-        [row.id]
-      );
-
-      paid++;
-      console.log(`✅ Реферал #${row.id}: выплачено ${row.reward_credits} кр. реферу ${row.referrer_id}`);
-    } catch (err) {
-      console.error(`❌ Ошибка выплаты реферала #${row.id}:`, err);
-    }
-  }
-
-  return paid;
-}
+// markAiRequest, onPayment, processHeldReferrals — убраны
+// Бонус реферу начисляется сразу при оплате в payment.ts
 
 // ─────────────────────────────────────────────────────────────────────
 // getFriends — список рефералов с деталями для UI

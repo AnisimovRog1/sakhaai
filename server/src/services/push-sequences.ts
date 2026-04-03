@@ -106,7 +106,7 @@ async function findDailyUsers(seq: PushSequence): Promise<number[]> {
       AND NOT EXISTS (
         SELECT 1 FROM push_sent ps
         WHERE ps.user_id = u.id AND ps.sequence_id = $1
-          AND ps.sent_at >= NOW() - INTERVAL '20 hours'
+          AND ps.sent_at >= NOW() - INTERVAL '23 hours'
       )
   `, [seq.id]);
   return rows.map((r: any) => r.id);
@@ -269,10 +269,17 @@ export async function markPushSent(userId: number, sequenceId: number): Promise<
       [userId, sequenceId]
     );
   } else {
-    await pool.query(
-      `INSERT INTO push_sent (user_id, sequence_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+    // UNIQUE constraint удалён для daily — проверяем вручную для одноразовых пушей
+    const existing = await pool.query(
+      'SELECT 1 FROM push_sent WHERE user_id = $1 AND sequence_id = $2 LIMIT 1',
       [userId, sequenceId]
     );
+    if (existing.rows.length === 0) {
+      await pool.query(
+        `INSERT INTO push_sent (user_id, sequence_id) VALUES ($1, $2)`,
+        [userId, sequenceId]
+      );
+    }
   }
 }
 
@@ -294,10 +301,14 @@ export async function clearCreditsZero(userId: number): Promise<void> {
 
 // ─── Сбросить пуши no_purchase при покупке (чтобы остановить цепочку) ───
 export async function resetNoPurchasePushes(userId: number): Promise<void> {
+  // Вставляем записи для всех no_purchase пушей (блокируем повторную отправку)
   await pool.query(`
     INSERT INTO push_sent (user_id, sequence_id)
-    SELECT $1, id FROM push_sequences WHERE trigger_type = 'no_purchase'
-    ON CONFLICT DO NOTHING
+    SELECT $1, ps.id FROM push_sequences ps
+    WHERE ps.trigger_type = 'no_purchase'
+      AND NOT EXISTS (
+        SELECT 1 FROM push_sent WHERE user_id = $1 AND sequence_id = ps.id
+      )
   `, [userId]);
 }
 

@@ -110,7 +110,7 @@ export function Chat({ chatId, chatTitle, onBack }: Props) {
   return (
     <div
       className="flex flex-col tg-viewport max-w-lg md:max-w-2xl lg:max-w-4xl mx-auto w-full"
-      style={{ paddingTop: 'calc(var(--safe-top, 0px) + 5rem)' }}
+      style={{ paddingTop: 'calc(var(--safe-top, 0px) + 2.5rem)' }}
       onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
       onDragLeave={() => setDragging(false)}
       onDrop={handleDrop}

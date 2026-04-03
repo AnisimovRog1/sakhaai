@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import https from 'https';
 import { pool } from '../db/pool';
 import { saveUserIp, registerReferral } from '../services/referral';
-import { calculateFraudScore, saveDeviceFingerprint } from '../services/antifraud';
+import { calculateFraudScore, saveDeviceFingerprint } from '../services/welcome-antifraud';
 
 // HTTP GET запрос через https модуль (работает на любой версии Node.js)
 function httpGet(url: string): Promise<any> {

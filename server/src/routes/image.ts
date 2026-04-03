@@ -4,7 +4,7 @@ import { generateImage, editImage, translateToEnglish } from '../services/nanaba
 import { deduct, addCredits } from '../services/balance';
 import { getMultiplier } from '../services/exchange-rate';
 import { saveGeneration } from '../services/generations';
-import { tryGrantWelcomeBonus } from '../services/antifraud';
+import { tryGrantWelcomeBonus } from '../services/welcome-antifraud';
 
 export const imageRouter = Router();
 imageRouter.use(requireAuth);

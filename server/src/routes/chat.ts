@@ -4,7 +4,7 @@ import { requireAuth } from '../middleware/auth';
 import { sendToGemini, ChatMessage } from '../services/gemini';
 import { deduct } from '../services/balance';
 // markAiRequest убран — реферальный бонус начисляется сразу при оплате
-import { tryGrantWelcomeBonus } from '../services/antifraud';
+import { tryGrantWelcomeBonus } from '../services/welcome-antifraud';
 
 import { ai } from '../services/genai-client';
 

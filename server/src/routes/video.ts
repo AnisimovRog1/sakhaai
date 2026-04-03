@@ -12,7 +12,7 @@ import voiceSamples from '../data/voice-samples.json';
 import { deduct, addCredits, TxType } from '../services/balance';
 import { getMultiplier } from '../services/exchange-rate';
 import { saveGeneration } from '../services/generations';
-import { tryGrantWelcomeBonus } from '../services/antifraud';
+import { tryGrantWelcomeBonus } from '../services/welcome-antifraud';
 import { pool } from '../db/pool';
 import crypto from 'crypto';
 

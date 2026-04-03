@@ -1,4 +1,5 @@
 import { ai } from './genai-client';
+import { memCache } from '../db/redis';
 
 // Тип одного сообщения в истории чата
 export type ChatMessage = {
@@ -6,29 +7,36 @@ export type ChatMessage = {
   content: string;
 };
 
-// Системный промпт: AI определяет язык сообщения и отвечает на том же
-function buildSystemPrompt(_language: string): string {
-  return `Ты — UraanxAI, умный AI-ассистент из Якутии (Республика Саха).
+// Лимит бесплатного Google Search grounding (1500/день)
+const DAILY_GROUNDING_LIMIT = 1500;
 
-ГЛАВНОЕ ПРАВИЛО ЯЗЫКА:
-- Если пользователь пишет на якутском (саха тыла) — отвечай ТОЛЬКО на якутском языке.
-- Если пользователь пишет на русском — отвечай ТОЛЬКО на русском языке.
-- Если пользователь пишет на другом языке — отвечай на том же языке.
-- Никогда не переключай язык, если пользователь сам не попросит.
+async function canUseGrounding(): Promise<boolean> {
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  const key = `grounding:${today}`;
+  const cached = await memCache.get(key);
+  const count = cached ? parseInt(cached, 10) : 0;
+  return count < DAILY_GROUNDING_LIMIT;
+}
 
-Ты хорошо знаешь культуру, историю и традиции народа Саха.
-Ты свободно владеешь якутским (саха тыла) и русским языками.
-Будь краток, полезен и дружелюбен.`;
+async function incrementGrounding(): Promise<void> {
+  const today = new Date().toISOString().slice(0, 10);
+  const key = `grounding:${today}`;
+  await memCache.incr(key, 86400); // TTL 24 часа
+}
+
+// Системный промпт: AI отвечает ТОЛЬКО на русском
+function buildSystemPrompt(): string {
+  return `Ты — UraanxAI, умный AI-ассистент. Отвечай ТОЛЬКО на русском языке. Всегда. Независимо от языка вопроса — отвечай по-русски. Будь краток, полезен и дружелюбен.`;
 }
 
 // Главная функция: принимает историю сообщений, возвращает ответ Gemini
 export async function sendToGemini(
   history: ChatMessage[],
   userMessage: string,
-  language: string
+  _language: string
 ): Promise<string> {
-  // Берём последние 6 сообщений как контекст (3 пары вопрос/ответ)
-  const recentHistory = history.slice(-6);
+  // Берём последние 50 сообщений (25 пар вопрос/ответ)
+  const recentHistory = history.slice(-50);
 
   // Формируем историю в формате Gemini API
   const contents = recentHistory.map((msg) => ({
@@ -42,15 +50,25 @@ export async function sendToGemini(
     parts: [{ text: userMessage }],
   });
 
+  // Google Search grounding (до 1500/день бесплатно)
+  const useGrounding = await canUseGrounding();
+  const tools = useGrounding ? [{ googleSearch: {} }] : undefined;
+
   const response = await ai.models.generateContent({
     model: 'gemini-2.5-flash',
     contents,
     config: {
-      systemInstruction: buildSystemPrompt(language),
+      systemInstruction: buildSystemPrompt(),
       maxOutputTokens: 1024,
       temperature: 0.7,
+      tools,
     },
   });
+
+  // Инкрементируем счётчик grounding
+  if (useGrounding) {
+    await incrementGrounding();
+  }
 
   return response.text ?? 'Извини, не смог сгенерировать ответ.';
 }

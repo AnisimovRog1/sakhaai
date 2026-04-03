@@ -12,4 +12,14 @@ export const memCache = {
   async del(key: string): Promise<void> {
     cache.delete(key);
   },
+  async incr(key: string, ttl: number): Promise<number> {
+    const item = cache.get(key);
+    if (item && Date.now() <= item.expires) {
+      const newVal = parseInt(item.value, 10) + 1;
+      item.value = String(newVal);
+      return newVal;
+    }
+    cache.set(key, { value: '1', expires: Date.now() + ttl * 1000 });
+    return 1;
+  },
 };

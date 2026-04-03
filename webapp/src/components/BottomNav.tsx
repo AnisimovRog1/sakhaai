@@ -28,8 +28,7 @@ const HomeIcon = ({ active }: { active: boolean }) => (
   </svg>
 );
 
-// @ts-ignore временно скрыт
-const _ChatIcon = ({ active }: { active: boolean }) => (
+const ChatIcon = ({ active }: { active: boolean }) => (
   <svg width="26" height="26" viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round">
     {active && (
       <defs>
@@ -139,7 +138,7 @@ const FriendsIcon = ({ active }: { active: boolean }) => (
 
 const items: { name: 'home' | 'chatList' | 'imageGen' | 'videoGen' | 'friends'; labelKey: TranslationKey; Icon: typeof HomeIcon }[] = [
   { name: 'home',     labelKey: 'nav.home',    Icon: HomeIcon    },
-  // { name: 'chatList', labelKey: 'nav.chats',   Icon: ChatIcon    }, // временно скрыт
+  { name: 'chatList', labelKey: 'nav.chats',   Icon: ChatIcon    },
   { name: 'imageGen', labelKey: 'nav.images',  Icon: ImageIcon   },
   { name: 'videoGen', labelKey: 'nav.video',   Icon: VideoIcon   },
   { name: 'friends',  labelKey: 'nav.friends', Icon: FriendsIcon },

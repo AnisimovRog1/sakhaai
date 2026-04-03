@@ -15,6 +15,7 @@ export function Chat({ chatId, chatTitle, onBack }: Props) {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [limitReached, setLimitReached] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -47,6 +48,9 @@ export function Chat({ chatId, chatTitle, onBack }: Props) {
       setMessages((prev) => [...prev, reply]);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Ошибка';
+      if (msg.includes('Лимит 50') || msg.includes('limit_reached')) {
+        setLimitReached(true);
+      }
       setMessages((prev) => [
         ...prev,
         { id: Date.now(), role: 'model', content: msg, created_at: new Date().toISOString() },
@@ -135,29 +139,41 @@ export function Chat({ chatId, chatTitle, onBack }: Props) {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
+      {/* Input or Limit Reached */}
       <div className="px-4 py-3 bg-[#070b14]/90 backdrop-blur-xl border-t border-white/[0.08] flex-shrink-0 pb-safe">
-        <div className="flex gap-2 items-end">
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={t('chat.placeholder')}
-            rows={1}
-            className="flex-1 bg-white/[0.08] border border-white/[0.10] rounded-2xl px-4 py-3 text-sm font-medium resize-none outline-none placeholder-slate-500 text-white max-h-32 focus:border-blue-500/50 transition-colors"
-            style={{ lineHeight: '1.4' }}
-          />
-          <button
-            onClick={sendMessage}
-            disabled={!input.trim() || sending}
-            className="w-11 h-11 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center disabled:opacity-30 active:scale-95 transition-all shadow-md shadow-blue-500/25 flex-shrink-0"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="22" y1="2" x2="11" y2="13"/>
-              <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-            </svg>
-          </button>
-        </div>
+        {limitReached ? (
+          <div className="text-center space-y-2">
+            <p className="text-slate-400 text-sm">Лимит 50 сообщений достигнут</p>
+            <button
+              onClick={onBack}
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-violet-600 to-cyan-500 text-white font-bold text-sm active:scale-[0.98] transition-transform shadow-lg shadow-violet-500/25"
+            >
+              Создать новый чат
+            </button>
+          </div>
+        ) : (
+          <div className="flex gap-2 items-end">
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={t('chat.placeholder')}
+              rows={1}
+              className="flex-1 bg-white/[0.08] border border-white/[0.10] rounded-2xl px-4 py-3 text-sm font-medium resize-none outline-none placeholder-slate-500 text-white max-h-32 focus:border-blue-500/50 transition-colors"
+              style={{ lineHeight: '1.4' }}
+            />
+            <button
+              onClick={sendMessage}
+              disabled={!input.trim() || sending}
+              className="w-11 h-11 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center disabled:opacity-30 active:scale-95 transition-all shadow-md shadow-blue-500/25 flex-shrink-0"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"/>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+              </svg>
+            </button>
+          </div>
+        )}
       </div>
 
     </div>

@@ -10,8 +10,9 @@ import { ai } from '../services/genai-client';
 
 import { getMultiplier } from '../services/exchange-rate';
 
-// Базовая стоимость сообщения (себест. 0.16₽ × 2.3 = 0.37₽ ≈ 5 кредитов при курсе 80.62)
-const BASE_CHAT_COST = 5;
+// 1 кредит за сообщение (себест. макс 0.04₽, лимит 50 сообщений на чат)
+const BASE_CHAT_COST = 1;
+const MAX_MESSAGES_PER_CHAT = 50;
 
 // Генерация осмысленного названия чата через Gemini
 async function generateChatTitle(chatId: number, firstMessage: string) {
@@ -129,7 +130,17 @@ chatRouter.post('/:id/messages', async (req: Request, res: Response) => {
     return;
   }
 
-  // 2. Начисляем welcome-бонус при первом AI-запросе (антифрод)
+  // 2. Проверяем лимит 50 сообщений на чат
+  const msgCount = await pool.query(
+    'SELECT COUNT(*) as count FROM messages WHERE chat_id = $1',
+    [chatId]
+  );
+  if (parseInt(msgCount.rows[0].count, 10) >= MAX_MESSAGES_PER_CHAT) {
+    res.status(400).json({ error: 'limit_reached', message: 'Лимит 50 сообщений. Создайте новый чат.' });
+    return;
+  }
+
+  // 3. Начисляем welcome-бонус при первом AI-запросе (антифрод)
   await tryGrantWelcomeBonus(req.userId!).catch(console.error);
 
   // 3. Списываем кредиты (сначала — чтобы не тратить Gemini при нехватке баланса)

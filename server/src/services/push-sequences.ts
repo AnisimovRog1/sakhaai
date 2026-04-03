@@ -174,8 +174,8 @@ async function filterByTimezone(userIds: number[], seq: PushSequence): Promise<{
   `, [userIds]);
 
   const sendMode = seq.send_mode || 'immediate';
-  const strictHour = seq.strict_time ? parseInt(seq.strict_time) : null;
-  const preferredHour = seq.preferred_time ? parseInt(seq.preferred_time) : null;
+  const strictHour = seq.strict_time ? parseInt(seq.strict_time.split(':')[0], 10) : null;
+  const preferredHour = seq.preferred_time ? parseInt(seq.preferred_time.split(':')[0], 10) : null;
 
   return rows.filter((u: any) => {
     const localHour = getUserLocalHour(u.timezone_offset);

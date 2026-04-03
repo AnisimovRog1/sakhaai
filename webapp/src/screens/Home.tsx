@@ -139,8 +139,8 @@ export function Home({ user, onCreditsUpdate }: Props) {
         </div>
 
         {/* Packages */}
-        <div className="space-y-3 home-packages" style={{ marginTop: '4vh' }}>
-          <p className="text-white text-base font-bold text-center">{t('home.buy')}</p>
+        <div className="space-y-3 home-packages" style={{ marginTop: '2vh' }}>
+          <p className="text-white text-xl font-bold text-center">{t('home.buy')}</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {PACKAGES.map((pkg) => {
               const sel = selectedPkg?.key === pkg.key;

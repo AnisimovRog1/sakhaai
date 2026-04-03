@@ -489,12 +489,15 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
   const [previewLoading, setPreviewLoading] = useState<string | null>(null);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
 
+  const [previewPlaying, setPreviewPlaying] = useState<string | null>(null);
+
   async function playVoicePreview(voiceName: string) {
     // Остановить предыдущее воспроизведение
     if (previewAudioRef.current) {
       previewAudioRef.current.pause();
       previewAudioRef.current = null;
     }
+    setPreviewPlaying(null);
 
     const voiceConfig = VOICES.find(v => v.name === voiceName);
     if (!voiceConfig) return;
@@ -508,12 +511,14 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
       if (result.audioUrl) {
         const audio = new Audio(result.audioUrl);
         previewAudioRef.current = audio;
-        audio.onended = () => { previewAudioRef.current = null; };
-        audio.play().catch(() => {});
+        audio.onplay = () => { setPreviewLoading(null); setPreviewPlaying(voiceName); };
+        audio.onended = () => { previewAudioRef.current = null; setPreviewPlaying(null); };
+        audio.onerror = () => { setPreviewLoading(null); setPreviewPlaying(null); };
+        audio.play().catch(() => { setPreviewLoading(null); });
+      } else {
+        setPreviewLoading(null);
       }
     } catch {
-      // fallback: ничего не делаем
-    } finally {
       setPreviewLoading(null);
     }
   }
@@ -913,14 +918,30 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
                     </button>
                     <div className="flex items-center gap-2 shrink-0">
                       <button
-                        onClick={(e) => { e.stopPropagation(); playVoicePreview(v.name); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (previewPlaying === v.name) {
+                            if (previewAudioRef.current) { previewAudioRef.current.pause(); previewAudioRef.current = null; }
+                            setPreviewPlaying(null);
+                          } else {
+                            playVoicePreview(v.name);
+                          }
+                        }}
                         disabled={previewLoading === v.name}
-                        className="w-7 h-7 rounded-full bg-violet-500/20 border border-violet-500/30 flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50"
-                        title="Прослушать"
+                        className={`w-7 h-7 rounded-full flex items-center justify-center active:scale-95 transition-all disabled:opacity-50 ${
+                          previewPlaying === v.name
+                            ? 'bg-violet-500 border border-violet-400'
+                            : 'bg-violet-500/20 border border-violet-500/30'
+                        }`}
+                        title={previewPlaying === v.name ? 'Остановить' : 'Прослушать'}
                       >
                         {previewLoading === v.name ? (
-                          <svg className="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="3" strokeLinecap="round">
+                          <svg className="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={previewPlaying === v.name ? '#fff' : '#8B5CF6'} strokeWidth="3" strokeLinecap="round">
                             <path d="M12 3a9 9 0 019 9" />
+                          </svg>
+                        ) : previewPlaying === v.name ? (
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="#fff" stroke="none">
+                            <rect x="4" y="4" width="16" height="16" rx="2"/>
                           </svg>
                         ) : (
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="#8B5CF6" stroke="none">

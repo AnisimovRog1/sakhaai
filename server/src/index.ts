@@ -14,7 +14,7 @@ import { generationsRouter } from './routes/generations';
 import { adminRouter } from './routes/admin';
 import { adminPanelRouter } from './routes/admin-panel';
 import { serveTempFile } from './services/kling-direct';
-import { processHeldReferrals } from './services/referral';
+// processHeldReferrals убран — бонус реферу начисляется сразу при оплате
 import { startTaskWorker } from './services/task-worker';
 import { seedPushSequences } from './services/push-seed';
 import { initExchangeRate, updateExchangeRate, getRateInfo } from './services/exchange-rate';
@@ -132,16 +132,7 @@ migrate()
     server.timeout = 1_800_000;
     server.keepAliveTimeout = 1_820_000;
 
-    // Планировщик: проверяем held-рефералы каждые 15 минут
-    // Простой setInterval — без внешних зависимостей
-    const runProcessor = () => {
-      processHeldReferrals()
-        .then((n) => { if (n > 0) console.log(`💰 Выплачено рефералов: ${n}`); })
-        .catch(console.error);
-    };
-
-    runProcessor(); // сразу при старте
-    setInterval(runProcessor, 15 * 60 * 1000); // каждые 15 мин
+    // Реферальные бонусы начисляются сразу при оплате (в payment.ts)
 
     // Фоновый worker: проверяет pending задачи через Kling Direct API каждые 30 сек
     startTaskWorker();

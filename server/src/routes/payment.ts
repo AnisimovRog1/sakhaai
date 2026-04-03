@@ -160,14 +160,24 @@ paymentRouter.get('/unitpay', async (req: Request, res: Response) => {
           `Пакет "${PACKAGES[order.package]?.label}" — ${order.amount_rub}₽`
         );
 
-        // Обновляем реферал — переводим в held
+        // Реферальный бонус — сразу при оплате (без холда)
         const rewardCredits = REFERRAL_REWARDS[order.package] || 0;
         if (rewardCredits > 0) {
-          await pool.query(
-            `UPDATE referrals SET status = 'held', package = $1, reward_credits = $2, paid_at = NOW()
-             WHERE referee_id = $3 AND status = 'pending'`,
+          const refRow = await pool.query(
+            `UPDATE referrals SET status = 'paid', package = $1, reward_credits = $2, paid_at = NOW(), reward_paid_at = NOW()
+             WHERE referee_id = $3 AND status = 'pending'
+             RETURNING referrer_id`,
             [order.package, rewardCredits, order.user_id]
           );
+          if (refRow.rows[0]) {
+            await addCredits(
+              refRow.rows[0].referrer_id,
+              rewardCredits,
+              'referral',
+              `Реферальная награда (${PACKAGES[order.package]?.label}): +${rewardCredits} кр.`
+            );
+            console.log(`🎁 Реферал: +${rewardCredits} кр. реферу ${refRow.rows[0].referrer_id}`);
+          }
         }
 
         console.log(`✅ Оплата UnitPay: user=${order.user_id}, пакет=${order.package}, +${order.credits} кр.`);

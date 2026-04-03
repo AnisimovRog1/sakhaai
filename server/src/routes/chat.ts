@@ -3,7 +3,7 @@ import { pool } from '../db/pool';
 import { requireAuth } from '../middleware/auth';
 import { sendToGemini, ChatMessage } from '../services/gemini';
 import { deduct } from '../services/balance';
-import { markAiRequest } from '../services/referral';
+// markAiRequest убран — реферальный бонус начисляется сразу при оплате
 import { tryGrantWelcomeBonus } from '../services/antifraud';
 
 import { ai } from '../services/genai-client';
@@ -188,9 +188,6 @@ chatRouter.post('/:id/messages', async (req: Request, res: Response) => {
   if (history.length === 0) {
     generateChatTitle(chatId, message).catch(console.error);
   }
-
-  // Правило 4: отмечаем первый AI-запрос (асинхронно, не блокируем ответ)
-  markAiRequest(req.userId!).catch(console.error);
 
   res.json({ ...savedReply.rows[0], creditsLeft });
   } catch (err) {

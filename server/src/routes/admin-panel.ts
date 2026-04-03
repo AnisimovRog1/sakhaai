@@ -762,6 +762,7 @@ async function clearSeqImg(id){
   var media=document.getElementById('seqmedia-'+id);
   if(media){var imgs=media.querySelectorAll('img,.relative');for(var i=0;i<imgs.length;i++)imgs[i].remove()}
   document.getElementById('seqimg-'+id).value='';
+  var fid=document.getElementById('seqfileid-'+id);if(fid)fid.value='';
   var s=seqData.find(function(x){return x.id===id});
   if(s){s.media_url=null;s.media_type=null;s.media_file_id=null}
   await saveSeq(id);

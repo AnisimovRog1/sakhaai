@@ -312,6 +312,11 @@ export async function findPendingPushes(): Promise<PendingPush[]> {
     }
   }
 
+  console.log(`[pending] Active sequences: ${sequences.length}, chainMap entries: ${chainMap.size}`);
+  for (const [trigger, list] of byTrigger) {
+    console.log(`[pending] Chain ${trigger}: ${list.map(s => `#${s.id}(delay=${s.delay_minutes})`).join(' → ')}`);
+  }
+
   for (const seq of sequences) {
     let userIds: number[] = [];
     const prev = chainMap.get(seq.id) ?? null;
@@ -346,8 +351,16 @@ export async function findPendingPushes(): Promise<PendingPush[]> {
         break;
     }
 
+    if (userIds.length > 0) {
+      console.log(`[pending] ${seq.trigger_type} #${seq.id} (delay=${seq.delay_minutes}): ${userIds.length} users found, prev=${prev ? `#${prev.prevSeqId} delta=${prev.deltaMinutes}min` : 'null (first)'}`);
+    }
+
     // Фильтр по разрешённым часам, send_mode, weekday
     const filtered = await filterByTimezone(userIds, seq);
+
+    if (userIds.length > 0 && filtered.length === 0) {
+      console.log(`[pending] ${seq.trigger_type} #${seq.id}: ALL ${userIds.length} users filtered OUT by timezone (from=${seq.allow_hour_from}, to=${seq.allow_hour_to})`);
+    }
 
     for (const u of filtered) {
       result.push({

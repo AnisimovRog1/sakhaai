@@ -105,9 +105,15 @@ bot.command('start', async (ctx) => {
       }
       // Помечаем первый welcome как отправленный — без этого цепочка не пойдёт дальше
       if (firstSeq.id && ctx.from?.id) {
+        const msUserId = ctx.from.id;
+        const msSeqId = firstSeq.id;
         httpPost(`${SERVER_URL}/admin/push/sequences/mark-sent`, {
-          user_id: ctx.from.id, sequence_id: firstSeq.id,
-        }).catch(() => {});
+          user_id: msUserId, sequence_id: msSeqId,
+        }).then((r: any) => {
+          console.log(`✅ mark-sent welcome #${msSeqId} for user ${msUserId}`, JSON.stringify(r));
+        }).catch((e: any) => {
+          console.error(`❌ mark-sent FAILED welcome #${msSeqId} for user ${msUserId}:`, e?.message || e);
+        });
       }
     } else {
       throw new Error('no welcome');
@@ -1129,7 +1135,11 @@ function formatText(raw: string | null | undefined): string {
 async function processAutoSequences() {
   try {
     const pending = await httpGet(`${SERVER_URL}/admin/push/sequences/pending`) as any[];
-    if (!pending || !Array.isArray(pending) || pending.length === 0) return;
+    if (!pending || !Array.isArray(pending) || pending.length === 0) {
+      console.log(`[autopush] Pending: 0 (empty or not array: ${typeof pending})`);
+      return;
+    }
+    console.log(`[autopush] Pending: ${pending.length} pushes`);
 
     let sent = 0;
     for (const p of pending) {

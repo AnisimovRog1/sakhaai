@@ -490,8 +490,12 @@ adminRouter.get('/push/sequences/welcome', async (_req: Request, res: Response) 
 adminRouter.get('/push/sequences/pending', async (_req: Request, res: Response) => {
   try {
     const pending = await findPendingPushes();
+    console.log(`[/pending] Returning ${pending.length} pending pushes`);
     res.json(pending);
-  } catch (err: any) { res.status(500).json({ error: err.message }); }
+  } catch (err: any) {
+    console.error(`[/pending] ERROR:`, err.message);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Заполнить пуш-последовательности из seed (force=true перезаписывает)

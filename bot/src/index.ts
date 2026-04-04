@@ -88,7 +88,9 @@ bot.command('start', async (ctx) => {
     if (welcomeSeq && welcomeSeq.text) {
       const media = welcomeSeq.media_file_id || welcomeSeq.media_url;
       const text = formatText(welcomeSeq.text);
-      if (welcomeSeq.media_type === 'photo' && media) {
+      if (welcomeSeq.media_type === 'video' && media) {
+        await ctx.replyWithVideo(media, { caption: text, parse_mode: 'HTML', reply_markup: inlineKb, supports_streaming: true, width: welcomeSeq.media_width || undefined, height: welcomeSeq.media_height || undefined });
+      } else if (welcomeSeq.media_type === 'photo' && media) {
         await ctx.replyWithPhoto(media, { caption: text, parse_mode: 'HTML', reply_markup: inlineKb });
       } else {
         await ctx.reply(text, { parse_mode: 'HTML', reply_markup: inlineKb });

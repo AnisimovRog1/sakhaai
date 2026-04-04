@@ -1234,7 +1234,6 @@ async function startBot() {
   for (let attempt = 0; attempt < 5; attempt++) {
     try {
       await bot.start({
-        drop_pending_updates: true,
         onStart: async () => {
           console.log('Бот @UraanxAI_bot запущен');
 

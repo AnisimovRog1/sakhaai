@@ -555,7 +555,6 @@ adminRouter.post('/upload-photo', upload.single('photo'), async (req: Request, r
       });
       const data = await tgRes.json() as any;
       if (!data.ok) { res.status(500).json({ error: data.description || 'Telegram upload failed' }); return; }
-    } else {
       fileId = data.result.photo[data.result.photo.length - 1].file_id;
       mediaType = 'photo';
     }

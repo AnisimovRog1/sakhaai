@@ -637,7 +637,7 @@ function renderSeqs(){
 
     // Настройки
     html+='<div class="flex gap-2 mt-2 flex-wrap items-center">';
-    html+='<input class="flex-1 min-w-[160px] text-[11px] bg-black/20 border border-white/8 rounded-lg px-2 py-1.5 text-slate-400" placeholder="URL фото" value="'+esc(s.media_url||'')+'" id="seqimg-'+s.id+'" oninput="markSeqDirty('+s.id+')"><input type="hidden" id="seqfileid-'+s.id+'" value="'+esc(s.media_file_id||'')+'">';
+    html+='<input class="flex-1 min-w-[160px] text-[11px] bg-black/20 border border-white/8 rounded-lg px-2 py-1.5 text-slate-400" placeholder="URL фото" value="'+esc(s.media_url||'')+'" id="seqimg-'+s.id+'" oninput="markSeqDirty('+s.id+')"><input type="hidden" id="seqfileid-'+s.id+'" value="'+esc(s.media_file_id||'')+'"><input type="hidden" id="seqmediatype-'+s.id+'" value="'+esc(s.media_type||'')+'">';
     html+='<div class="flex items-center gap-1 text-[11px] text-slate-500"><span>⏱ Через</span><input type="number" class="w-16 bg-black/20 border border-white/8 rounded px-1.5 py-1 text-slate-400 text-center" value="'+s.delay_minutes+'" id="seqdelay-'+s.id+'" oninput="markSeqDirty('+s.id+')"><span>мин после триггера</span></div>';
     html+='<input type="hidden" id="seqhfrom-'+s.id+'" value="'+(s.allow_hour_from||9)+'"><input type="hidden" id="seqhto-'+s.id+'" value="'+(s.allow_hour_to||22)+'">';
     html+='</div>';
@@ -722,7 +722,8 @@ async function saveSeq(id){
   var greeting_mode=(document.getElementById('seqgreet-'+id)||{}).value||'none';
   var greeting_fixed=(document.getElementById('seqgreetfixed-'+id)||{}).value||null;
   var s=seqData.find(function(x){return x.id===id});
-  var r=await P('/admin/push/sequences',{id:id,trigger_type:s.trigger_type,delay_minutes:delay_minutes,credits_threshold:s.credits_threshold,text:text,media_type:(media_url||media_file_id)?(s.media_type||'photo'):null,media_url:media_url,media_file_id:media_file_id,label:s.label,is_active:s.is_active,allow_hour_from:allow_hour_from,allow_hour_to:allow_hour_to,send_mode:send_mode,strict_time:strict_time,preferred_time:preferred_time,weekday:weekday,greeting_mode:greeting_mode,greeting_fixed:greeting_fixed,media_width:s.media_width||null,media_height:s.media_height||null});
+  var savedMediaType=(document.getElementById('seqmediatype-'+id)||{}).value||null;
+  var r=await P('/admin/push/sequences',{id:id,trigger_type:s.trigger_type,delay_minutes:delay_minutes,credits_threshold:s.credits_threshold,text:text,media_type:(media_url||media_file_id)?savedMediaType:null,media_url:media_url,media_file_id:media_file_id,label:s.label,is_active:s.is_active,allow_hour_from:allow_hour_from,allow_hour_to:allow_hour_to,send_mode:send_mode,strict_time:strict_time,preferred_time:preferred_time,weekday:weekday,greeting_mode:greeting_mode,greeting_fixed:greeting_fixed,media_width:s.media_width||null,media_height:s.media_height||null});
   if(r.id){document.getElementById('seqsave-'+id).classList.add('hidden');loadSeqs()}
   else alert(r.error||'Ошибка')
 }
@@ -768,6 +769,7 @@ async function clearSeqImg(id){
   if(media){var els=media.querySelectorAll('img,video,.relative');for(var i=0;i<els.length;i++)els[i].remove()}
   document.getElementById('seqimg-'+id).value='';
   var fid=document.getElementById('seqfileid-'+id);if(fid)fid.value='';
+  var mt=document.getElementById('seqmediatype-'+id);if(mt)mt.value='';
   var s=seqData.find(function(x){return x.id===id});
   if(s){s.media_url=null;s.media_type=null;s.media_file_id=null;s.media_width=null;s.media_height=null}
   await saveSeq(id);
@@ -792,6 +794,7 @@ async function uploadSeqMedia(file,id){
       var mtype=d.media_type||(isVideo?'video':'photo');
       var s=seqData.find(function(x){return x.id===id});
       if(s){s.media_url=imgUrl;s.media_type=mtype;s.media_file_id=d.file_id;s.media_width=d.width||null;s.media_height=d.height||null}
+      var mtypeInput=document.getElementById('seqmediatype-'+id);if(mtypeInput)mtypeInput.value=mtype;
       markSeqDirty(id);
       var previewSrc=imgUrl||URL.createObjectURL(file);
       var mediaTag=isVideo?'<video src="'+previewSrc+'" class="w-full rounded-lg" style="max-height:300px;object-fit:contain;background:#111" controls playsinline></video>':'<img src="'+previewSrc+'" class="w-full rounded-lg" style="max-height:300px;object-fit:contain;background:#111">';

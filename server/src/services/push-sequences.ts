@@ -52,6 +52,17 @@ export async function getActiveSequences(trigger?: TriggerType): Promise<PushSeq
   return rows;
 }
 
+// ─── Найти пользователей для welcome пуша с delay > 0 ───
+async function findWelcomeUsers(seq: PushSequence): Promise<number[]> {
+  const { rows } = await pool.query(`
+    SELECT u.id FROM users u
+    WHERE u.is_banned = false
+      AND u.created_at <= NOW() - INTERVAL '1 minute' * $1
+      AND NOT EXISTS (SELECT 1 FROM push_sent ps WHERE ps.user_id = u.id AND ps.sequence_id = $2)
+  `, [seq.delay_minutes, seq.id]);
+  return rows.map((r: any) => r.id);
+}
+
 // ─── Найти пользователей для пуша no_purchase ───
 async function findNoPurchaseUsers(seq: PushSequence): Promise<number[]> {
   const { rows } = await pool.query(`
@@ -231,7 +242,10 @@ export async function findPendingPushes(): Promise<PendingPush[]> {
         userIds = await findDailyUsers(seq);
         break;
       case 'welcome':
-        // Welcome отправляется напрямую из /start, не через автопуши
+        // Первый welcome (delay=0) отправляется из /start, остальные через автопуши
+        if (seq.delay_minutes > 0) {
+          userIds = await findWelcomeUsers(seq);
+        }
         break;
       case 'reactivation':
         userIds = await findReactivationUsers(seq);

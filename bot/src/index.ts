@@ -82,23 +82,19 @@ bot.command('start', async (ctx) => {
     .text('👥 Пригласить друга')
     .resized().persistent();
 
-  // Пробуем welcome push из БД — отправляем ВСЕ welcome пуши по порядку
+  // Welcome push: отправляем только ПЕРВЫЙ (delay_minutes=0), остальные идут через автопуши по таймингу
   try {
     const welcomeSeqs = await httpGet(`${SERVER_URL}/admin/push/sequences/welcome`) as any[];
-    if (Array.isArray(welcomeSeqs) && welcomeSeqs.length > 0) {
-      for (let i = 0; i < welcomeSeqs.length; i++) {
-        const seq = welcomeSeqs[i];
-        const media = seq.media_file_id || seq.media_url;
-        const text = formatText(seq.text);
-        // Кнопки только на последнем сообщении
-        const markup = i === welcomeSeqs.length - 1 ? { reply_markup: inlineKb } : {};
-        if (seq.media_type === 'video' && media) {
-          await ctx.replyWithVideo(media, { caption: text, parse_mode: 'HTML', ...markup, supports_streaming: true, width: seq.media_width || undefined, height: seq.media_height || undefined });
-        } else if (seq.media_type === 'photo' && media) {
-          await ctx.replyWithPhoto(media, { caption: text, parse_mode: 'HTML', ...markup });
-        } else if (text) {
-          await ctx.reply(text, { parse_mode: 'HTML', ...markup });
-        }
+    const firstSeq = Array.isArray(welcomeSeqs) ? welcomeSeqs.find((s: any) => s.delay_minutes === 0) || welcomeSeqs[0] : null;
+    if (firstSeq && firstSeq.text) {
+      const media = firstSeq.media_file_id || firstSeq.media_url;
+      const text = formatText(firstSeq.text);
+      if (firstSeq.media_type === 'video' && media) {
+        await ctx.replyWithVideo(media, { caption: text, parse_mode: 'HTML', reply_markup: inlineKb, supports_streaming: true, width: firstSeq.media_width || undefined, height: firstSeq.media_height || undefined });
+      } else if (firstSeq.media_type === 'photo' && media) {
+        await ctx.replyWithPhoto(media, { caption: text, parse_mode: 'HTML', reply_markup: inlineKb });
+      } else {
+        await ctx.reply(text, { parse_mode: 'HTML', reply_markup: inlineKb });
       }
     } else {
       throw new Error('no welcome');

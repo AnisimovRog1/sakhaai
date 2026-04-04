@@ -779,10 +779,28 @@ async function clearSeqImg(id){
 function seqPickFile(id){document.getElementById('seqfile-'+id).click()}
 function seqDropFile(e,id){var f=e.dataTransfer.files[0];if(f&&(f.type.startsWith('image/')||f.type.startsWith('video/')))uploadSeqMedia(f,id)}
 function seqFileSelect(e,id){var f=e.target.files[0];if(f)uploadSeqMedia(f,id)}
+// Получить реальные размеры видео через HTML5 Video API
+function getVideoSize(file){
+  return new Promise(function(resolve){
+    if(!file.type.startsWith('video/')){resolve({w:null,h:null});return}
+    var video=document.createElement('video');
+    video.preload='metadata';
+    video.onloadedmetadata=function(){
+      resolve({w:video.videoWidth,h:video.videoHeight});
+      URL.revokeObjectURL(video.src);
+    };
+    video.onerror=function(){resolve({w:null,h:null})};
+    video.src=URL.createObjectURL(file);
+    setTimeout(function(){resolve({w:null,h:null})},5000);
+  });
+}
+
 async function uploadSeqMedia(file,id){
   var media=document.getElementById('seqmedia-'+id);
   var isVideo=file.type.startsWith('video/');
   if(media){var old=media.querySelector('.relative');if(old)old.remove();var zone=media.querySelector('[ondragover]');if(zone)zone.innerHTML='<p class="text-cyan-400 text-xs">⏳ Загрузка...</p>'}
+  // Определяем реальные размеры видео ДО загрузки
+  var realSize=await getVideoSize(file);
   var fd=new FormData();fd.append('photo',file);
   try{
     var r=await fetch(API+'/admin/upload-photo',{method:'POST',headers:{'Authorization':'Bearer '+TOKEN},body:fd});
@@ -792,8 +810,11 @@ async function uploadSeqMedia(file,id){
       document.getElementById('seqimg-'+id).value=imgUrl;
       var hiddenFid=document.getElementById('seqfileid-'+id);if(hiddenFid)hiddenFid.value=d.file_id;
       var mtype=d.media_type||(isVideo?'video':'photo');
+      // Используем РЕАЛЬНЫЕ размеры видео с клиента, а не сжатые от Telegram
+      var actualW=realSize.w||d.width||null;
+      var actualH=realSize.h||d.height||null;
       var s=seqData.find(function(x){return x.id===id});
-      if(s){s.media_url=imgUrl;s.media_type=mtype;s.media_file_id=d.file_id;s.media_width=d.width||null;s.media_height=d.height||null}
+      if(s){s.media_url=imgUrl;s.media_type=mtype;s.media_file_id=d.file_id;s.media_width=actualW;s.media_height=actualH}
       var mtypeInput=document.getElementById('seqmediatype-'+id);if(mtypeInput)mtypeInput.value=mtype;
       markSeqDirty(id);
       var previewSrc=imgUrl||URL.createObjectURL(file);

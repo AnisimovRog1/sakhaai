@@ -8,7 +8,7 @@ import { klingRequest } from '../services/kling-direct';
 import { getRateInfo, updateExchangeRate } from '../services/exchange-rate';
 
 export const adminRouter = Router();
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } }); // 50 МБ (Telegram Bot API лимит)
 
 function requireBotAuth(req: Request, res: Response, next: () => void) {
   const auth = req.headers.authorization;

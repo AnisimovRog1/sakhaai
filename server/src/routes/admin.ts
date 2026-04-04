@@ -333,7 +333,8 @@ adminRouter.post('/push/send/:id', async (req: Request, res: Response) => {
     if (!BOT_TOKEN) { res.status(503).json({ error: 'BOT_TOKEN не настроен' }); return; }
 
     let sent = 0, failed = 0;
-    const formatText = (s: string) => {
+    const formatText = (s: string | null | undefined) => {
+      if (!s) return '';
       // 1. Экранируем HTML спецсимволы
       let t = s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       // 2. <<жирный>> → <b>жирный</b>
@@ -353,7 +354,7 @@ adminRouter.post('/push/send/:id', async (req: Request, res: Response) => {
         if (t.media_type === 'video' && media) {
           resp = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendVideo`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: u.id, video: media, caption, parse_mode: 'HTML' })
+            body: JSON.stringify({ chat_id: u.id, video: media, caption, parse_mode: 'HTML', supports_streaming: true, width: t.media_width || undefined, height: t.media_height || undefined })
           });
         } else if (t.media_type === 'photo' && media) {
           resp = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {

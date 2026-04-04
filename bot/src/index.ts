@@ -972,9 +972,11 @@ async function broadcastTemplate(tmpl: any, ctx: any) {
             caption: formatText(tmpl.text),
             parse_mode: 'HTML',
             supports_streaming: true,
+            width: tmpl.media_width || undefined,
+            height: tmpl.media_height || undefined,
           });
         } else {
-          await bot.api.sendMessage(Number(user.id), formatText(tmpl.text), {
+          await bot.api.sendMessage(Number(user.id), formatText(tmpl.text || ''), {
             parse_mode: 'HTML',
           });
         }
@@ -1042,6 +1044,9 @@ async function processDailyPushes() {
             await bot.api.sendVideo(Number(user.id), tmpl.media_file_id, {
               caption: formatText(tmpl.text),
               parse_mode: 'HTML',
+              supports_streaming: true,
+              width: tmpl.media_width || undefined,
+              height: tmpl.media_height || undefined,
             });
           } else {
             await bot.api.sendMessage(Number(user.id), formatText(tmpl.text), {

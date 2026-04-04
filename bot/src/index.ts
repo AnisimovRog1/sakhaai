@@ -88,11 +88,15 @@ bot.command('start', async (ctx) => {
     if (welcomeSeq && welcomeSeq.text) {
       const media = welcomeSeq.media_file_id || welcomeSeq.media_url;
       const text = formatText(welcomeSeq.text);
+      console.log('[welcome] SENDING:', JSON.stringify({ media_type: welcomeSeq.media_type, hasMedia: !!media, textLen: text?.length, width: welcomeSeq.media_width, height: welcomeSeq.media_height }));
       if (welcomeSeq.media_type === 'video' && media) {
+        console.log('[welcome] → replyWithVideo');
         await ctx.replyWithVideo(media, { caption: text, parse_mode: 'HTML', reply_markup: inlineKb, supports_streaming: true, width: welcomeSeq.media_width || undefined, height: welcomeSeq.media_height || undefined });
       } else if (welcomeSeq.media_type === 'photo' && media) {
+        console.log('[welcome] → replyWithPhoto');
         await ctx.replyWithPhoto(media, { caption: text, parse_mode: 'HTML', reply_markup: inlineKb });
       } else {
+        console.log('[welcome] → reply text only');
         await ctx.reply(text, { parse_mode: 'HTML', reply_markup: inlineKb });
       }
     } else {

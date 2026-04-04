@@ -526,25 +526,35 @@ adminRouter.post('/upload-photo', upload.single('photo'), async (req: Request, r
 
     const form = new FormData();
     form.append('chat_id', ADMIN_CHAT_ID);
-    const tgMethod = isVideo ? 'sendVideo' : 'sendPhoto';
-    const fieldName = isVideo ? 'video' : 'photo';
-    form.append(fieldName, new Blob([file.buffer], { type: file.mimetype }), file.originalname);
-
-    const tgRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${tgMethod}`, {
-      method: 'POST', body: form,
-    });
-    const data = await tgRes.json() as any;
-    if (!data.ok) { res.status(500).json({ error: data.description || 'Telegram upload failed' }); return; }
 
     let fileId: string;
     let mediaType: string;
     let mediaWidth: number | null = null;
     let mediaHeight: number | null = null;
+
     if (isVideo) {
+      // Видео: отправляем с supports_streaming чтобы Telegram не обрезал
+      form.append('video', new Blob([file.buffer], { type: file.mimetype }), file.originalname);
+      form.append('supports_streaming', 'true');
+      const tgRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendVideo`, {
+        method: 'POST', body: form,
+      });
+      const data = await tgRes.json() as any;
+      if (!data.ok) { res.status(500).json({ error: data.description || 'Telegram upload failed' }); return; }
       fileId = data.result.video.file_id;
       mediaType = 'video';
-      mediaWidth = data.result.video.width || null;
-      mediaHeight = data.result.video.height || null;
+      // Telegram может вернуть сжатые размеры — НЕ используем их
+      // width/height останутся null → при sendVideo не передаём → Telegram сам определит
+      mediaWidth = null;
+      mediaHeight = null;
+    } else {
+      // Фото загружаем как обычно
+      form.append('photo', new Blob([file.buffer], { type: file.mimetype }), file.originalname);
+      const tgRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+        method: 'POST', body: form,
+      });
+      const data = await tgRes.json() as any;
+      if (!data.ok) { res.status(500).json({ error: data.description || 'Telegram upload failed' }); return; }
     } else {
       fileId = data.result.photo[data.result.photo.length - 1].file_id;
       mediaType = 'photo';

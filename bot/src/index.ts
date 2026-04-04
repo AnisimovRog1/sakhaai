@@ -1223,15 +1223,31 @@ process.once('SIGINT', () => {
   bot.stop();
 });
 
-bot.start({
-  drop_pending_updates: true,
-  onStart: async () => {
-    console.log('Бот @UraanxAI_bot запущен');
+// При 409 Conflict (два инстанса) — подождать и перезапустить
+async function startBot() {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      await bot.start({
+        drop_pending_updates: true,
+        onStart: async () => {
+          console.log('Бот @UraanxAI_bot запущен');
 
-    // Профиль бота (имя/описание) уже установлен через BotFather — не вызываем при каждом деплое
-    scheduleReports();
-    // Автопуши каждые 2 минуты
-    setInterval(processAutoSequences, 2 * 60 * 1000);
-    setTimeout(processAutoSequences, 30000); // первый запуск через 30 сек
-  },
-});
+          scheduleReports();
+          setInterval(processAutoSequences, 2 * 60 * 1000);
+          setTimeout(processAutoSequences, 30000);
+        },
+      });
+      return; // Успешно запущен
+    } catch (err: any) {
+      if (err?.error_code === 409 && attempt < 4) {
+        console.log(`[bot] 409 Conflict, retry ${attempt + 1}/5 через 5 сек...`);
+        await new Promise(r => setTimeout(r, 5000));
+        continue;
+      }
+      console.error('[bot] Fatal error:', err);
+      process.exit(1);
+    }
+  }
+}
+
+startBot();

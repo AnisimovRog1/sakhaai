@@ -25,6 +25,8 @@ export interface PushSequence {
   weekday: string | null;      // 'MON' | 'TUE' | ...
   greeting_mode: string;       // 'none' | 'dynamic' | 'fixed'
   greeting_fixed: string | null;
+  media_width: number | null;
+  media_height: number | null;
 }
 
 export interface PendingPush {
@@ -34,6 +36,8 @@ export interface PendingPush {
   media_type: string | null;
   media_url: string | null;
   media_file_id: string | null;
+  media_width: number | null;
+  media_height: number | null;
   greeting_mode: string;
   greeting_fixed: string | null;
   user_local_hour: number;
@@ -271,17 +275,14 @@ export async function markPushSent(userId: number, sequenceId: number): Promise<
       [userId, sequenceId]
     );
   } else {
-    // UNIQUE constraint удалён для daily — проверяем вручную для одноразовых пушей
-    const existing = await pool.query(
-      'SELECT 1 FROM push_sent WHERE user_id = $1 AND sequence_id = $2 LIMIT 1',
+    // Одноразовые пуши — INSERT только если ещё нет записи (атомарно)
+    await pool.query(
+      `INSERT INTO push_sent (user_id, sequence_id)
+       SELECT $1, $2 WHERE NOT EXISTS (
+         SELECT 1 FROM push_sent WHERE user_id = $1 AND sequence_id = $2
+       )`,
       [userId, sequenceId]
     );
-    if (existing.rows.length === 0) {
-      await pool.query(
-        `INSERT INTO push_sent (user_id, sequence_id) VALUES ($1, $2)`,
-        [userId, sequenceId]
-      );
-    }
   }
 }
 
@@ -351,7 +352,7 @@ export async function upsertSequence(data: Partial<PushSequence> & { trigger_typ
         data.media_file_id || null,
         data.send_mode || 'immediate', data.strict_time || null, data.preferred_time || null,
         data.weekday || null, data.greeting_mode || 'none', data.greeting_fixed || null,
-        (data as any).media_width || null, (data as any).media_height || null]);
+        data.media_width || null, data.media_height || null]);
     return rows[0];
   }
   const { rows } = await pool.query(`

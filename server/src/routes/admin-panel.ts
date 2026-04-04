@@ -604,10 +604,15 @@ function renderSeqs(){
     html+='<div class="mb-2" id="seqmedia-'+s.id+'">';
     if(s.media_url||s.media_file_id){
       html+='<div class="relative mb-2">';
+      var isVid=s.media_type==='video';
       if(s.media_url&&!s.media_url.startsWith('tg://')){
-        html+='<img src="'+esc(s.media_url)+'" class="w-full rounded-lg" style="max-height:300px;object-fit:contain;background:#111">';
+        if(isVid){
+          html+='<video src="'+esc(s.media_url)+'" class="w-full rounded-lg" style="max-height:300px;object-fit:contain;background:#111" controls playsinline></video>';
+        } else {
+          html+='<img src="'+esc(s.media_url)+'" class="w-full rounded-lg" style="max-height:300px;object-fit:contain;background:#111">';
+        }
       } else if(s.media_file_id){
-        html+='<img id="seqpreview-'+s.id+'" data-fileid="'+esc(s.media_file_id)+'" class="w-full rounded-lg seqimg-lazy" style="max-height:300px;object-fit:contain;background:#111;display:none"><div id="seqloading-'+s.id+'" class="w-full rounded-lg p-4 text-center" style="background:#111;border:1px solid rgba(255,255,255,0.1)"><p class="text-cyan-400 text-sm">⏳ Загрузка фото...</p></div>';
+        html+='<img id="seqpreview-'+s.id+'" data-fileid="'+esc(s.media_file_id)+'" class="w-full rounded-lg seqimg-lazy" style="max-height:300px;object-fit:contain;background:#111;display:none"><div id="seqloading-'+s.id+'" class="w-full rounded-lg p-4 text-center" style="background:#111;border:1px solid rgba(255,255,255,0.1)"><p class="text-cyan-400 text-sm">⏳ Загрузка '+(isVid?'видео':'фото')+'...</p></div>';
       }
       html+='<button class="absolute top-2 right-2 z-10 w-9 h-9 rounded-full bg-red-600 text-white text-lg flex items-center justify-center shadow-lg cursor-pointer" style="pointer-events:auto" onclick="event.stopPropagation();clearSeqImg('+s.id+')">✕</button>';
       html+='</div>';
@@ -789,7 +794,8 @@ async function uploadSeqMedia(file,id){
       if(s){s.media_url=imgUrl;s.media_type=mtype;s.media_file_id=d.file_id;s.media_width=d.width||null;s.media_height=d.height||null}
       markSeqDirty(id);
       var previewSrc=imgUrl||URL.createObjectURL(file);
-      if(media)media.innerHTML='<div class="relative mb-2"><img src="'+previewSrc+'" class="w-full rounded-lg" style="max-height:300px;object-fit:contain;background:#111"><button class="absolute top-2 right-2 z-10 w-9 h-9 rounded-full bg-red-600 text-white text-lg flex items-center justify-center shadow-lg cursor-pointer" onclick="event.stopPropagation();clearSeqImg('+id+')">✕</button></div>';
+      var mediaTag=isVideo?'<video src="'+previewSrc+'" class="w-full rounded-lg" style="max-height:300px;object-fit:contain;background:#111" controls playsinline></video>':'<img src="'+previewSrc+'" class="w-full rounded-lg" style="max-height:300px;object-fit:contain;background:#111">';
+      if(media)media.innerHTML='<div class="relative mb-2">'+mediaTag+'<button class="absolute top-2 right-2 z-10 w-9 h-9 rounded-full bg-red-600 text-white text-lg flex items-center justify-center shadow-lg cursor-pointer" onclick="event.stopPropagation();clearSeqImg('+id+')">✕</button></div>';
     }else{alert(d.error||'Ошибка загрузки');loadSeqs()}
   }catch(e){alert('Ошибка: '+e);loadSeqs()}
 }

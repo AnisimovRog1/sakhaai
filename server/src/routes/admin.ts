@@ -276,11 +276,11 @@ adminRouter.get('/push/templates', async (req: Request, res: Response) => {
 
 adminRouter.post('/push/templates', async (req: Request, res: Response) => {
   try {
-    const { name, text, mediaType, mediaFileId, scheduleType, sendTime, createdBy } = req.body;
+    const { name, text, mediaType, mediaFileId, scheduleType, sendTime, createdBy, mediaWidth, mediaHeight } = req.body;
     const r = await pool.query(
-      `INSERT INTO push_templates (name, text, media_type, media_file_id, schedule_type, send_time, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [name, text, mediaType || null, mediaFileId || null, scheduleType || 'manual', sendTime || null, createdBy || null]
+      `INSERT INTO push_templates (name, text, media_type, media_file_id, schedule_type, send_time, created_by, media_width, media_height)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+      [name, text, mediaType || null, mediaFileId || null, scheduleType || 'manual', sendTime || null, createdBy || null, mediaWidth || null, mediaHeight || null]
     );
     res.json(r.rows[0]);
   } catch (err: any) { res.status(500).json({ error: err.message }); }

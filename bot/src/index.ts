@@ -1212,6 +1212,16 @@ bot.on('message', async (ctx) => {
 // ЗАПУСК
 // ═══════════════════════════════════════════════════════
 
+// Graceful shutdown — корректное завершение при деплое
+process.once('SIGTERM', () => {
+  console.log('SIGTERM received, stopping bot...');
+  bot.stop();
+});
+process.once('SIGINT', () => {
+  console.log('SIGINT received, stopping bot...');
+  bot.stop();
+});
+
 bot.start({
   onStart: async () => {
     console.log('Бот @UraanxAI_bot запущен');

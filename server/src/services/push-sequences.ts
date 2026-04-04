@@ -127,16 +127,6 @@ async function findDailyUsers(seq: PushSequence): Promise<number[]> {
   return rows.map((r: any) => r.id);
 }
 
-// ─── Приветственный пуш — юзеры зареганные менее 5 минут назад ───
-async function findWelcomeUsers(seq: PushSequence): Promise<number[]> {
-  const { rows } = await pool.query(`
-    SELECT u.id FROM users u
-    WHERE u.is_banned = false
-      AND u.created_at >= NOW() - INTERVAL '5 minutes'
-      AND NOT EXISTS (SELECT 1 FROM push_sent ps WHERE ps.user_id = u.id AND ps.sequence_id = $1)
-  `, [seq.id]);
-  return rows.map((r: any) => r.id);
-}
 
 // ─── Реактивация — юзеры не заходившие 7+ дней, макс 3 раза ───
 async function findReactivationUsers(seq: PushSequence): Promise<number[]> {

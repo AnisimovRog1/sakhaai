@@ -20,7 +20,7 @@ const ADMIN_CHAT_ID = ADMIN_IDS[0] || null;
 if (!BOT_TOKEN) throw new Error('BOT_TOKEN не задан');
 
 // ─── HTTP helpers ───────────────────────────────────────
-function httpRequest(method: string, url: string, data?: object): Promise<any> {
+function httpRequest(method: string, url: string, data?: object, timeoutMs = 10000): Promise<any> {
   return new Promise((resolve, reject) => {
     const body = data ? JSON.stringify(data) : undefined;
     const parsed = new URL(url);
@@ -28,6 +28,7 @@ function httpRequest(method: string, url: string, data?: object): Promise<any> {
       hostname: parsed.hostname,
       path: parsed.pathname + parsed.search,
       method,
+      timeout: timeoutMs,
       headers: {
         'Authorization': `Bearer ${BOT_TOKEN}`,
         'Content-Type': 'application/json',
@@ -40,6 +41,7 @@ function httpRequest(method: string, url: string, data?: object): Promise<any> {
         try { resolve(JSON.parse(responseData)); } catch { resolve({}); }
       });
     });
+    req.on('timeout', () => { req.destroy(); reject(new Error(`HTTP timeout ${timeoutMs}ms: ${method} ${parsed.pathname}`)); });
     req.on('error', reject);
     if (body) req.write(body);
     req.end();
@@ -53,6 +55,11 @@ function isAdmin(chatId: number): boolean {
 }
 
 const bot = new Bot(BOT_TOKEN);
+
+// Глобальный обработчик ошибок — бот НЕ крашится при необработанных исключениях
+bot.catch((err) => {
+  console.error('❌ Bot error:', err.message || err);
+});
 
 // ═══════════════════════════════════════════════════════
 // ПУБЛИЧНЫЕ КОМАНДЫ

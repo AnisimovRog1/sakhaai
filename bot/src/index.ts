@@ -1224,23 +1224,11 @@ process.once('SIGINT', () => {
 });
 
 bot.start({
+  drop_pending_updates: true,
   onStart: async () => {
     console.log('Бот @UraanxAI_bot запущен');
 
-    // ─── Профиль бота в Telegram (только имя + короткое описание для поиска) ───
-    try {
-      await bot.api.setMyName('UraanxAI');
-      await bot.api.setMyDescription(
-        'Контент будущего уже здесь. Генерируй фото и видео с помощью AI - будь на шаг впереди ✨'
-      );
-      await bot.api.setMyShortDescription(
-        'Контент будущего уже здесь. Генерируй фото и видео с помощью AI - будь на шаг впереди ✨'
-      );
-      console.log('✅ Профиль бота обновлён');
-    } catch (e) {
-      console.error('⚠️ Не удалось обновить профиль бота:', e);
-    }
-
+    // Профиль бота (имя/описание) уже установлен через BotFather — не вызываем при каждом деплое
     scheduleReports();
     // Автопуши каждые 2 минуты
     setInterval(processAutoSequences, 2 * 60 * 1000);

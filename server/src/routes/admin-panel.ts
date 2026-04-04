@@ -731,7 +731,7 @@ async function toggleSeq(id){await apiFetch('/admin/push/sequences/'+id+'/toggle
 async function delSeq(id){if(!confirm('Удалить?'))return;await D('/admin/push/sequences/'+id);loadSeqs()}
 async function dupeSeq(id){
   var s=seqData.find(function(x){return x.id===id});if(!s)return;
-  var r=await P('/admin/push/sequences',{trigger_type:s.trigger_type,delay_minutes:s.delay_minutes,credits_threshold:s.credits_threshold,text:s.text,media_type:s.media_type,media_url:s.media_url,media_file_id:s.media_file_id,label:s.label+' (копия)',is_active:false,allow_hour_from:s.allow_hour_from,allow_hour_to:s.allow_hour_to,send_mode:s.send_mode,strict_time:s.strict_time,preferred_time:s.preferred_time,weekday:s.weekday,greeting_mode:s.greeting_mode,greeting_fixed:s.greeting_fixed});
+  var r=await P('/admin/push/sequences',{trigger_type:s.trigger_type,delay_minutes:s.delay_minutes,credits_threshold:s.credits_threshold,text:s.text,media_type:s.media_type,media_url:s.media_url,media_file_id:s.media_file_id,label:s.label+' (копия)',is_active:false,allow_hour_from:s.allow_hour_from,allow_hour_to:s.allow_hour_to,send_mode:s.send_mode,strict_time:s.strict_time,preferred_time:s.preferred_time,weekday:s.weekday,greeting_mode:s.greeting_mode,greeting_fixed:s.greeting_fixed,media_width:s.media_width||null,media_height:s.media_height||null});
   if(r.id)loadSeqs();else alert(r.error||'Ошибка')
 }
 
@@ -769,7 +769,7 @@ async function clearSeqImg(id){
   document.getElementById('seqimg-'+id).value='';
   var fid=document.getElementById('seqfileid-'+id);if(fid)fid.value='';
   var s=seqData.find(function(x){return x.id===id});
-  if(s){s.media_url=null;s.media_type=null;s.media_file_id=null}
+  if(s){s.media_url=null;s.media_type=null;s.media_file_id=null;s.media_width=null;s.media_height=null}
   await saveSeq(id);
 }
 

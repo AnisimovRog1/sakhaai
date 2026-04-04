@@ -52,8 +52,26 @@ export async function getActiveSequences(trigger?: TriggerType): Promise<PushSeq
   return rows;
 }
 
+// ─── Контекст цепочки: предыдущий шаг ───
+interface ChainPrev { prevSeqId: number; deltaMinutes: number }
+
 // ─── Найти пользователей для welcome пуша с delay > 0 ───
-async function findWelcomeUsers(seq: PushSequence): Promise<number[]> {
+async function findWelcomeUsers(seq: PushSequence, prev: ChainPrev | null): Promise<number[]> {
+  if (prev) {
+    // Последующий шаг: требуем что предыдущий пуш отправлен >= deltaMinutes назад
+    const { rows } = await pool.query(`
+      SELECT u.id FROM users u
+      WHERE u.is_banned = false
+        AND NOT EXISTS (SELECT 1 FROM push_sent ps WHERE ps.user_id = u.id AND ps.sequence_id = $1)
+        AND EXISTS (
+          SELECT 1 FROM push_sent ps2
+          WHERE ps2.user_id = u.id AND ps2.sequence_id = $2
+          AND ps2.sent_at <= NOW() - INTERVAL '1 minute' * $3
+        )
+    `, [seq.id, prev.prevSeqId, prev.deltaMinutes]);
+    return rows.map((r: any) => r.id);
+  }
+  // Первый шаг цепочки: оригинальная логика
   const { rows } = await pool.query(`
     SELECT u.id FROM users u
     WHERE u.is_banned = false
@@ -64,7 +82,21 @@ async function findWelcomeUsers(seq: PushSequence): Promise<number[]> {
 }
 
 // ─── Найти пользователей для пуша no_purchase ───
-async function findNoPurchaseUsers(seq: PushSequence): Promise<number[]> {
+async function findNoPurchaseUsers(seq: PushSequence, prev: ChainPrev | null): Promise<number[]> {
+  if (prev) {
+    const { rows } = await pool.query(`
+      SELECT u.id FROM users u
+      WHERE u.is_banned = false
+        AND NOT EXISTS (SELECT 1 FROM orders o WHERE o.user_id = u.id AND o.status = 'paid')
+        AND NOT EXISTS (SELECT 1 FROM push_sent ps WHERE ps.user_id = u.id AND ps.sequence_id = $1)
+        AND EXISTS (
+          SELECT 1 FROM push_sent ps2
+          WHERE ps2.user_id = u.id AND ps2.sequence_id = $2
+          AND ps2.sent_at <= NOW() - INTERVAL '1 minute' * $3
+        )
+    `, [seq.id, prev.prevSeqId, prev.deltaMinutes]);
+    return rows.map((r: any) => r.id);
+  }
   const { rows } = await pool.query(`
     SELECT u.id FROM users u
     WHERE u.is_banned = false
@@ -76,7 +108,20 @@ async function findNoPurchaseUsers(seq: PushSequence): Promise<number[]> {
 }
 
 // ─── Найти пользователей для пуша after_purchase ───
-async function findAfterPurchaseUsers(seq: PushSequence): Promise<number[]> {
+async function findAfterPurchaseUsers(seq: PushSequence, prev: ChainPrev | null): Promise<number[]> {
+  if (prev) {
+    const { rows } = await pool.query(`
+      SELECT DISTINCT o.user_id AS id FROM orders o
+      WHERE o.status = 'paid'
+        AND NOT EXISTS (SELECT 1 FROM push_sent ps WHERE ps.user_id = o.user_id AND ps.sequence_id = $1)
+        AND EXISTS (
+          SELECT 1 FROM push_sent ps2
+          WHERE ps2.user_id = o.user_id AND ps2.sequence_id = $2
+          AND ps2.sent_at <= NOW() - INTERVAL '1 minute' * $3
+        )
+    `, [seq.id, prev.prevSeqId, prev.deltaMinutes]);
+    return rows.map((r: any) => r.id);
+  }
   const { rows } = await pool.query(`
     SELECT DISTINCT o.user_id AS id FROM orders o
     WHERE o.status = 'paid'
@@ -101,7 +146,22 @@ async function findLowCreditsUsers(seq: PushSequence): Promise<number[]> {
 }
 
 // ─── Найти пользователей для пуша zero_credits ───
-async function findZeroCreditsUsers(seq: PushSequence): Promise<number[]> {
+async function findZeroCreditsUsers(seq: PushSequence, prev: ChainPrev | null): Promise<number[]> {
+  if (prev) {
+    const { rows } = await pool.query(`
+      SELECT u.id FROM users u
+      WHERE u.is_banned = false
+        AND u.credits <= 0
+        AND u.credits_zero_at IS NOT NULL
+        AND NOT EXISTS (SELECT 1 FROM push_sent ps WHERE ps.user_id = u.id AND ps.sequence_id = $1)
+        AND EXISTS (
+          SELECT 1 FROM push_sent ps2
+          WHERE ps2.user_id = u.id AND ps2.sequence_id = $2
+          AND ps2.sent_at <= NOW() - INTERVAL '1 minute' * $3
+        )
+    `, [seq.id, prev.prevSeqId, prev.deltaMinutes]);
+    return rows.map((r: any) => r.id);
+  }
   const { rows } = await pool.query(`
     SELECT u.id FROM users u
     WHERE u.is_banned = false
@@ -145,7 +205,21 @@ async function findReactivationUsers(seq: PushSequence): Promise<number[]> {
 }
 
 // ─── Первая генерация — юзеры с ровно 1 генерацией, через delay_minutes ───
-async function findFirstGenerationUsers(seq: PushSequence): Promise<number[]> {
+async function findFirstGenerationUsers(seq: PushSequence, prev: ChainPrev | null): Promise<number[]> {
+  if (prev) {
+    const { rows } = await pool.query(`
+      SELECT u.id FROM users u
+      WHERE u.is_banned = false
+        AND (SELECT COUNT(*) FROM generations g WHERE g.user_id = u.id) >= 1
+        AND NOT EXISTS (SELECT 1 FROM push_sent ps WHERE ps.user_id = u.id AND ps.sequence_id = $1)
+        AND EXISTS (
+          SELECT 1 FROM push_sent ps2
+          WHERE ps2.user_id = u.id AND ps2.sequence_id = $2
+          AND ps2.sent_at <= NOW() - INTERVAL '1 minute' * $3
+        )
+    `, [seq.id, prev.prevSeqId, prev.deltaMinutes]);
+    return rows.map((r: any) => r.id);
+  }
   const { rows } = await pool.query(`
     SELECT u.id FROM users u
     WHERE u.is_banned = false
@@ -212,21 +286,48 @@ export async function findPendingPushes(): Promise<PendingPush[]> {
   const sequences = await getActiveSequences();
   const result: PendingPush[] = [];
 
+  // Строим карту цепочек: для каждой последовательности находим предыдущий шаг
+  const chainTypes: TriggerType[] = ['welcome', 'no_purchase', 'after_purchase', 'zero_credits', 'first_generation'];
+  const chainMap = new Map<number, ChainPrev | null>();
+  const byTrigger = new Map<TriggerType, PushSequence[]>();
+
+  for (const seq of sequences) {
+    if (!chainTypes.includes(seq.trigger_type)) continue;
+    const list = byTrigger.get(seq.trigger_type) || [];
+    list.push(seq);
+    byTrigger.set(seq.trigger_type, list);
+  }
+
+  for (const [, list] of byTrigger) {
+    // list уже отсортирован по delay_minutes (из getActiveSequences)
+    for (let i = 0; i < list.length; i++) {
+      if (i === 0) {
+        chainMap.set(list[i].id, null); // первый в цепочке
+      } else {
+        chainMap.set(list[i].id, {
+          prevSeqId: list[i - 1].id,
+          deltaMinutes: list[i].delay_minutes - list[i - 1].delay_minutes,
+        });
+      }
+    }
+  }
+
   for (const seq of sequences) {
     let userIds: number[] = [];
+    const prev = chainMap.get(seq.id) ?? null;
 
     switch (seq.trigger_type) {
       case 'no_purchase':
-        userIds = await findNoPurchaseUsers(seq);
+        userIds = await findNoPurchaseUsers(seq, prev);
         break;
       case 'after_purchase':
-        userIds = await findAfterPurchaseUsers(seq);
+        userIds = await findAfterPurchaseUsers(seq, prev);
         break;
       case 'low_credits':
         userIds = await findLowCreditsUsers(seq);
         break;
       case 'zero_credits':
-        userIds = await findZeroCreditsUsers(seq);
+        userIds = await findZeroCreditsUsers(seq, prev);
         break;
       case 'daily':
         userIds = await findDailyUsers(seq);
@@ -234,14 +335,14 @@ export async function findPendingPushes(): Promise<PendingPush[]> {
       case 'welcome':
         // Первый welcome (delay=0) отправляется из /start, остальные через автопуши
         if (seq.delay_minutes > 0) {
-          userIds = await findWelcomeUsers(seq);
+          userIds = await findWelcomeUsers(seq, prev);
         }
         break;
       case 'reactivation':
         userIds = await findReactivationUsers(seq);
         break;
       case 'first_generation':
-        userIds = await findFirstGenerationUsers(seq);
+        userIds = await findFirstGenerationUsers(seq, prev);
         break;
     }
 

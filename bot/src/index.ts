@@ -96,6 +96,12 @@ bot.command('start', async (ctx) => {
       } else {
         await ctx.reply(text, { parse_mode: 'HTML', reply_markup: inlineKb });
       }
+      // Помечаем первый welcome как отправленный — без этого цепочка не пойдёт дальше
+      if (firstSeq.id && ctx.from?.id) {
+        httpPost(`${SERVER_URL}/admin/push/sequences/mark-sent`, {
+          user_id: ctx.from.id, sequence_id: firstSeq.id,
+        }).catch(() => {});
+      }
     } else {
       throw new Error('no welcome');
     }
@@ -1163,8 +1169,8 @@ async function processAutoSequences() {
       }
     }
     if (sent > 0) console.log(`📨 Автопуши: отправлено ${sent} из ${pending.length}`);
-  } catch (_e) {
-    // Тихая ошибка — не ломаем бот
+  } catch (e) {
+    console.error('❌ processAutoSequences error:', e);
   }
 }
 

@@ -971,6 +971,7 @@ async function broadcastTemplate(tmpl: any, ctx: any) {
           await bot.api.sendVideo(Number(user.id), tmpl.media_file_id, {
             caption: formatText(tmpl.text),
             parse_mode: 'HTML',
+            supports_streaming: true,
           });
         } else {
           await bot.api.sendMessage(Number(user.id), formatText(tmpl.text), {
@@ -1124,6 +1125,7 @@ async function processAutoSequences() {
           await bot.api.sendVideo(Number(p.user_id), media, {
             caption: formatText(text),
             parse_mode: 'HTML',
+            supports_streaming: true,
           });
         } else if (p.media_type === 'photo' && media) {
           await bot.api.sendPhoto(Number(p.user_id), media, {

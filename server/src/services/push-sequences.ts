@@ -355,11 +355,8 @@ export async function findPendingPushes(): Promise<PendingPush[]> {
       console.log(`[pending] ${seq.trigger_type} #${seq.id} (delay=${seq.delay_minutes}): ${userIds.length} users found, prev=${prev ? `#${prev.prevSeqId} delta=${prev.deltaMinutes}min` : 'null (first)'}`);
     }
 
-    // Welcome-цепочка: юзер только что нажал /start = онлайн, не фильтруем по часам
-    // Остальные триггеры: фильтр по разрешённым часам, send_mode, weekday
-    const filtered = seq.trigger_type === 'welcome'
-      ? userIds.map(id => ({ id, localHour: 12 }))
-      : await filterByTimezone(userIds, seq);
+    // Пуши идут строго по delay_minutes цепочки, без ограничений по часам
+    const filtered = userIds.map(id => ({ id, localHour: 12 }));
 
     if (userIds.length > 0 && filtered.length === 0) {
       console.log(`[pending] ${seq.trigger_type} #${seq.id}: ALL ${userIds.length} users filtered OUT by timezone (from=${seq.allow_hour_from}, to=${seq.allow_hour_to})`);

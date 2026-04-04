@@ -85,7 +85,6 @@ bot.command('start', async (ctx) => {
   // Пробуем welcome push из БД, если не получится — fallback
   try {
     const welcomeSeq = await httpGet(`${SERVER_URL}/admin/push/sequences/welcome`) as any;
-    console.log('[welcome] data:', JSON.stringify({ text: welcomeSeq?.text?.substring(0, 50), media_type: welcomeSeq?.media_type, media_file_id: !!welcomeSeq?.media_file_id, media_url: !!welcomeSeq?.media_url, media_width: welcomeSeq?.media_width, media_height: welcomeSeq?.media_height }));
     if (welcomeSeq && welcomeSeq.text) {
       const media = welcomeSeq.media_file_id || welcomeSeq.media_url;
       const text = formatText(welcomeSeq.text);

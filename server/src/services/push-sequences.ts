@@ -355,8 +355,11 @@ export async function findPendingPushes(): Promise<PendingPush[]> {
       console.log(`[pending] ${seq.trigger_type} #${seq.id} (delay=${seq.delay_minutes}): ${userIds.length} users found, prev=${prev ? `#${prev.prevSeqId} delta=${prev.deltaMinutes}min` : 'null (first)'}`);
     }
 
-    // Пуши идут строго по delay_minutes цепочки, без ограничений по часам
-    const filtered = userIds.map(id => ({ id, localHour: 12 }));
+    // Daily пуши: фильтр по дню недели (из timezone юзера с телефона)
+    // Остальные: строго по delay_minutes, без ограничений по часам
+    const filtered = seq.trigger_type === 'daily'
+      ? await filterByTimezone(userIds, seq)
+      : userIds.map(id => ({ id, localHour: 12 }));
 
     if (userIds.length > 0 && filtered.length === 0) {
       console.log(`[pending] ${seq.trigger_type} #${seq.id}: ALL ${userIds.length} users filtered OUT by timezone (from=${seq.allow_hour_from}, to=${seq.allow_hour_to})`);

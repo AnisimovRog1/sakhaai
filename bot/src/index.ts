@@ -82,18 +82,23 @@ bot.command('start', async (ctx) => {
     .text('👥 Пригласить друга')
     .resized().persistent();
 
-  // Пробуем welcome push из БД, если не получится — fallback
+  // Пробуем welcome push из БД — отправляем ВСЕ welcome пуши по порядку
   try {
-    const welcomeSeq = await httpGet(`${SERVER_URL}/admin/push/sequences/welcome`) as any;
-    if (welcomeSeq && welcomeSeq.text) {
-      const media = welcomeSeq.media_file_id || welcomeSeq.media_url;
-      const text = formatText(welcomeSeq.text);
-      if (welcomeSeq.media_type === 'video' && media) {
-        await ctx.replyWithVideo(media, { caption: text, parse_mode: 'HTML', reply_markup: inlineKb, supports_streaming: true, width: welcomeSeq.media_width || undefined, height: welcomeSeq.media_height || undefined });
-      } else if (welcomeSeq.media_type === 'photo' && media) {
-        await ctx.replyWithPhoto(media, { caption: text, parse_mode: 'HTML', reply_markup: inlineKb });
-      } else {
-        await ctx.reply(text, { parse_mode: 'HTML', reply_markup: inlineKb });
+    const welcomeSeqs = await httpGet(`${SERVER_URL}/admin/push/sequences/welcome`) as any[];
+    if (Array.isArray(welcomeSeqs) && welcomeSeqs.length > 0) {
+      for (let i = 0; i < welcomeSeqs.length; i++) {
+        const seq = welcomeSeqs[i];
+        const media = seq.media_file_id || seq.media_url;
+        const text = formatText(seq.text);
+        // Кнопки только на последнем сообщении
+        const markup = i === welcomeSeqs.length - 1 ? { reply_markup: inlineKb } : {};
+        if (seq.media_type === 'video' && media) {
+          await ctx.replyWithVideo(media, { caption: text, parse_mode: 'HTML', ...markup, supports_streaming: true, width: seq.media_width || undefined, height: seq.media_height || undefined });
+        } else if (seq.media_type === 'photo' && media) {
+          await ctx.replyWithPhoto(media, { caption: text, parse_mode: 'HTML', ...markup });
+        } else if (text) {
+          await ctx.reply(text, { parse_mode: 'HTML', ...markup });
+        }
       }
     } else {
       throw new Error('no welcome');

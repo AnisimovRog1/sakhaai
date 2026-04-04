@@ -476,11 +476,11 @@ adminRouter.delete('/push/sequences/:id/permanent', async (req: Request, res: Re
   } catch (err: any) { res.status(500).json({ error: err.message }); }
 });
 
-// Получить активный welcome push для /start
+// Получить ВСЕ активные welcome пуши для /start
 adminRouter.get('/push/sequences/welcome', async (_req: Request, res: Response) => {
   try {
     const sequences = await getActiveSequences('welcome');
-    res.json(sequences.length > 0 ? sequences[0] : null);
+    res.json(sequences);
   } catch (err: any) { res.status(500).json({ error: err.message }); }
 });
 

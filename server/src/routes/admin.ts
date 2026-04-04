@@ -434,7 +434,9 @@ adminRouter.get('/push/sequences', async (_req: Request, res: Response) => {
 
 adminRouter.post('/push/sequences', async (req: Request, res: Response) => {
   try {
+    console.log('[push/sequences] SAVE:', JSON.stringify({ id: req.body.id, media_type: req.body.media_type, media_width: req.body.media_width, media_height: req.body.media_height, media_file_id: !!req.body.media_file_id }));
     const seq = await upsertSequence(req.body);
+    console.log('[push/sequences] RESULT:', JSON.stringify({ id: seq.id, media_type: seq.media_type, media_width: seq.media_width, media_height: seq.media_height }));
     res.json(seq);
   } catch (err: any) { res.status(500).json({ error: err.message }); }
 });
@@ -558,6 +560,7 @@ adminRouter.post('/upload-photo', upload.single('photo'), async (req: Request, r
       }
     } catch { /* fallback — без URL */ }
 
+    console.log('[upload-photo] DONE:', JSON.stringify({ media_type: mediaType, width: mediaWidth, height: mediaHeight, file_id: fileId?.substring(0, 20) }));
     res.json({ file_id: fileId, media_type: mediaType, file_url: fileUrl, width: mediaWidth, height: mediaHeight });
   } catch (err: any) { res.status(500).json({ error: err.message }); }
 });

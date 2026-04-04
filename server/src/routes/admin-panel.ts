@@ -783,15 +783,24 @@ function seqFileSelect(e,id){var f=e.target.files[0];if(f)uploadSeqMedia(f,id)}
 function getVideoSize(file){
   return new Promise(function(resolve){
     if(!file.type.startsWith('video/')){resolve({w:null,h:null});return}
+    var resolved=false;
     var video=document.createElement('video');
-    video.preload='metadata';
-    video.onloadedmetadata=function(){
-      resolve({w:video.videoWidth,h:video.videoHeight});
+    video.preload='auto';
+    video.muted=true;
+    function done(){
+      if(resolved)return;resolved=true;
+      var w=video.videoWidth||null;
+      var h=video.videoHeight||null;
       URL.revokeObjectURL(video.src);
-    };
-    video.onerror=function(){resolve({w:null,h:null})};
+      resolve({w:w,h:h});
+    }
+    video.onloadedmetadata=done;
+    video.onloadeddata=done;
+    video.oncanplay=done;
+    video.onerror=function(){if(!resolved){resolved=true;resolve({w:null,h:null})}};
     video.src=URL.createObjectURL(file);
-    setTimeout(function(){resolve({w:null,h:null})},5000);
+    video.load();
+    setTimeout(function(){if(!resolved){resolved=true;resolve({w:null,h:null})}},15000);
   });
 }
 
@@ -810,9 +819,12 @@ async function uploadSeqMedia(file,id){
       document.getElementById('seqimg-'+id).value=imgUrl;
       var hiddenFid=document.getElementById('seqfileid-'+id);if(hiddenFid)hiddenFid.value=d.file_id;
       var mtype=d.media_type||(isVideo?'video':'photo');
-      // Используем РЕАЛЬНЫЕ размеры видео с клиента, а не сжатые от Telegram
-      var actualW=realSize.w||d.width||null;
-      var actualH=realSize.h||d.height||null;
+      // Используем РЕАЛЬНЫЕ размеры видео с клиента
+      // Если 320×320 — это Telegram default (сжатое), игнорируем
+      var actualW=realSize.w||null;
+      var actualH=realSize.h||null;
+      if(actualW===320&&actualH===320){actualW=null;actualH=null}
+      if(!actualW&&d.width&&!(d.width===320&&d.height===320)){actualW=d.width;actualH=d.height}
       var s=seqData.find(function(x){return x.id===id});
       if(s){s.media_url=imgUrl;s.media_type=mtype;s.media_file_id=d.file_id;s.media_width=actualW;s.media_height=actualH}
       var mtypeInput=document.getElementById('seqmediatype-'+id);if(mtypeInput)mtypeInput.value=mtype;

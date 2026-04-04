@@ -535,9 +535,13 @@ adminRouter.post('/upload-photo', upload.single('photo'), async (req: Request, r
 
     let fileId: string;
     let mediaType: string;
+    let mediaWidth: number | null = null;
+    let mediaHeight: number | null = null;
     if (isVideo) {
       fileId = data.result.video.file_id;
       mediaType = 'video';
+      mediaWidth = data.result.video.width || null;
+      mediaHeight = data.result.video.height || null;
     } else {
       fileId = data.result.photo[data.result.photo.length - 1].file_id;
       mediaType = 'photo';
@@ -553,7 +557,7 @@ adminRouter.post('/upload-photo', upload.single('photo'), async (req: Request, r
       }
     } catch { /* fallback — без URL */ }
 
-    res.json({ file_id: fileId, media_type: mediaType, file_url: fileUrl });
+    res.json({ file_id: fileId, media_type: mediaType, file_url: fileUrl, width: mediaWidth, height: mediaHeight });
   } catch (err: any) { res.status(500).json({ error: err.message }); }
 });
 

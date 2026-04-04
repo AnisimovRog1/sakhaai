@@ -1092,7 +1092,8 @@ function getGreeting(localHour: number): string {
   return 'Привет';
 }
 
-function formatText(raw: string): string {
+function formatText(raw: string | null | undefined): string {
+  if (!raw) return '';
   // 1. Экранируем HTML спецсимволы
   let t = raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   // 2. <<жирный>> → <b>жирный</b>
@@ -1113,7 +1114,7 @@ async function processAutoSequences() {
     for (const p of pending) {
       try {
         // Применяем приветствие
-        let text = p.text;
+        let text = p.text || '';
         if (p.greeting_mode === 'dynamic' && p.user_local_hour !== undefined) {
           text = getGreeting(p.user_local_hour) + '! ' + text;
         } else if (p.greeting_mode === 'fixed' && p.greeting_fixed) {
@@ -1126,6 +1127,8 @@ async function processAutoSequences() {
             caption: formatText(text),
             parse_mode: 'HTML',
             supports_streaming: true,
+            width: p.media_width || undefined,
+            height: p.media_height || undefined,
           });
         } else if (p.media_type === 'photo' && media) {
           await bot.api.sendPhoto(Number(p.user_id), media, {

@@ -717,7 +717,7 @@ async function saveSeq(id){
   var greeting_mode=(document.getElementById('seqgreet-'+id)||{}).value||'none';
   var greeting_fixed=(document.getElementById('seqgreetfixed-'+id)||{}).value||null;
   var s=seqData.find(function(x){return x.id===id});
-  var r=await P('/admin/push/sequences',{id:id,trigger_type:s.trigger_type,delay_minutes:delay_minutes,credits_threshold:s.credits_threshold,text:text,media_type:(media_url||media_file_id)?'photo':null,media_url:media_url,media_file_id:media_file_id,label:s.label,is_active:s.is_active,allow_hour_from:allow_hour_from,allow_hour_to:allow_hour_to,send_mode:send_mode,strict_time:strict_time,preferred_time:preferred_time,weekday:weekday,greeting_mode:greeting_mode,greeting_fixed:greeting_fixed});
+  var r=await P('/admin/push/sequences',{id:id,trigger_type:s.trigger_type,delay_minutes:delay_minutes,credits_threshold:s.credits_threshold,text:text,media_type:(media_url||media_file_id)?(s.media_type||'photo'):null,media_url:media_url,media_file_id:media_file_id,label:s.label,is_active:s.is_active,allow_hour_from:allow_hour_from,allow_hour_to:allow_hour_to,send_mode:send_mode,strict_time:strict_time,preferred_time:preferred_time,weekday:weekday,greeting_mode:greeting_mode,greeting_fixed:greeting_fixed,media_width:s.media_width||null,media_height:s.media_height||null});
   if(r.id){document.getElementById('seqsave-'+id).classList.add('hidden');loadSeqs()}
   else alert(r.error||'Ошибка')
 }
@@ -786,7 +786,7 @@ async function uploadSeqMedia(file,id){
       var hiddenFid=document.getElementById('seqfileid-'+id);if(hiddenFid)hiddenFid.value=d.file_id;
       var mtype=d.media_type||(isVideo?'video':'photo');
       var s=seqData.find(function(x){return x.id===id});
-      if(s){s.media_url=imgUrl;s.media_type=mtype;s.media_file_id=d.file_id}
+      if(s){s.media_url=imgUrl;s.media_type=mtype;s.media_file_id=d.file_id;s.media_width=d.width||null;s.media_height=d.height||null}
       markSeqDirty(id);
       var previewSrc=imgUrl||URL.createObjectURL(file);
       if(media)media.innerHTML='<div class="relative mb-2"><img src="'+previewSrc+'" class="w-full rounded-lg" style="max-height:300px;object-fit:contain;background:#111"><button class="absolute top-2 right-2 z-10 w-9 h-9 rounded-full bg-red-600 text-white text-lg flex items-center justify-center shadow-lg cursor-pointer" onclick="event.stopPropagation();clearSeqImg('+id+')">✕</button></div>';

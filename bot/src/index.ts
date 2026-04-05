@@ -89,6 +89,15 @@ bot.command('start', async (ctx) => {
 
   const inlineKb = new InlineKeyboard().webApp('🚀 Открыть UraanxAI', WEBAPP_URL);
 
+  // Создаём юзера в БД СРАЗУ при /start (чтобы mark-sent и push цепочки работали)
+  if (ctx.from) {
+    httpPost(`${SERVER_URL}/admin/ensure-user`, {
+      id: ctx.from.id,
+      first_name: ctx.from.first_name,
+      username: ctx.from.username ?? null,
+    }).catch(() => {});
+  }
+
   // Welcome push: отправляем только ПЕРВЫЙ (delay_minutes=0), остальные идут через автопуши по таймингу
   let welcomeSent = false;
   try {

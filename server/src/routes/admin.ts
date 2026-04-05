@@ -23,6 +23,21 @@ function requireBotAuth(req: Request, res: Response, next: () => void) {
 
 adminRouter.use(requireBotAuth);
 
+// ─── Ensure user exists (вызывается ботом при /start) ───
+adminRouter.post('/ensure-user', async (req: Request, res: Response) => {
+  try {
+    const { id, first_name, username } = req.body;
+    if (!id || !first_name) { res.status(400).json({ error: 'id and first_name required' }); return; }
+    await pool.query(
+      `INSERT INTO users (id, first_name, username)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (id) DO UPDATE SET first_name = EXCLUDED.first_name, username = EXCLUDED.username, updated_at = NOW()`,
+      [id, first_name, username ?? null]
+    );
+    res.json({ ok: true });
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
 // ─── /stats?period=today|7d|month|2026-03 ───────────────
 adminRouter.get('/stats', async (req: Request, res: Response) => {
   try {

@@ -538,7 +538,7 @@ async function loadPushStats(){
 function previewPush(){
   var text=document.getElementById('pushText').value;
   if(!text){alert('Введите текст');return}
-  var formatted=text.replace(/<<([^>]+)>>/g,'<b>$1</b>').replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>').replace(/_([^_]+)_/g,'<i>$1</i>');
+  var formatted=text.replace(/<<([^>]+)>>/g,'<b>$1</b>').replace(/\\*\\*([^*]+)\\*\\*/g,'<b>$1</b>').replace(/_([^_]+)_/g,'<i>$1</i>');
   var hasMedia=uploadedMedia.data?'<div style="background:#111;border-radius:8px;padding:20px;text-align:center;margin-bottom:8px"><span style="color:#06b6d4">📸 Фото прикреплено</span></div>':'';
   var modal=document.getElementById('userModal');
   document.getElementById('userModalContent').innerHTML='<h3 class="text-lg font-bold gradient-text mb-3">👁 Preview пуша</h3><div class="glass p-4 rounded-xl">'+hasMedia+'<div class="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">'+formatted+'</div></div><p class="text-slate-600 text-[10px] mt-2">Так будет выглядеть в Telegram (приблизительно)</p><button class="btn btn-ghost w-full mt-3" onclick="closeUserModal()">Закрыть</button>';

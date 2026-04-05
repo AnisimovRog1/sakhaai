@@ -707,7 +707,7 @@ function renderSeqs(){
     var abText=s.ab_text||'';
     html+='<div class="mt-2" id="seqab-wrap-'+s.id+'" style="'+(abText?'':'display:none')+'">';
     html+='<div class="flex items-center gap-2 mb-1"><span class="text-[10px] font-bold text-amber-400">B вариант</span><button class="text-red-400/50 hover:text-red-400 text-[10px]" onclick="removeAB('+s.id+')" title="Удалить вариант B">✕</button></div>';
-    html+='<textarea class="w-full bg-black/20 border border-amber-500/20 rounded-lg p-2.5 text-xs text-slate-300 resize-y leading-relaxed font-mono" rows="3" id="seqabtext-'+s.id+'" onfocus="this.dataset.prev=this.value" oninput="markSeqDirty('+s.id+')" onblur="trackUndo('+s.id+',\'seqabtext-'+s.id+'\')">'+esc(abText)+'</textarea>';
+    html+='<textarea class="w-full bg-black/20 border border-amber-500/20 rounded-lg p-2.5 text-xs text-slate-300 resize-y leading-relaxed font-mono" rows="3" id="seqabtext-'+s.id+'" onfocus="this.dataset.prev=this.value" oninput="markSeqDirty('+s.id+')" onblur="trackUndo('+s.id+',\'seqabtext-'+s.id+'\')" onkeydown="seqHotkey(event,'+s.id+')">'+esc(abText)+'</textarea>';
     html+='</div>';
 
     // ═══ Кнопки сохранения/удаления ═══
@@ -740,12 +740,15 @@ function toggleGreetFixed(id,val){var f=document.getElementById('seqgreetfixed-'
 function markSeqDirty(id){var b=document.getElementById('seqsave-'+id);if(b)b.classList.remove('hidden');startDraftTimer(id)}
 function trackUndo(id,fieldId){var el=document.getElementById(fieldId);if(!el)return;if(!el.dataset.prev)el.dataset.prev=el.value;var prev=el.dataset.prev;if(prev!==el.value){pushUndo({id:id,field:fieldId,value:prev});el.dataset.prev=el.value}}
 
+var savingIds={};
 async function saveSeq(id){
+  if(savingIds[id])return;savingIds[id]=true;
+  try{
   var text=document.getElementById('seqtext-'+id).value;
   var media_url=document.getElementById('seqimg-'+id).value||null;
   var media_file_id=document.getElementById('seqfileid-'+id)?.value||null;
   if(media_url&&media_url.startsWith('tg://file_id/')){media_file_id=media_url.replace('tg://file_id/','');media_url=null}
-  var delay_minutes=parseInt(document.getElementById('seqdelay-'+id).value)||0;
+  var delay_minutes=Math.max(0,parseInt(document.getElementById('seqdelay-'+id).value)||0);
   var allow_hour_from=parseInt(document.getElementById('seqhfrom-'+id).value)||9;
   var allow_hour_to=parseInt(document.getElementById('seqhto-'+id).value)||22;
   var send_mode=(document.querySelector('input[name="seqmode-'+id+'"]:checked')||{}).value||'immediate';
@@ -763,6 +766,7 @@ async function saveSeq(id){
   var r=await P('/admin/push/sequences',{id:id,trigger_type:s.trigger_type,delay_minutes:delay_minutes,credits_threshold:s.credits_threshold,text:text,media_type:(media_url||media_file_id)?savedMediaType:null,media_url:media_url,media_file_id:media_file_id,label:s.label,is_active:s.is_active,allow_hour_from:allow_hour_from,allow_hour_to:allow_hour_to,send_mode:send_mode,strict_time:strict_time,preferred_time:preferred_time,weekday:weekday,greeting_mode:greeting_mode,greeting_fixed:greeting_fixed,media_width:media_width,media_height:media_height,ab_text:ab_text});
   if(r.id){document.getElementById('seqsave-'+id).classList.add('hidden');if(s)Object.assign(s,r)}
   else alert(r.error||'Ошибка')
+  }finally{delete savingIds[id]}
 }
 
 // Telegram-style превью сообщения
@@ -825,8 +829,9 @@ async function seqDrop(e,targetId){
   src.delay_minutes=tgt.delay_minutes;
   tgt.delay_minutes=tmpDelay;
   // Save both
-  await P('/admin/push/sequences',{id:src.id,trigger_type:src.trigger_type,delay_minutes:src.delay_minutes,credits_threshold:src.credits_threshold,text:src.text,media_type:src.media_type,media_url:src.media_url,media_file_id:src.media_file_id,label:src.label,is_active:src.is_active,allow_hour_from:src.allow_hour_from,allow_hour_to:src.allow_hour_to,send_mode:src.send_mode,strict_time:src.strict_time,preferred_time:src.preferred_time,weekday:src.weekday,greeting_mode:src.greeting_mode,greeting_fixed:src.greeting_fixed,media_width:src.media_width||null,media_height:src.media_height||null,ab_text:src.ab_text||null});
-  await P('/admin/push/sequences',{id:tgt.id,trigger_type:tgt.trigger_type,delay_minutes:tgt.delay_minutes,credits_threshold:tgt.credits_threshold,text:tgt.text,media_type:tgt.media_type,media_url:tgt.media_url,media_file_id:tgt.media_file_id,label:tgt.label,is_active:tgt.is_active,allow_hour_from:tgt.allow_hour_from,allow_hour_to:tgt.allow_hour_to,send_mode:tgt.send_mode,strict_time:tgt.strict_time,preferred_time:tgt.preferred_time,weekday:tgt.weekday,greeting_mode:tgt.greeting_mode,greeting_fixed:tgt.greeting_fixed,media_width:tgt.media_width||null,media_height:tgt.media_height||null,ab_text:tgt.ab_text||null});
+  var r1=await P('/admin/push/sequences',{id:src.id,trigger_type:src.trigger_type,delay_minutes:src.delay_minutes,credits_threshold:src.credits_threshold,text:src.text,media_type:src.media_type,media_url:src.media_url,media_file_id:src.media_file_id,label:src.label,is_active:src.is_active,allow_hour_from:src.allow_hour_from,allow_hour_to:src.allow_hour_to,send_mode:src.send_mode,strict_time:src.strict_time,preferred_time:src.preferred_time,weekday:src.weekday,greeting_mode:src.greeting_mode,greeting_fixed:src.greeting_fixed,media_width:src.media_width||null,media_height:src.media_height||null,ab_text:src.ab_text||null});
+  var r2=await P('/admin/push/sequences',{id:tgt.id,trigger_type:tgt.trigger_type,delay_minutes:tgt.delay_minutes,credits_threshold:tgt.credits_threshold,text:tgt.text,media_type:tgt.media_type,media_url:tgt.media_url,media_file_id:tgt.media_file_id,label:tgt.label,is_active:tgt.is_active,allow_hour_from:tgt.allow_hour_from,allow_hour_to:tgt.allow_hour_to,send_mode:tgt.send_mode,strict_time:tgt.strict_time,preferred_time:tgt.preferred_time,weekday:tgt.weekday,greeting_mode:tgt.greeting_mode,greeting_fixed:tgt.greeting_fixed,media_width:tgt.media_width||null,media_height:tgt.media_height||null,ab_text:tgt.ab_text||null});
+  if(!r1.id||!r2.id){alert('Ошибка перетаскивания');src.delay_minutes=tgt.delay_minutes;tgt.delay_minutes=tmpDelay}
   seqDragId=null;
   renderSeqs();
 }
@@ -864,7 +869,7 @@ function startDraftTimer(id){
   draftTimers[id]=setTimeout(function(){saveSeq(id);delete draftTimers[id]},8000);
 }
 
-async function toggleSeq(id){await apiFetch('/admin/push/sequences/'+id+'/toggle',{method:'PUT'});loadSeqs()}
+async function toggleSeq(id){var r=await apiFetch('/admin/push/sequences/'+id+'/toggle',{method:'PUT'});if(r.error)alert(r.error);else loadSeqs()}
 // A/B тест: добавить/удалить вариант B
 function addAB(id){var w=document.getElementById('seqab-wrap-'+id);if(w)w.style.display='';markSeqDirty(id)}
 function removeAB(id){var w=document.getElementById('seqab-wrap-'+id);if(w)w.style.display='none';var ta=document.getElementById('seqabtext-'+id);if(ta)ta.value='';var s=seqData.find(function(x){return x.id===id});if(s)s.ab_text=null;markSeqDirty(id)}
@@ -891,8 +896,9 @@ function seqFmt(btn){
   ta.focus();markSeqDirty(id);
 }
 function seqHotkey(e,id){
-  if((e.ctrlKey||e.metaKey)&&e.key==='b'){e.preventDefault();var ta=document.getElementById('seqtext-'+id);if(!ta)return;var start=ta.selectionStart,end=ta.selectionEnd,text=ta.value,sel=text.substring(start,end);ta.value=text.substring(0,start)+'<<'+sel+'>>'+text.substring(end);ta.selectionStart=start+2;ta.selectionEnd=start+2+sel.length;ta.focus();markSeqDirty(id)}
-  if((e.ctrlKey||e.metaKey)&&e.key==='i'){e.preventDefault();var ta=document.getElementById('seqtext-'+id);if(!ta)return;var start=ta.selectionStart,end=ta.selectionEnd,text=ta.value,sel=text.substring(start,end);ta.value=text.substring(0,start)+'_'+sel+'_'+text.substring(end);ta.selectionStart=start+1;ta.selectionEnd=start+1+sel.length;ta.focus();markSeqDirty(id)}
+  var ta=e.target;if(!ta||ta.tagName!=='TEXTAREA')return;
+  if((e.ctrlKey||e.metaKey)&&e.key==='b'){e.preventDefault();var start=ta.selectionStart,end=ta.selectionEnd,text=ta.value,sel=text.substring(start,end);ta.value=text.substring(0,start)+'<<'+sel+'>>'+text.substring(end);ta.selectionStart=start+2;ta.selectionEnd=start+2+sel.length;ta.focus();markSeqDirty(id)}
+  if((e.ctrlKey||e.metaKey)&&e.key==='i'){e.preventDefault();var start=ta.selectionStart,end=ta.selectionEnd,text=ta.value,sel=text.substring(start,end);ta.value=text.substring(0,start)+'_'+sel+'_'+text.substring(end);ta.selectionStart=start+1;ta.selectionEnd=start+1+sel.length;ta.focus();markSeqDirty(id)}
 }
 function seqEmoji(btn){
   var id=btn.dataset.seq;var emoji=btn.dataset.emoji;
@@ -973,9 +979,11 @@ async function uploadSeqMedia(file,id){
       var mwInput=document.getElementById('seqmediawidth-'+id);if(mwInput)mwInput.value=actualW||'';
       var mhInput=document.getElementById('seqmediaheight-'+id);if(mhInput)mhInput.value=actualH||'';
       await saveSeq(id);
-      var previewSrc=imgUrl||URL.createObjectURL(file);
+      var blobUrl=imgUrl?null:URL.createObjectURL(file);
+      var previewSrc=imgUrl||blobUrl;
       var mediaTag=isVideo?'<video src="'+previewSrc+'" class="w-full rounded-lg" style="max-height:300px;object-fit:contain;background:#111" controls playsinline></video>':'<img src="'+previewSrc+'" class="w-full rounded-lg" style="max-height:300px;object-fit:contain;background:#111">';
       if(media)media.innerHTML='<div class="relative mb-2">'+mediaTag+'<button class="absolute top-2 right-2 z-10 w-9 h-9 rounded-full bg-red-600 text-white text-lg flex items-center justify-center shadow-lg cursor-pointer" onclick="event.stopPropagation();clearSeqImg('+id+')">✕</button></div>';
+      if(blobUrl)setTimeout(function(){URL.revokeObjectURL(blobUrl)},5000);
     }else{alert(d.error||'Ошибка загрузки');loadSeqs()}
   }catch(e){alert('Ошибка: '+e);loadSeqs()}
 }

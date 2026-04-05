@@ -74,16 +74,20 @@ bot.catch((err) => {
 
 bot.command('start', async (ctx) => {
   const payload = ctx.match;
+  let campaignCode: string | null = null;
   if (payload && ctx.from) {
-    const match = payload.match(/^ref_(\d+)$/);
-    if (match) {
-      const referrerId = parseInt(match[1], 10);
+    const refMatch = payload.match(/^ref_(\d+)$/);
+    const campMatch = payload.match(/^c_([a-zA-Z0-9_-]+)$/);
+    if (refMatch) {
+      const referrerId = parseInt(refMatch[1], 10);
       httpPost(`${SERVER_URL}/referral/preregister`, {
         refereeId: ctx.from.id,
         refereeFirstName: ctx.from.first_name,
         refereeUsername: ctx.from.username ?? null,
         referrerId,
       }).catch(console.error);
+    } else if (campMatch) {
+      campaignCode = campMatch[1];
     }
   }
 
@@ -95,6 +99,7 @@ bot.command('start', async (ctx) => {
       id: ctx.from.id,
       first_name: ctx.from.first_name,
       username: ctx.from.username ?? null,
+      ...(campaignCode ? { campaign_code: campaignCode } : {}),
     }).catch(() => {});
   }
 

@@ -129,6 +129,7 @@ input:focus,textarea:focus{border-color:rgba(139,92,246,.5);box-shadow:0 0 20px 
       <div class="tab active" onclick="showTab(this,'dashboard')"><span class="anim-pulse">📊</span> Дашборд</div>
       <div class="tab" onclick="showTab(this,'users')"><span class="anim-bounce">👥</span> Юзеры</div>
       <div class="tab" onclick="showTab(this,'pushes')"><span class="anim-spin">📢</span> Пуши</div>
+      <div class="tab" onclick="showTab(this,'campaigns')"><span>📣</span> Рефералы</div>
     </div>
     <div class="flex items-center gap-3">
       <div class="flex items-center gap-1.5 text-xs text-green-400"><div class="live-dot"></div>Live</div>
@@ -347,6 +348,27 @@ input:focus,textarea:focus{border-color:rgba(139,92,246,.5);box-shadow:0 0 20px 
   </div>
 </div>
 
+    <!-- CAMPAIGNS -->
+    <div id="tab-campaigns" class="hidden">
+      <div class="glass-neon p-6 mb-5 glow-border">
+        <h3 class="text-base font-bold mb-4 flex items-center gap-2">📣 Создать рекламную ссылку</h3>
+        <div class="flex gap-3 items-end">
+          <div class="flex-1"><label class="text-xs text-slate-400 mb-1 block">Название (блогер / канал)</label><input id="campName" placeholder="Маша_YouTube"></div>
+          <button class="btn btn-primary" onclick="createCampaign()">Создать ссылку</button>
+        </div>
+      </div>
+      <div id="campList"></div>
+      <div id="campDetail" class="hidden mt-5">
+        <div class="flex items-center gap-3 mb-4">
+          <button class="btn btn-ghost text-xs" onclick="closeCampDetail()">← Назад</button>
+          <h3 class="text-base font-bold" id="campDetailTitle"></h3>
+        </div>
+        <div class="glass-strong overflow-x-auto">
+          <table><thead><tr><th>ID</th><th>Username</th><th>Имя</th><th>App</th><th>Кредиты</th><th>Покупки</th><th>Чаты</th><th>Пригласил</th><th>Бонус</th><th>Регистрация</th><th>Последний визит</th></tr></thead>
+          <tbody id="campUsersTable"></tbody></table>
+        </div>
+      </div>
+    </div>
 
 </div>
 
@@ -370,7 +392,7 @@ function G(p){return apiFetch(p)}
 function P(p,d){return apiFetch(p,{method:'POST',body:JSON.stringify(d)})}
 function D(p){return apiFetch(p,{method:'DELETE'})}
 
-function showTab(el,n){document.querySelectorAll('[id^=tab-]').forEach(e=>e.classList.add('hidden'));document.getElementById('tab-'+n).classList.remove('hidden');document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));el.classList.add('active');if(n==='users')loadUsers();if(n==='pushes'){loadPushTemplates();loadPushLog();loadSeqs();loadPushStats()}}
+function showTab(el,n){document.querySelectorAll('[id^=tab-]').forEach(e=>e.classList.add('hidden'));document.getElementById('tab-'+n).classList.remove('hidden');document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));el.classList.add('active');if(n==='users')loadUsers();if(n==='pushes'){loadPushTemplates();loadPushLog();loadSeqs();loadPushStats()}if(n==='campaigns')loadCampaigns()}
 
 // Курс ЦБ
 async function loadExRate(){
@@ -1026,6 +1048,62 @@ function renderTrash(){
 }
 async function restoreSeq(id){await P('/admin/push/sequences/'+id+'/restore',{});loadSeqs();loadTrash()}
 async function permDeleteSeq(id){if(!confirm('Удалить навсегда? Это нельзя отменить!'))return;await D('/admin/push/sequences/'+id+'/permanent');loadTrash()}
+
+// ═══ CAMPAIGNS ═══
+async function createCampaign(){
+  var n=document.getElementById('campName').value.trim();
+  if(!n){alert('Введите название');return}
+  var r=await P('/admin/campaigns',{name:n});
+  if(r.error){alert(r.error);return}
+  document.getElementById('campName').value='';
+  loadCampaigns()
+}
+async function loadCampaigns(){
+  var data=await G('/admin/campaigns');
+  if(!Array.isArray(data)){data=[]}
+  var el=document.getElementById('campList');
+  if(!data.length){el.innerHTML='<p class="text-slate-500 text-center py-8">Нет кампаний</p>';return}
+  el.innerHTML=data.map(function(c){
+    var link='https://t.me/UraanxAI_bot?start=c_'+c.code;
+    var conv=c.total_users>0?Math.round(c.opened_app/c.total_users*100):0;
+    var payConv=c.total_users>0?Math.round(c.paid_users/c.total_users*100):0;
+    return '<div class="glass p-4 mb-3"><div class="flex items-center justify-between mb-3"><div><span class="text-white font-bold text-sm">'+esc(c.name)+'</span><span class="text-slate-500 text-xs ml-2">'+new Date(c.created_at).toLocaleDateString('ru')+'</span></div><div class="flex gap-2"><button class="btn btn-ghost text-xs" onclick="showCampDetail(\''+c.code+'\',\''+esc(c.name).replace(/'/g,"\\'")+'\')">Подробнее</button><button class="btn btn-danger text-xs" style="padding:4px 10px" onclick="deleteCamp('+c.id+')">✕</button></div></div>'+
+    '<div class="flex gap-2 mb-3 flex-wrap"><input value="'+link+'" readonly class="flex-1 text-xs font-mono bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-cyan-400 min-w-0" onclick="this.select()"><button class="btn btn-ghost text-xs" onclick="navigator.clipboard.writeText(\''+link+'\')">📋</button></div>'+
+    '<div class="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">'+
+    '<div class="glass p-2 rounded-lg"><div class="text-lg font-bold gradient-text">'+c.total_users+'</div><div class="text-xs text-slate-500">/start</div></div>'+
+    '<div class="glass p-2 rounded-lg"><div class="text-lg font-bold text-green-400">'+c.opened_app+'</div><div class="text-xs text-slate-500">Открыли ('+conv+'%)</div></div>'+
+    '<div class="glass p-2 rounded-lg"><div class="text-lg font-bold text-violet-400">'+c.paid_users+'</div><div class="text-xs text-slate-500">Купили ('+payConv+'%)</div></div>'+
+    '<div class="glass p-2 rounded-lg"><div class="text-lg font-bold text-amber-400">'+Number(c.total_revenue).toLocaleString('ru')+'</div><div class="text-xs text-slate-500">Доход ₽</div></div>'+
+    '<div class="glass p-2 rounded-lg"><div class="text-lg font-bold text-cyan-400">'+conv+'%</div><div class="text-xs text-slate-500">Конверсия</div></div>'+
+    '</div></div>'
+  }).join('')
+}
+async function deleteCamp(id){if(!confirm('Удалить кампанию?'))return;await D('/admin/campaigns/'+id);loadCampaigns()}
+async function showCampDetail(code,name){
+  document.getElementById('campList').classList.add('hidden');
+  document.getElementById('campDetail').classList.remove('hidden');
+  document.getElementById('campDetailTitle').textContent=name;
+  var users=await G('/admin/campaigns/'+code+'/users');
+  if(!Array.isArray(users)){users=[]}
+  document.getElementById('campUsersTable').innerHTML=users.map(function(u){
+    var purch=u.purchases?u.purchases.map(function(p){return p.package+' ('+p.amount_rub+'₽)'}).join(', '):'<span class="text-slate-600">—</span>';
+    return '<tr><td class="text-slate-500 text-xs font-mono">'+u.id+'</td>'+
+    '<td class="text-violet-300 font-medium">'+(u.username?'@'+u.username:'—')+'</td>'+
+    '<td>'+esc(u.first_name)+'</td>'+
+    '<td class="text-center">'+(u.app_opened?'<span class="text-green-400">📱</span>':'<span class="text-slate-600">—</span>')+'</td>'+
+    '<td class="font-bold gradient-text">'+u.credits+'</td>'+
+    '<td class="text-xs">'+purch+'</td>'+
+    '<td class="text-center">'+u.chat_count+'</td>'+
+    '<td class="text-center">'+(u.invited_count>0?'<span class="text-cyan-400 font-bold">'+u.invited_count+'</span>':'0')+'</td>'+
+    '<td class="text-center">'+(u.welcome_bonus_granted?'<span class="text-amber-400">✓</span>':'—')+'</td>'+
+    '<td class="text-slate-500 text-xs">'+new Date(u.created_at).toLocaleDateString('ru')+'</td>'+
+    '<td class="text-slate-500 text-xs">'+(u.last_seen?new Date(u.last_seen).toLocaleDateString('ru'):'—')+'</td></tr>'
+  }).join('')
+}
+function closeCampDetail(){
+  document.getElementById('campDetail').classList.add('hidden');
+  document.getElementById('campList').classList.remove('hidden')
+}
 
 if(TOKEN)showPanel();
 </script></body></html>`;

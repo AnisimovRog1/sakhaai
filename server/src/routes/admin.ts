@@ -26,13 +26,13 @@ adminRouter.use(requireBotAuth);
 // ─── Ensure user exists (вызывается ботом при /start) ───
 adminRouter.post('/ensure-user', async (req: Request, res: Response) => {
   try {
-    const { id, first_name, username } = req.body;
+    const { id, first_name, username, campaign_code } = req.body;
     if (!id || !first_name) { res.status(400).json({ error: 'id and first_name required' }); return; }
     await pool.query(
-      `INSERT INTO users (id, first_name, username)
-       VALUES ($1, $2, $3)
+      `INSERT INTO users (id, first_name, username, campaign_code)
+       VALUES ($1, $2, $3, $4)
        ON CONFLICT (id) DO UPDATE SET first_name = EXCLUDED.first_name, username = EXCLUDED.username, last_seen = NOW(), updated_at = NOW()`,
-      [id, first_name, username ?? null]
+      [id, first_name, username ?? null, campaign_code ?? null]
     );
     res.json({ ok: true });
   } catch (err: any) { res.status(500).json({ error: err.message }); }
@@ -823,6 +823,68 @@ adminRouter.get('/exchange-rate', (_req: Request, res: Response) => {
   } catch (e: any) {
     res.status(500).json({ error: e.message });
   }
+});
+
+// ═══════════════════════════════════════════════════════
+// РЕКЛАМНЫЕ КАМПАНИИ (реферальные ссылки для блогеров)
+// ═══════════════════════════════════════════════════════
+
+// Создать кампанию
+adminRouter.post('/campaigns', async (req: Request, res: Response) => {
+  try {
+    const { name } = req.body;
+    if (!name) { res.status(400).json({ error: 'name required' }); return; }
+    const code = name.toLowerCase().replace(/[^a-z0-9а-яё]/gi, '_').replace(/_+/g, '_').replace(/^_|_$/g, '').substring(0, 30) + '_' + Date.now().toString(36);
+    const { rows } = await pool.query(
+      `INSERT INTO ref_campaigns (code, name) VALUES ($1, $2) RETURNING *`,
+      [code, name]
+    );
+    res.json(rows[0]);
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+// Список кампаний со сводной статистикой
+adminRouter.get('/campaigns', async (_req: Request, res: Response) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT c.*,
+        (SELECT COUNT(*) FROM users u WHERE u.campaign_code = c.code) AS total_users,
+        (SELECT COUNT(*) FROM users u WHERE u.campaign_code = c.code AND u.app_opened = true) AS opened_app,
+        (SELECT COUNT(DISTINCT o.user_id) FROM orders o JOIN users u ON u.id = o.user_id WHERE u.campaign_code = c.code AND o.status = 'paid') AS paid_users,
+        (SELECT COALESCE(SUM(o.amount_rub), 0) FROM orders o JOIN users u ON u.id = o.user_id WHERE u.campaign_code = c.code AND o.status = 'paid') AS total_revenue
+      FROM ref_campaigns c
+      ORDER BY c.created_at DESC
+    `);
+    res.json(rows);
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+// Детальная статистика по кампании — список юзеров
+adminRouter.get('/campaigns/:code/users', async (req: Request, res: Response) => {
+  try {
+    const { code } = req.params;
+    const { rows } = await pool.query(`
+      SELECT
+        u.id, u.username, u.first_name, u.credits, u.app_opened,
+        u.welcome_bonus_granted, u.created_at, u.last_seen,
+        (SELECT COUNT(*) FROM chats ch WHERE ch.user_id = u.id) AS chat_count,
+        (SELECT COUNT(*) FROM users r WHERE r.referred_by = u.id) AS invited_count,
+        (SELECT json_agg(json_build_object('package', o.package, 'amount_rub', o.amount_rub, 'credits', o.credits, 'paid_at', o.paid_at))
+         FROM orders o WHERE o.user_id = u.id AND o.status = 'paid') AS purchases
+      FROM users u
+      WHERE u.campaign_code = $1
+      ORDER BY u.created_at DESC
+    `, [code]);
+    res.json(rows);
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+// Удалить кампанию
+adminRouter.delete('/campaigns/:id', async (req: Request, res: Response) => {
+  try {
+    await pool.query(`DELETE FROM ref_campaigns WHERE id = $1`, [req.params.id]);
+    res.json({ ok: true });
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
 });
 
 adminRouter.post('/exchange-rate/update', async (_req: Request, res: Response) => {

@@ -344,6 +344,20 @@ export async function migrate() {
       ALTER TABLE users ADD COLUMN app_opened BOOLEAN NOT NULL DEFAULT false;
     EXCEPTION WHEN duplicate_column THEN NULL;
     END $$;
+
+    -- Campaign code (от какой рекламной ссылки пришёл юзер)
+    DO $$ BEGIN
+      ALTER TABLE users ADD COLUMN campaign_code TEXT;
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$;
+
+    -- Рекламные кампании (реферальные ссылки для блогеров)
+    CREATE TABLE IF NOT EXISTS ref_campaigns (
+      id          SERIAL PRIMARY KEY,
+      code        TEXT NOT NULL UNIQUE,
+      name        TEXT NOT NULL,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
   `);
 
   console.log('✅ Миграции применены');

@@ -46,13 +46,13 @@ function calcVideoCost(duration: number, type: 'video' | 'motion' | 'motion-cont
   return Math.ceil(duration * baseRate * 2.3 * 1007.75 * getMultiplier());
 }
 
-// Аватар: TTS (фикс 16 кр) + видео (267 кр/сек)
-const AVATAR_TTS_COST = 16;
-const AVATAR_PER_SEC = 267;
+// Аватар: TTS $0.007 + видео $0.115/сек, маржа ×2.0
+const AVATAR_TTS_COST = 14;   // $0.007 × 2.0 × 1007.75
+const AVATAR_PER_SEC = 232;   // $0.115 × 2.0 × 1007.75
 
 function calcAvatarCost(text: string): number {
-  // ~15 символов/сек для русской речи
-  const estimatedDuration = Math.max(3, Math.min(10, Math.ceil(text.length / 15)));
+  // ~15 символов/сек для русской речи, минимум 3 сек, без лимита сверху
+  const estimatedDuration = Math.max(3, Math.ceil(text.length / 15));
   const m = getMultiplier();
   return Math.ceil(AVATAR_TTS_COST * m) + Math.ceil(estimatedDuration * AVATAR_PER_SEC * m);
 }

@@ -27,6 +27,7 @@ export interface PushSequence {
   greeting_fixed: string | null;
   media_width: number | null;
   media_height: number | null;
+  ab_text: string | null;
 }
 
 export interface PendingPush {
@@ -379,7 +380,7 @@ export async function findPendingPushes(): Promise<PendingPush[]> {
         greeting_mode: seq.greeting_mode || 'none',
         greeting_fixed: seq.greeting_fixed || null,
         user_local_hour: u.localHour,
-        ab_text: (seq as any).ab_text || null,
+        ab_text: seq.ab_text || null,
       });
     }
   }

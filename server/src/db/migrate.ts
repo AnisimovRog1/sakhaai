@@ -324,7 +324,7 @@ export async function migrate() {
     -- Unique: один юзер — один fingerprint запись
     DO $$ BEGIN
       ALTER TABLE device_fingerprints ADD CONSTRAINT device_fp_unique UNIQUE (user_id, fingerprint_hash);
-    EXCEPTION WHEN duplicate_table THEN NULL;
+    EXCEPTION WHEN duplicate_object THEN NULL;
     END $$;
 
     -- Fraud score в users

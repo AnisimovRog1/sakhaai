@@ -38,7 +38,14 @@ function httpRequest(method: string, url: string, data?: object, timeoutMs = 100
       let responseData = '';
       res.on('data', (chunk) => { responseData += chunk; });
       res.on('end', () => {
-        try { resolve(JSON.parse(responseData)); } catch { resolve({}); }
+        try {
+          const parsed = JSON.parse(responseData);
+          if (res.statusCode && res.statusCode >= 400) {
+            reject(new Error(`HTTP ${res.statusCode}: ${parsed.error || responseData.substring(0, 100)}`));
+          } else {
+            resolve(parsed);
+          }
+        } catch { resolve({}); }
       });
     });
     req.on('timeout', () => { req.destroy(); reject(new Error(`HTTP timeout ${timeoutMs}ms: ${method} ${parsed.pathname}`)); });
@@ -1145,7 +1152,7 @@ async function processAutoSequences() {
     for (const p of pending) {
       try {
         // A/B тест: случайно выбираем вариант A или B
-        let text = (p.ab_text && Math.random() < 0.5) ? p.ab_text : (p.text || '');
+        let text = (p.ab_text && p.ab_text.length > 0 && Math.random() < 0.5) ? p.ab_text : (p.text || '');
         if (p.greeting_mode === 'dynamic' && p.user_local_hour !== undefined) {
           text = getGreeting(p.user_local_hour) + '! ' + text;
         } else if (p.greeting_mode === 'fixed' && p.greeting_fixed) {
@@ -1182,6 +1189,8 @@ async function processAutoSequences() {
           await httpPost(`${SERVER_URL}/admin/push/sequences/mark-sent`, {
             user_id: p.user_id, sequence_id: p.sequence_id,
           }).catch(() => {});
+        } else {
+          console.error(`❌ Push send error seq=${p.sequence_id} user=${p.user_id}:`, e?.message || e);
         }
       }
     }
@@ -1261,7 +1270,7 @@ async function startBot() {
       });
       return; // Успешно запущен
     } catch (err: any) {
-      if (err?.error_code === 409 && attempt < 4) {
+      if ((err?.error_code === 409 || err?.error_code === 429 || err?.status >= 500) && attempt < 4) {
         console.log(`[bot] 409 Conflict, retry ${attempt + 1}/5 через 5 сек...`);
         await new Promise(r => setTimeout(r, 5000));
         continue;

@@ -774,16 +774,16 @@ function previewSeq(id){
   var mediaUrl=s.media_url||'';
   var fid=s.media_file_id||'';
   if(s.media_type==='video'&&(mediaUrl||fid)){
-    html+='<video src="'+(mediaUrl||'')+'" style="width:100%;border-radius:10px;margin-bottom:8px;max-height:240px;object-fit:cover;background:#000" controls playsinline></video>';
+    html+='<video src="'+esc(mediaUrl||'')+'" style="width:100%;border-radius:10px;margin-bottom:8px;max-height:240px;object-fit:cover;background:#000" controls playsinline></video>';
   }else if((s.media_type==='photo'||mediaUrl)&&(mediaUrl||fid)){
-    html+='<img src="'+(mediaUrl||'')+'" style="width:100%;border-radius:10px;margin-bottom:8px;max-height:240px;object-fit:cover;background:#000">';
+    html+='<img src="'+esc(mediaUrl||'')+'" style="width:100%;border-radius:10px;margin-bottom:8px;max-height:240px;object-fit:cover;background:#000">';
   }
   // Текст
   var text=s.text||'';
   text=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   text=text.replace(/&lt;&lt;([^&]+?)&gt;&gt;/g,'<b>$1</b>');
   text=text.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');
-  text=text.replace(/(?<![\\w])_(.+?)_(?![\\w])/g,'<i>$1</i>');
+  text=text.replace(/(?<!\\w)_(.+?)_(?!\\w)/g,'<i>$1</i>');
   text=text.replace(/\\n/g,'<br>');
   html+='<div style="background:#182533;border-radius:0 12px 12px 12px;padding:8px 12px;max-width:320px;color:#e4e6ea;font-size:14px;line-height:1.5;word-wrap:break-word;white-space:pre-wrap">'+text+'</div>';
   // Кнопка
@@ -806,7 +806,7 @@ async function loadSentStats(){
   if(!stats||typeof stats!=='object')return;
   for(var sid in stats){
     var el=document.getElementById('seqstat-'+sid);
-    if(el)el.textContent='📤 '+stats[sid].sent+' отпр.';
+    if(el&&stats[sid]&&typeof stats[sid].sent==='number')el.textContent='📤 '+stats[sid].sent+' отпр.';
   }
 }
 
@@ -825,8 +825,8 @@ async function seqDrop(e,targetId){
   src.delay_minutes=tgt.delay_minutes;
   tgt.delay_minutes=tmpDelay;
   // Save both
-  await P('/admin/push/sequences',{id:src.id,trigger_type:src.trigger_type,delay_minutes:src.delay_minutes,credits_threshold:src.credits_threshold,text:src.text,media_type:src.media_type,media_url:src.media_url,media_file_id:src.media_file_id,label:src.label,is_active:src.is_active,allow_hour_from:src.allow_hour_from,allow_hour_to:src.allow_hour_to,send_mode:src.send_mode,strict_time:src.strict_time,preferred_time:src.preferred_time,weekday:src.weekday,greeting_mode:src.greeting_mode,greeting_fixed:src.greeting_fixed,media_width:src.media_width||null,media_height:src.media_height||null});
-  await P('/admin/push/sequences',{id:tgt.id,trigger_type:tgt.trigger_type,delay_minutes:tgt.delay_minutes,credits_threshold:tgt.credits_threshold,text:tgt.text,media_type:tgt.media_type,media_url:tgt.media_url,media_file_id:tgt.media_file_id,label:tgt.label,is_active:tgt.is_active,allow_hour_from:tgt.allow_hour_from,allow_hour_to:tgt.allow_hour_to,send_mode:tgt.send_mode,strict_time:tgt.strict_time,preferred_time:tgt.preferred_time,weekday:tgt.weekday,greeting_mode:tgt.greeting_mode,greeting_fixed:tgt.greeting_fixed,media_width:tgt.media_width||null,media_height:tgt.media_height||null});
+  await P('/admin/push/sequences',{id:src.id,trigger_type:src.trigger_type,delay_minutes:src.delay_minutes,credits_threshold:src.credits_threshold,text:src.text,media_type:src.media_type,media_url:src.media_url,media_file_id:src.media_file_id,label:src.label,is_active:src.is_active,allow_hour_from:src.allow_hour_from,allow_hour_to:src.allow_hour_to,send_mode:src.send_mode,strict_time:src.strict_time,preferred_time:src.preferred_time,weekday:src.weekday,greeting_mode:src.greeting_mode,greeting_fixed:src.greeting_fixed,media_width:src.media_width||null,media_height:src.media_height||null,ab_text:src.ab_text||null});
+  await P('/admin/push/sequences',{id:tgt.id,trigger_type:tgt.trigger_type,delay_minutes:tgt.delay_minutes,credits_threshold:tgt.credits_threshold,text:tgt.text,media_type:tgt.media_type,media_url:tgt.media_url,media_file_id:tgt.media_file_id,label:tgt.label,is_active:tgt.is_active,allow_hour_from:tgt.allow_hour_from,allow_hour_to:tgt.allow_hour_to,send_mode:tgt.send_mode,strict_time:tgt.strict_time,preferred_time:tgt.preferred_time,weekday:tgt.weekday,greeting_mode:tgt.greeting_mode,greeting_fixed:tgt.greeting_fixed,media_width:tgt.media_width||null,media_height:tgt.media_height||null,ab_text:tgt.ab_text||null});
   seqDragId=null;
   renderSeqs();
 }
@@ -867,12 +867,12 @@ function startDraftTimer(id){
 async function toggleSeq(id){await apiFetch('/admin/push/sequences/'+id+'/toggle',{method:'PUT'});loadSeqs()}
 // A/B тест: добавить/удалить вариант B
 function addAB(id){var w=document.getElementById('seqab-wrap-'+id);if(w)w.style.display='';markSeqDirty(id)}
-function removeAB(id){var w=document.getElementById('seqab-wrap-'+id);if(w)w.style.display='none';var ta=document.getElementById('seqabtext-'+id);if(ta)ta.value='';markSeqDirty(id)}
+function removeAB(id){var w=document.getElementById('seqab-wrap-'+id);if(w)w.style.display='none';var ta=document.getElementById('seqabtext-'+id);if(ta)ta.value='';var s=seqData.find(function(x){return x.id===id});if(s)s.ab_text=null;markSeqDirty(id)}
 
 async function delSeq(id){if(!confirm('Удалить?'))return;await D('/admin/push/sequences/'+id);loadSeqs()}
 async function dupeSeq(id){
   var s=seqData.find(function(x){return x.id===id});if(!s)return;
-  var r=await P('/admin/push/sequences',{trigger_type:s.trigger_type,delay_minutes:s.delay_minutes,credits_threshold:s.credits_threshold,text:s.text,media_type:s.media_type,media_url:s.media_url,media_file_id:s.media_file_id,label:s.label+' (копия)',is_active:false,allow_hour_from:s.allow_hour_from,allow_hour_to:s.allow_hour_to,send_mode:s.send_mode,strict_time:s.strict_time,preferred_time:s.preferred_time,weekday:s.weekday,greeting_mode:s.greeting_mode,greeting_fixed:s.greeting_fixed,media_width:s.media_width||null,media_height:s.media_height||null});
+  var r=await P('/admin/push/sequences',{trigger_type:s.trigger_type,delay_minutes:s.delay_minutes,credits_threshold:s.credits_threshold,text:s.text,media_type:s.media_type,media_url:s.media_url,media_file_id:s.media_file_id,label:s.label+' (копия)',is_active:false,allow_hour_from:s.allow_hour_from,allow_hour_to:s.allow_hour_to,send_mode:s.send_mode,strict_time:s.strict_time,preferred_time:s.preferred_time,weekday:s.weekday,greeting_mode:s.greeting_mode,greeting_fixed:s.greeting_fixed,media_width:s.media_width||null,media_height:s.media_height||null,ab_text:s.ab_text||null});
   if(r.id)loadSeqs();else alert(r.error||'Ошибка')
 }
 

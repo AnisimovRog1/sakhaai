@@ -471,11 +471,19 @@ adminRouter.post('/push/sequences/:id/restore', async (req: Request, res: Respon
 });
 
 adminRouter.delete('/push/sequences/:id/permanent', async (req: Request, res: Response) => {
+  const client = await pool.connect();
   try {
-    await pool.query(`DELETE FROM push_sent WHERE sequence_id = $1`, [req.params.id]);
-    await pool.query(`DELETE FROM push_sequences WHERE id = $1`, [req.params.id]);
+    await client.query('BEGIN');
+    await client.query('DELETE FROM push_sent WHERE sequence_id = $1', [req.params.id]);
+    await client.query('DELETE FROM push_sequences WHERE id = $1', [req.params.id]);
+    await client.query('COMMIT');
     res.json({ ok: true });
-  } catch (err: any) { res.status(500).json({ error: err.message }); }
+  } catch (err: any) {
+    await client.query('ROLLBACK').catch(() => {});
+    res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
+  }
 });
 
 // Получить ВСЕ активные welcome пуши для /start
@@ -527,7 +535,8 @@ adminRouter.post('/push/seed-sequences', async (req: Request, res: Response) => 
 adminRouter.post('/push/sequences/mark-sent', async (req: Request, res: Response) => {
   try {
     const { user_id, sequence_id } = req.body;
-    await markPushSent(user_id, sequence_id);
+    if (!user_id || !sequence_id) { res.status(400).json({ error: 'Missing user_id or sequence_id' }); return; }
+    await markPushSent(Number(user_id), Number(sequence_id));
     res.json({ ok: true });
   } catch (err: any) { res.status(500).json({ error: err.message }); }
 });

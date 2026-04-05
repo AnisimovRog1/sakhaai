@@ -830,7 +830,8 @@ export async function seedPushSequences(force = false): Promise<number> {
   }
 
   // Вставляем только отсутствующие (по label + trigger_type)
-  const existing = await pool.query(`SELECT label, trigger_type FROM push_sequences WHERE is_deleted = false`);
+  // ВАЖНО: проверяем ВСЕ записи включая удалённые, чтобы удалённые через админку не воскресали при рестарте
+  const existing = await pool.query(`SELECT label, trigger_type FROM push_sequences`);
   const existingSet = new Set(existing.rows.map((r: any) => r.trigger_type + '::' + r.label));
 
   let count = 0;

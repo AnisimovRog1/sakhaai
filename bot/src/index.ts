@@ -90,37 +90,45 @@ bot.command('start', async (ctx) => {
   const inlineKb = new InlineKeyboard().webApp('🚀 Открыть UraanxAI', WEBAPP_URL);
 
   // Welcome push: отправляем только ПЕРВЫЙ (delay_minutes=0), остальные идут через автопуши по таймингу
+  let welcomeSent = false;
   try {
     const welcomeSeqs = await httpGet(`${SERVER_URL}/admin/push/sequences/welcome`) as any[];
     const firstSeq = Array.isArray(welcomeSeqs) ? welcomeSeqs.find((s: any) => s.delay_minutes === 0) || welcomeSeqs[0] : null;
     if (firstSeq && firstSeq.text) {
       const media = firstSeq.media_file_id || firstSeq.media_url;
       const text = formatText(firstSeq.text);
-      if (firstSeq.media_type === 'video' && media) {
-        await ctx.replyWithVideo(media, { caption: text, parse_mode: 'HTML', reply_markup: inlineKb, supports_streaming: true, width: firstSeq.media_width || undefined, height: firstSeq.media_height || undefined });
-      } else if (firstSeq.media_type === 'photo' && media) {
-        await ctx.replyWithPhoto(media, { caption: text, parse_mode: 'HTML', reply_markup: inlineKb });
-      } else {
+      try {
+        if (firstSeq.media_type === 'video' && media) {
+          await ctx.replyWithVideo(media, { caption: text, parse_mode: 'HTML', reply_markup: inlineKb, supports_streaming: true, width: firstSeq.media_width || undefined, height: firstSeq.media_height || undefined });
+          welcomeSent = true;
+        } else if (firstSeq.media_type === 'photo' && media) {
+          await ctx.replyWithPhoto(media, { caption: text, parse_mode: 'HTML', reply_markup: inlineKb });
+          welcomeSent = true;
+        }
+      } catch (mediaErr: any) {
+        console.error(`❌ Welcome media failed, sending text only:`, mediaErr?.message);
+      }
+      // Если медиа не отправилось — отправить текст без медиа
+      if (!welcomeSent) {
         await ctx.reply(text, { parse_mode: 'HTML', reply_markup: inlineKb });
+        welcomeSent = true;
       }
       // Помечаем первый welcome как отправленный — без этого цепочка не пойдёт дальше
       if (firstSeq.id && ctx.from?.id) {
-        const msUserId = ctx.from.id;
-        const msSeqId = firstSeq.id;
         httpPost(`${SERVER_URL}/admin/push/sequences/mark-sent`, {
-          user_id: msUserId, sequence_id: msSeqId,
-        }).then((r: any) => {
-          console.log(`✅ mark-sent welcome #${msSeqId} for user ${msUserId}`, JSON.stringify(r));
+          user_id: ctx.from.id, sequence_id: firstSeq.id,
         }).catch((e: any) => {
-          console.error(`❌ mark-sent FAILED welcome #${msSeqId} for user ${msUserId}:`, e?.message || e);
+          console.error(`❌ mark-sent FAILED welcome #${firstSeq.id} for user ${ctx.from?.id}:`, e?.message || e);
         });
       }
-    } else {
-      throw new Error('no welcome');
     }
-  } catch {
+  } catch (e: any) {
+    console.error(`❌ Welcome fetch failed:`, e?.message);
+  }
+  // Fallback если welcome не отправился
+  if (!welcomeSent) {
     await ctx.reply(
-      `Привет, ${ctx.from?.first_name ?? 'друг'}! 👋\n\nЯ UraanxAI - твой ИИ-ассистент для генерации фото, видео и арта.\n\nНажми кнопку ниже:`,
+      `Привет, ${ctx.from?.first_name ?? 'друг'}! 👋\n\nЯ UraanxAI - твой ИИ-ассистент для генерации фото и видео.\n\nНажми кнопку ниже:`,
       { reply_markup: inlineKb }
     );
   }

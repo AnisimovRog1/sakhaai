@@ -300,6 +300,22 @@ input:focus,textarea:focus{border-color:rgba(139,92,246,.5);box-shadow:0 0 20px 
   <div class="modal glass-neon glow-border p-6" id="userModalContent"></div>
 </div>
 
+<!-- TELEGRAM PREVIEW MODAL -->
+<div id="tgPreviewModal" class="modal-bg hidden" onclick="if(event.target===this)this.classList.add('hidden')">
+  <div class="modal glass-neon glow-border p-0" style="max-width:400px;border-radius:16px;overflow:hidden">
+    <div style="background:#0e1621;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.06)">
+      <div class="flex items-center gap-3">
+        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#06b6d4);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:white">U</div>
+        <div><div class="text-white text-sm font-semibold">UraanxAI</div><div class="text-[10px] text-slate-500">bot</div></div>
+      </div>
+    </div>
+    <div style="background:#0e1621;padding:12px 16px;min-height:200px;max-height:70vh;overflow-y:auto" id="tgPreviewBody"></div>
+    <div style="background:#0e1621;padding:8px 16px;border-top:1px solid rgba(255,255,255,0.06);text-align:center">
+      <button class="btn btn-ghost text-xs" onclick="document.getElementById('tgPreviewModal').classList.add('hidden')">Закрыть</button>
+    </div>
+  </div>
+</div>
+
 <!-- SEQUENCE CREATE MODAL -->
 <div id="seqCreateModal" class="modal-bg hidden" onclick="if(event.target===this)closeSeqModal()">
   <div class="modal glass-neon glow-border p-6" style="max-width:520px">
@@ -592,10 +608,11 @@ function renderSeqs(){
 
     html+='<div class="glass-strong p-4 '+borderColor+'" style="border-left:3px solid '+(active?'#4ade80':'#334155')+'">';
 
-    // Заголовок + переключатель
+    // Заголовок + статистика + переключатель
     html+='<div class="flex items-center justify-between mb-2">';
     html+='<div class="flex items-center gap-2"><span class="text-sm font-bold text-white">'+esc(s.label)+'</span>';
     if(s.credits_threshold) html+='<span class="text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded">&lt; '+s.credits_threshold+' кр.</span>';
+    html+='<span class="text-[10px] text-slate-500" id="seqstat-'+s.id+'"></span>';
     html+='</div>';
     html+='<label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" '+(active?'checked':'')+' onchange="toggleSeq('+s.id+')" class="w-4 h-4 accent-green-500 rounded"><span class="text-xs font-medium '+(active?'text-green-400':'text-slate-600')+'">'+(active?'✅ Вкл':'Выкл')+'</span></label>';
     html+='</div>';
@@ -685,6 +702,7 @@ function renderSeqs(){
     // ═══ Кнопки сохранения/удаления ═══
     html+='<div class="flex gap-2 mt-2 items-center">';
     html+='<button class="btn btn-primary text-[11px] hidden" id="seqsave-'+s.id+'" onclick="saveSeq('+s.id+')" style="padding:4px 12px">💾 Сохранить</button>';
+    html+='<button class="text-violet-400/70 hover:text-violet-400 text-[11px]" onclick="previewSeq('+s.id+')" title="Превью">👁 Превью</button>';
     html+='<button class="text-cyan-400/50 hover:text-cyan-400 text-[11px]" onclick="dupeSeq('+s.id+')" title="Дублировать">📋</button>';
     html+='<button class="text-red-400/50 hover:text-red-400 text-[11px]" onclick="delSeq('+s.id+')">🗑</button>';
     html+='</div>';
@@ -700,6 +718,8 @@ function renderSeqs(){
       if(d&&d.url){img.src=d.url;img.style.display='block';var ld=document.getElementById('seqloading-'+img.id.replace('seqpreview-',''));if(ld)ld.remove()}
     }).catch(function(){});
   });
+  // Загрузить статистику отправок
+  loadSentStats();
 }
 
 function esc(s){var d=document.createElement('div');d.textContent=s||'';return d.innerHTML}
@@ -728,6 +748,51 @@ async function saveSeq(id){
   var r=await P('/admin/push/sequences',{id:id,trigger_type:s.trigger_type,delay_minutes:delay_minutes,credits_threshold:s.credits_threshold,text:text,media_type:(media_url||media_file_id)?savedMediaType:null,media_url:media_url,media_file_id:media_file_id,label:s.label,is_active:s.is_active,allow_hour_from:allow_hour_from,allow_hour_to:allow_hour_to,send_mode:send_mode,strict_time:strict_time,preferred_time:preferred_time,weekday:weekday,greeting_mode:greeting_mode,greeting_fixed:greeting_fixed,media_width:media_width,media_height:media_height});
   if(r.id){document.getElementById('seqsave-'+id).classList.add('hidden');if(s)Object.assign(s,r)}
   else alert(r.error||'Ошибка')
+}
+
+// Telegram-style превью сообщения
+function previewSeq(id){
+  var s=seqData.find(function(x){return x.id===id});if(!s)return;
+  var body=document.getElementById('tgPreviewBody');
+  var html='';
+  // Медиа
+  var mediaUrl=s.media_url||'';
+  var fid=s.media_file_id||'';
+  if(s.media_type==='video'&&(mediaUrl||fid)){
+    html+='<video src="'+(mediaUrl||'')+'" style="width:100%;border-radius:10px;margin-bottom:8px;max-height:240px;object-fit:cover;background:#000" controls playsinline></video>';
+  }else if((s.media_type==='photo'||mediaUrl)&&(mediaUrl||fid)){
+    html+='<img src="'+(mediaUrl||'')+'" style="width:100%;border-radius:10px;margin-bottom:8px;max-height:240px;object-fit:cover;background:#000">';
+  }
+  // Текст
+  var text=s.text||'';
+  text=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  text=text.replace(/&lt;&lt;([^&]+?)&gt;&gt;/g,'<b>$1</b>');
+  text=text.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');
+  text=text.replace(/(?<![\\w])_(.+?)_(?![\\w])/g,'<i>$1</i>');
+  text=text.replace(/\\n/g,'<br>');
+  html+='<div style="background:#182533;border-radius:0 12px 12px 12px;padding:8px 12px;max-width:320px;color:#e4e6ea;font-size:14px;line-height:1.5;word-wrap:break-word;white-space:pre-wrap">'+text+'</div>';
+  // Кнопка
+  html+='<div style="margin-top:6px;max-width:320px"><div style="background:#2b5278;border-radius:8px;padding:8px;text-align:center;color:#7eb8e6;font-size:13px;cursor:pointer">🚀 Открыть UraanxAI</div></div>';
+  // Время
+  html+='<div style="text-align:right;color:#5b6d80;font-size:11px;margin-top:4px">'+new Date().toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'})+'</div>';
+  body.innerHTML=html;
+  // Если нет URL но есть file_id — подгрузить
+  if(!mediaUrl&&fid){
+    G('/admin/file-url/'+fid).then(function(d){
+      if(d&&d.url){var el=body.querySelector('img,video');if(el)el.src=d.url}
+    }).catch(function(){});
+  }
+  document.getElementById('tgPreviewModal').classList.remove('hidden');
+}
+
+// Загрузить статистику отправок
+async function loadSentStats(){
+  var stats=await G('/admin/push/sequences/sent-stats');
+  if(!stats||typeof stats!=='object')return;
+  for(var sid in stats){
+    var el=document.getElementById('seqstat-'+sid);
+    if(el)el.textContent='📤 '+stats[sid].sent+' отпр.';
+  }
 }
 
 async function toggleSeq(id){await apiFetch('/admin/push/sequences/'+id+'/toggle',{method:'PUT'});loadSeqs()}

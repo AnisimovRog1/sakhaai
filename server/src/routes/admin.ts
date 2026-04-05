@@ -486,6 +486,22 @@ adminRouter.get('/push/sequences/welcome', async (_req: Request, res: Response) 
   } catch (err: any) { res.status(500).json({ error: err.message }); }
 });
 
+// Статистика отправок по каждому sequence_id
+adminRouter.get('/push/sequences/sent-stats', async (_req: Request, res: Response) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT sequence_id, COUNT(*)::int as sent_count,
+             MAX(sent_at) as last_sent_at
+      FROM push_sent GROUP BY sequence_id
+    `);
+    const stats: Record<number, { sent: number; lastSent: string }> = {};
+    for (const r of rows) {
+      stats[r.sequence_id] = { sent: r.sent_count, lastSent: r.last_sent_at };
+    }
+    res.json(stats);
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
 // Получить pending пуши для отправки ботом
 adminRouter.get('/push/sequences/pending', async (_req: Request, res: Response) => {
   try {

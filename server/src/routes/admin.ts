@@ -825,6 +825,43 @@ adminRouter.get('/exchange-rate', (_req: Request, res: Response) => {
   }
 });
 
+// ─── Очистка юзеров (оставить только указанные ID) ───
+adminRouter.post('/cleanup-users', async (req: Request, res: Response) => {
+  try {
+    const { keep_ids } = req.body;
+    if (!Array.isArray(keep_ids) || !keep_ids.length) { res.status(400).json({ error: 'keep_ids required' }); return; }
+    const ids = keep_ids.map(Number);
+    const ph = ids.map((_: number, i: number) => `$${i + 1}`).join(',');
+    // Удаляем в правильном порядке FK
+    const tables = [
+      `DELETE FROM push_sent WHERE user_id NOT IN (${ph})`,
+      `DELETE FROM messages WHERE chat_id IN (SELECT id FROM chats WHERE user_id NOT IN (${ph}))`,
+      `DELETE FROM chats WHERE user_id NOT IN (${ph})`,
+      `DELETE FROM transactions WHERE user_id NOT IN (${ph})`,
+      `DELETE FROM generations WHERE user_id NOT IN (${ph})`,
+      `DELETE FROM orders WHERE user_id NOT IN (${ph})`,
+      `DELETE FROM referrals WHERE referrer_id NOT IN (${ph}) OR referee_id NOT IN (${ph})`,
+      `DELETE FROM user_ips WHERE user_id NOT IN (${ph})`,
+      `DELETE FROM device_fingerprints WHERE user_id NOT IN (${ph})`,
+      `DELETE FROM pending_tasks WHERE user_id NOT IN (${ph})`,
+      `DELETE FROM users WHERE id NOT IN (${ph})`,
+    ];
+    const counts: Record<string, number> = {};
+    for (const sql of tables) {
+      try {
+        const r = await pool.query(sql, ids);
+        const tbl = sql.match(/FROM (\w+)/)?.[1] || '?';
+        counts[tbl] = r.rowCount ?? 0;
+      } catch (e: any) {
+        const tbl = sql.match(/FROM (\w+)/)?.[1] || '?';
+        counts[tbl] = -1;
+        console.error(`cleanup ${tbl}:`, e.message);
+      }
+    }
+    res.json({ ok: true, kept: ids, deleted: counts });
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
 // ═══════════════════════════════════════════════════════
 // РЕКЛАМНЫЕ КАМПАНИИ (реферальные ссылки для блогеров)
 // ═══════════════════════════════════════════════════════

@@ -350,24 +350,13 @@ input:focus,textarea:focus{border-color:rgba(139,92,246,.5);box-shadow:0 0 20px 
 
     <!-- CAMPAIGNS -->
     <div id="tab-campaigns" class="hidden">
-      <div class="glass-neon p-6 mb-5 glow-border">
-        <h3 class="text-base font-bold mb-4 flex items-center gap-2">📣 Создать рекламную ссылку</h3>
-        <div class="flex gap-3 items-end">
-          <div class="flex-1"><label class="text-xs text-slate-400 mb-1 block">Название (блогер / канал)</label><input id="campName" placeholder="Маша_YouTube"></div>
-          <button class="btn btn-primary" onclick="createCampaign()">Создать ссылку</button>
+      <div class="glass-neon p-4 mb-5 glow-border">
+        <div class="flex gap-3 items-end flex-wrap">
+          <div class="flex-1 min-w-[200px]"><label class="text-xs text-slate-400 mb-1 block">Название (блогер / канал)</label><input id="campName" placeholder="Маша_YouTube"></div>
+          <button class="btn btn-primary" onclick="createCampaign()">📣 Создать ссылку</button>
         </div>
       </div>
       <div id="campList"></div>
-      <div id="campDetail" class="hidden mt-5">
-        <div class="flex items-center gap-3 mb-4">
-          <button class="btn btn-ghost text-xs" onclick="closeCampDetail()">← Назад</button>
-          <h3 class="text-base font-bold" id="campDetailTitle"></h3>
-        </div>
-        <div class="glass-strong overflow-x-auto">
-          <table><thead><tr><th>ID</th><th>Username</th><th>Имя</th><th>App</th><th>Кредиты</th><th>Покупки</th><th>Чаты</th><th>Пригласил</th><th>Бонус</th><th>Регистрация</th><th>Последний визит</th></tr></thead>
-          <tbody id="campUsersTable"></tbody></table>
-        </div>
-      </div>
     </div>
 
 </div>
@@ -1050,6 +1039,8 @@ async function restoreSeq(id){await P('/admin/push/sequences/'+id+'/restore',{})
 async function permDeleteSeq(id){if(!confirm('Удалить навсегда? Это нельзя отменить!'))return;await D('/admin/push/sequences/'+id+'/permanent');loadTrash()}
 
 // ═══ CAMPAIGNS ═══
+var campCache={};
+var CAMP_PAGE_SIZE=50;
 async function createCampaign(){
   var n=document.getElementById('campName').value.trim();
   if(!n){alert('Введите название');return}
@@ -1067,42 +1058,76 @@ async function loadCampaigns(){
     var link='https://t.me/UraanxAI_bot?start=c_'+c.code;
     var conv=c.total_users>0?Math.round(c.opened_app/c.total_users*100):0;
     var payConv=c.total_users>0?Math.round(c.paid_users/c.total_users*100):0;
-    return '<div class="glass p-4 mb-3"><div class="flex items-center justify-between mb-3"><div><span class="text-white font-bold text-sm">'+esc(c.name)+'</span><span class="text-slate-500 text-xs ml-2">'+new Date(c.created_at).toLocaleDateString('ru')+'</span></div><div class="flex gap-2"><button class="btn btn-ghost text-xs" data-code="'+c.code+'" data-name="'+esc(c.name).replace(/"/g,'&quot;')+'" onclick="showCampDetail(this.dataset.code,this.dataset.name)">Подробнее</button><button class="btn btn-danger text-xs" style="padding:4px 10px" onclick="deleteCamp('+c.id+')">✕</button></div></div>'+
-    '<div class="flex gap-2 mb-3 flex-wrap"><input value="'+link+'" readonly class="flex-1 text-xs font-mono bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-cyan-400 min-w-0" onclick="this.select()"><button class="btn btn-ghost text-xs" data-link="'+link+'" onclick="navigator.clipboard.writeText(this.dataset.link)">📋</button></div>'+
-    '<div class="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">'+
+    return '<div class="glass p-4 mb-3" id="camp-'+c.code+'">'+
+    '<div class="flex items-center justify-between mb-3 cursor-pointer" data-code="'+c.code+'" onclick="toggleCampUsers(this.dataset.code)">'+
+    '<div class="flex items-center gap-3 flex-1 min-w-0"><span class="text-slate-500 text-xs">&#9654;</span><span class="text-white font-bold text-sm" id="camp-arrow-'+c.code+'">'+esc(c.name)+'</span><span class="text-slate-500 text-xs">'+new Date(c.created_at).toLocaleDateString('ru')+'</span></div>'+
+    '<div class="flex gap-2" onclick="event.stopPropagation()"><button class="btn btn-danger text-xs" style="padding:4px 10px" onclick="deleteCamp('+c.id+')">✕</button></div></div>'+
+    '<div class="flex gap-2 mb-3 flex-wrap"><input value="'+link+'" readonly class="flex-1 text-xs font-mono bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-cyan-400 min-w-0" onclick="this.select()"><button class="btn btn-ghost text-xs" data-link="'+link+'" onclick="navigator.clipboard.writeText(this.dataset.link)">📋 Копировать</button></div>'+
+    '<div class="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center">'+
     '<div class="glass p-2 rounded-lg"><div class="text-lg font-bold gradient-text">'+c.total_users+'</div><div class="text-xs text-slate-500">/start</div></div>'+
     '<div class="glass p-2 rounded-lg"><div class="text-lg font-bold text-green-400">'+c.opened_app+'</div><div class="text-xs text-slate-500">Открыли ('+conv+'%)</div></div>'+
     '<div class="glass p-2 rounded-lg"><div class="text-lg font-bold text-violet-400">'+c.paid_users+'</div><div class="text-xs text-slate-500">Купили ('+payConv+'%)</div></div>'+
     '<div class="glass p-2 rounded-lg"><div class="text-lg font-bold text-amber-400">'+Number(c.total_revenue).toLocaleString('ru')+'</div><div class="text-xs text-slate-500">Доход ₽</div></div>'+
     '<div class="glass p-2 rounded-lg"><div class="text-lg font-bold text-cyan-400">'+conv+'%</div><div class="text-xs text-slate-500">Конверсия</div></div>'+
+    '</div>'+
+    '<div id="camp-users-'+c.code+'" class="hidden mt-4">'+
+    '<div class="flex gap-2 mb-3 items-center"><input id="camp-search-'+c.code+'" placeholder="Поиск по имени или @username" class="flex-1 text-xs" data-code="'+c.code+'" oninput="filterCampUsers(this.dataset.code)"><span id="camp-count-'+c.code+'" class="text-xs text-slate-500"></span></div>'+
+    '<div class="overflow-x-auto"><table class="text-xs"><thead><tr><th>ID</th><th>Username</th><th>Имя</th><th>App</th><th>Кредиты</th><th>Покупки</th><th>Чаты</th><th>Пригласил</th><th>Бонус</th><th>Регистрация</th><th>Последний визит</th></tr></thead>'+
+    '<tbody id="camp-tbody-'+c.code+'"></tbody></table></div>'+
+    '<div id="camp-pager-'+c.code+'" class="flex justify-center gap-2 mt-3"></div>'+
     '</div></div>'
   }).join('')
 }
 async function deleteCamp(id){if(!confirm('Удалить кампанию?'))return;await D('/admin/campaigns/'+id);loadCampaigns()}
-async function showCampDetail(code,name){
-  document.getElementById('campList').classList.add('hidden');
-  document.getElementById('campDetail').classList.remove('hidden');
-  document.getElementById('campDetailTitle').textContent=name;
-  var users=await G('/admin/campaigns/'+code+'/users');
-  if(!Array.isArray(users)){users=[]}
-  document.getElementById('campUsersTable').innerHTML=users.map(function(u){
+async function toggleCampUsers(code){
+  var el=document.getElementById('camp-users-'+code);
+  if(!el)return;
+  if(!el.classList.contains('hidden')){el.classList.add('hidden');return}
+  el.classList.remove('hidden');
+  if(!campCache[code]){
+    var tbody=document.getElementById('camp-tbody-'+code);
+    tbody.innerHTML='<tr><td colspan="11" class="text-center text-slate-500 py-4">Загрузка...</td></tr>';
+    var users=await G('/admin/campaigns/'+code+'/users');
+    campCache[code]={all:Array.isArray(users)?users:[],filtered:null,page:0};
+  }
+  renderCampPage(code)
+}
+function filterCampUsers(code){
+  var d=campCache[code];if(!d)return;
+  var q=(document.getElementById('camp-search-'+code).value||'').toLowerCase();
+  d.filtered=q?d.all.filter(function(u){return(u.username||'').toLowerCase().includes(q)||(u.first_name||'').toLowerCase().includes(q)||String(u.id).includes(q)}):null;
+  d.page=0;
+  renderCampPage(code)
+}
+function renderCampPage(code){
+  var d=campCache[code];if(!d)return;
+  var list=d.filtered||d.all;
+  var total=list.length;
+  var pages=Math.ceil(total/CAMP_PAGE_SIZE)||1;
+  var p=Math.min(d.page,pages-1);
+  var slice=list.slice(p*CAMP_PAGE_SIZE,(p+1)*CAMP_PAGE_SIZE);
+  document.getElementById('camp-count-'+code).textContent=total+' юзеров';
+  document.getElementById('camp-tbody-'+code).innerHTML=slice.map(function(u){
     var purch=u.purchases?u.purchases.map(function(p){return p.package+' ('+p.amount_rub+'₽)'}).join(', '):'<span class="text-slate-600">—</span>';
-    return '<tr><td class="text-slate-500 text-xs font-mono">'+u.id+'</td>'+
+    return '<tr><td class="text-slate-500 font-mono">'+u.id+'</td>'+
     '<td class="text-violet-300 font-medium">'+(u.username?'@'+esc(u.username):'—')+'</td>'+
     '<td>'+esc(u.first_name)+'</td>'+
     '<td class="text-center">'+(u.app_opened?'<span class="text-green-400">📱</span>':'<span class="text-slate-600">—</span>')+'</td>'+
     '<td class="font-bold gradient-text">'+u.credits+'</td>'+
-    '<td class="text-xs">'+purch+'</td>'+
+    '<td>'+purch+'</td>'+
     '<td class="text-center">'+u.chat_count+'</td>'+
     '<td class="text-center">'+(u.invited_count>0?'<span class="text-cyan-400 font-bold">'+u.invited_count+'</span>':'0')+'</td>'+
     '<td class="text-center">'+(u.welcome_bonus_granted?'<span class="text-amber-400">✓</span>':'—')+'</td>'+
-    '<td class="text-slate-500 text-xs">'+new Date(u.created_at).toLocaleDateString('ru')+'</td>'+
-    '<td class="text-slate-500 text-xs">'+(u.last_seen?new Date(u.last_seen).toLocaleDateString('ru'):'—')+'</td></tr>'
-  }).join('')
-}
-function closeCampDetail(){
-  document.getElementById('campDetail').classList.add('hidden');
-  document.getElementById('campList').classList.remove('hidden')
+    '<td class="text-slate-500">'+new Date(u.created_at).toLocaleDateString('ru')+'</td>'+
+    '<td class="text-slate-500">'+(u.last_seen?new Date(u.last_seen).toLocaleDateString('ru'):'—')+'</td></tr>'
+  }).join('');
+  var pager=document.getElementById('camp-pager-'+code);
+  if(pages<=1){pager.innerHTML='';return}
+  var btns='';
+  for(var i=0;i<pages;i++){
+    btns+='<button class="btn btn-sm '+(i===p?'btn-primary':'btn-ghost')+'" style="padding:4px 10px;font-size:11px;min-width:32px" data-code="'+code+'" data-page="'+i+'" onclick="campCache[this.dataset.code].page=+this.dataset.page;renderCampPage(this.dataset.code)">'+(i+1)+'</button>'
+  }
+  pager.innerHTML=btns
 }
 
 if(TOKEN)showPanel();

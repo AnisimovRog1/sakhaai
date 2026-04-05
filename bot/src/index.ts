@@ -1,4 +1,4 @@
-import { Bot, InlineKeyboard, Keyboard } from 'grammy';
+import { Bot, InlineKeyboard } from 'grammy';
 import * as dotenv from 'dotenv';
 import https from 'https';
 
@@ -88,13 +88,6 @@ bot.command('start', async (ctx) => {
   }
 
   const inlineKb = new InlineKeyboard().webApp('🚀 Открыть UraanxAI', WEBAPP_URL);
-  const replyKb = new Keyboard()
-    .text('🚀 Открыть приложение')
-    .row()
-    .text('Поддержка').text('📄 Документы')
-    .row()
-    .text('👥 Пригласить друга')
-    .resized().persistent();
 
   // Welcome push: отправляем только ПЕРВЫЙ (delay_minutes=0), остальные идут через автопуши по таймингу
   try {
@@ -132,50 +125,9 @@ bot.command('start', async (ctx) => {
     );
   }
 
-  // Клавиатура
-  await ctx.reply('⬇️', { reply_markup: replyKb });
 });
 
 
-// Обработка кнопок постоянной клавиатуры
-bot.hears('🚀 Открыть приложение', async (ctx) => {
-  const kb = new InlineKeyboard().webApp('🚀 Открыть UraanxAI', WEBAPP_URL);
-  await ctx.reply('🚀 Нажми кнопку чтобы открыть приложение:', { reply_markup: kb });
-});
-
-bot.hears('Поддержка', async (ctx) => {
-  await ctx.reply(
-    `<b>Поддержка UraanxAI</b>\n\n` +
-    `Напишите ваш вопрос прямо сюда - мы ответим в ближайшее время.\n\n` +
-    `📧 uraanx.ai.project@gmail.com\n` +
-    `💬 @UraanxAI_support`,
-    { parse_mode: 'HTML' }
-  );
-});
-
-bot.hears('📄 Документы', async (ctx) => {
-  await ctx.reply(
-    `📄 <b>Документы UraanxAI</b>\n\n` +
-    `Пользовательское соглашение, политика конфиденциальности и другие документы доступны на сайте:\n\n` +
-    `https://sakhaai-production.up.railway.app/landing#terms`,
-    { parse_mode: 'HTML' }
-  );
-});
-
-bot.hears('👥 Пригласить друга', async (ctx) => {
-  const userId = ctx.from?.id;
-  const link = `https://t.me/UraanxAI_bot?start=ref_${userId}`;
-  const shareKb = new InlineKeyboard()
-    .url('📤 Поделиться ссылкой', `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Пока ты думаешь - другие уже генерят контент будущего 🚀\n\nФото и видео за секунды. Нейросеть прямо в Telegram.\nПопробуй, пока это бесплатно 👇')}`)
-    .row()
-    .url('🔗 Открыть ссылку', link);
-  await ctx.reply(
-    `👥 <b>Пригласи друга - получи бонус!</b>\n\n` +
-    `Твоя реферальная ссылка:\n${link}\n\n` +
-    `Когда друг купит пакет - ты получишь бонусные кредиты 🎁`,
-    { parse_mode: 'HTML', reply_markup: shareKb }
-  );
-});
 
 bot.command('help', async (ctx) => {
   let text = '📖 Команды:\n/start — открыть приложение\n/help — эта справка';

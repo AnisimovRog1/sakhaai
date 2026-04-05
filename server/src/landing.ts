@@ -292,7 +292,7 @@ export const LANDING_HTML = `<!DOCTYPE html>
         </div>
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-lg">📍</div>
-          <div><p class="text-xs text-slate-500">Разработчик</p><p class="text-slate-300 font-medium">ИП Анисимов · Республика Саха (Якутия)</p></div>
+          <div><p class="text-xs text-slate-500">Разработчик</p><p class="text-slate-300 font-medium">ИП Ураанхаев · Республика Саха (Якутия)</p></div>
         </div>
       </div>
     </div>

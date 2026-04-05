@@ -186,7 +186,7 @@ input:focus,textarea:focus{border-color:rgba(139,92,246,.5);box-shadow:0 0 20px 
         </div>
       </div>
       <div class="glass-strong overflow-x-auto">
-        <table><thead><tr><th>ID</th><th>Username</th><th>Имя</th><th><span class="anim-pulse">💎</span> Кредиты</th><th>Статус</th><th>TZ</th><th>Дата</th><th>Действия</th></tr></thead>
+        <table><thead><tr><th>ID</th><th>Username</th><th>Имя</th><th>App</th><th><span class="anim-pulse">💎</span> Кредиты</th><th>Статус</th><th>TZ</th><th>Дата</th><th>Действия</th></tr></thead>
         <tbody id="usersTable"></tbody></table>
       </div>
     </div>
@@ -415,6 +415,7 @@ function renderUsers(list){
     '<tr onclick="showUser('+u.id+')"><td class="text-slate-500 text-xs font-mono">'+u.id+'</td>'+
     '<td class="text-violet-300 font-medium">'+(u.username?'@'+u.username:'—')+'</td>'+
     '<td>'+u.first_name+'</td>'+
+    '<td class="text-center">'+(u.app_opened?'<span title="Открыл приложение" class="text-green-400">📱</span>':'<span title="Только /start" class="text-slate-600">—</span>')+'</td>'+
     '<td class="font-bold gradient-text">'+u.credits+'</td>'+
     '<td>'+(u.is_banned?'<span class="text-red-400 text-xs font-bold">🚫</span>':'<span class="text-green-400 text-xs">✅</span>')+'</td>'+
     '<td class="text-slate-500 text-xs">UTC'+(u.timezone_offset>=0?'+':'')+Math.round((u.timezone_offset||540)/60)+'</td>'+

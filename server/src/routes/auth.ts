@@ -65,6 +65,7 @@ authRouter.post('/', async (req: Request, res: Response) => {
        SET username   = EXCLUDED.username,
            first_name = EXCLUDED.first_name,
            last_name  = EXCLUDED.last_name,
+           app_opened = true,
            updated_at = NOW()
      RETURNING id, username, first_name, credits, language_code, is_banned,
                (xmax = 0) AS is_new`,

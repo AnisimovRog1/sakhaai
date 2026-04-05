@@ -338,6 +338,12 @@ export async function migrate() {
       ALTER TABLE users ADD COLUMN welcome_bonus_granted BOOLEAN NOT NULL DEFAULT false;
     EXCEPTION WHEN duplicate_column THEN NULL;
     END $$;
+
+    -- App opened flag (true = открыл Mini App, false = только /start)
+    DO $$ BEGIN
+      ALTER TABLE users ADD COLUMN app_opened BOOLEAN NOT NULL DEFAULT false;
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$;
   `);
 
   console.log('✅ Миграции применены');

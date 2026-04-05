@@ -164,6 +164,7 @@ async function findZeroCreditsUsers(seq: PushSequence, prev: ChainPrev | null): 
       WHERE u.is_banned = false
         AND u.credits <= 0
         AND u.credits_zero_at IS NOT NULL
+        AND EXISTS (SELECT 1 FROM orders o WHERE o.user_id = u.id AND o.status = 'paid')
         AND NOT EXISTS (SELECT 1 FROM push_sent ps WHERE ps.user_id = u.id AND ps.sequence_id = $1)
         AND EXISTS (
           SELECT 1 FROM push_sent ps2
@@ -178,6 +179,7 @@ async function findZeroCreditsUsers(seq: PushSequence, prev: ChainPrev | null): 
     WHERE u.is_banned = false
       AND u.credits <= 0
       AND u.credits_zero_at IS NOT NULL
+      AND EXISTS (SELECT 1 FROM orders o WHERE o.user_id = u.id AND o.status = 'paid')
       AND u.credits_zero_at <= NOW() - INTERVAL '1 minute' * $1
       AND NOT EXISTS (SELECT 1 FROM push_sent ps WHERE ps.user_id = u.id AND ps.sequence_id = $2)
   `, [seq.delay_minutes, seq.id]);

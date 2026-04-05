@@ -31,7 +31,7 @@ adminRouter.post('/ensure-user', async (req: Request, res: Response) => {
     await pool.query(
       `INSERT INTO users (id, first_name, username)
        VALUES ($1, $2, $3)
-       ON CONFLICT (id) DO UPDATE SET first_name = EXCLUDED.first_name, username = EXCLUDED.username, updated_at = NOW()`,
+       ON CONFLICT (id) DO UPDATE SET first_name = EXCLUDED.first_name, username = EXCLUDED.username, last_seen = NOW(), updated_at = NOW()`,
       [id, first_name, username ?? null]
     );
     res.json({ ok: true });
@@ -243,7 +243,7 @@ adminRouter.post('/ban', async (req: Request, res: Response) => {
 adminRouter.get('/users', async (_req: Request, res: Response) => {
   try {
     const result = await pool.query(`
-      SELECT id, username, first_name, credits, is_banned, timezone_offset, language_code, created_at
+      SELECT id, username, first_name, credits, is_banned, timezone_offset, language_code, created_at, app_opened
       FROM users ORDER BY created_at DESC LIMIT 100
     `);
     res.json(result.rows);

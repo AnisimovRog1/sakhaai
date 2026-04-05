@@ -572,10 +572,9 @@ adminRouter.post('/upload-photo', upload.single('photo'), async (req: Request, r
       if (!data.ok) { res.status(500).json({ error: data.description || 'Telegram upload failed' }); return; }
       fileId = data.result.video.file_id;
       mediaType = 'video';
-      // Telegram может вернуть сжатые размеры — НЕ используем их
-      // width/height останутся null → при sendVideo не передаём → Telegram сам определит
-      mediaWidth = null;
-      mediaHeight = null;
+      // Берём размеры из ответа Telegram — они нужны для правильного aspect ratio при sendVideo
+      mediaWidth = data.result.video.width || null;
+      mediaHeight = data.result.video.height || null;
     } else {
       // Фото загружаем как обычно
       form.append('photo', new Blob([file.buffer], { type: file.mimetype }), file.originalname);

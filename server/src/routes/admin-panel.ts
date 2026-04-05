@@ -967,12 +967,9 @@ async function uploadSeqMedia(file,id){
       document.getElementById('seqimg-'+id).value=imgUrl;
       var hiddenFid=document.getElementById('seqfileid-'+id);if(hiddenFid)hiddenFid.value=d.file_id;
       var mtype=d.media_type||(isVideo?'video':'photo');
-      // Используем РЕАЛЬНЫЕ размеры видео с клиента
-      // Если 320×320 — это Telegram default (сжатое), игнорируем
-      var actualW=realSize.w||null;
-      var actualH=realSize.h||null;
-      if(actualW===320&&actualH===320){actualW=null;actualH=null}
-      if(!actualW&&d.width&&!(d.width===320&&d.height===320)){actualW=d.width;actualH=d.height}
+      // Приоритет: реальные размеры с клиента (HTML5 Video API), fallback — от Telegram API
+      var actualW=realSize.w||d.width||null;
+      var actualH=realSize.h||d.height||null;
       var s=seqData.find(function(x){return x.id===id});
       if(s){s.media_url=imgUrl;s.media_type=mtype;s.media_file_id=d.file_id;s.media_width=actualW;s.media_height=actualH}
       var mtypeInput=document.getElementById('seqmediatype-'+id);if(mtypeInput)mtypeInput.value=mtype;

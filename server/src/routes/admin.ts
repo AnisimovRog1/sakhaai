@@ -561,10 +561,19 @@ adminRouter.post('/upload-photo', upload.single('photo'), async (req: Request, r
     let mediaWidth: number | null = null;
     let mediaHeight: number | null = null;
 
+    // Клиент может передать реальные размеры видео (HTML5 Video API)
+    const clientWidth = parseInt(req.body?.width) || null;
+    const clientHeight = parseInt(req.body?.height) || null;
+
     if (isVideo) {
-      // Видео: отправляем с supports_streaming чтобы Telegram не обрезал
+      // Видео: отправляем с supports_streaming + width/height для правильного aspect ratio
       form.append('video', new Blob([file.buffer], { type: file.mimetype }), file.originalname);
       form.append('supports_streaming', 'true');
+      // Передаём размеры в Telegram чтобы thumbnail был правильного aspect ratio
+      if (clientWidth && clientHeight) {
+        form.append('width', String(clientWidth));
+        form.append('height', String(clientHeight));
+      }
       const tgRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendVideo`, {
         method: 'POST', body: form,
       });
@@ -572,9 +581,9 @@ adminRouter.post('/upload-photo', upload.single('photo'), async (req: Request, r
       if (!data.ok) { res.status(500).json({ error: data.description || 'Telegram upload failed' }); return; }
       fileId = data.result.video.file_id;
       mediaType = 'video';
-      // Берём размеры из ответа Telegram — они нужны для правильного aspect ratio при sendVideo
-      mediaWidth = data.result.video.width || null;
-      mediaHeight = data.result.video.height || null;
+      // Приоритет: клиентские размеры > Telegram response > null
+      mediaWidth = clientWidth || data.result.video.width || null;
+      mediaHeight = clientHeight || data.result.video.height || null;
     } else {
       // Фото загружаем как обычно
       form.append('photo', new Blob([file.buffer], { type: file.mimetype }), file.originalname);

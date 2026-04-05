@@ -959,6 +959,7 @@ async function uploadSeqMedia(file,id){
   // Определяем реальные размеры видео ДО загрузки
   var realSize=await getVideoSize(file);
   var fd=new FormData();fd.append('photo',file);
+  if(realSize.w&&realSize.h){fd.append('width',String(realSize.w));fd.append('height',String(realSize.h))}
   try{
     var r=await fetch(API+'/admin/upload-photo',{method:'POST',headers:{'Authorization':'Bearer '+TOKEN},body:fd});
     var d=await r.json();

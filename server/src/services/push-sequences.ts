@@ -61,16 +61,25 @@ interface ChainPrev { prevSeqId: number; deltaMinutes: number }
 async function findWelcomeUsers(seq: PushSequence, prev: ChainPrev | null): Promise<number[]> {
   if (prev) {
     // Последующий шаг: требуем что предыдущий пуш отправлен >= deltaMinutes назад
+    // ИЛИ если предыдущий — welcome#1 (delay=0), считаем created_at как момент отправки
+    // (welcome#1 отправляется из /start, но push_sent может быть очищен)
     const { rows } = await pool.query(`
       SELECT u.id FROM users u
       WHERE u.is_banned = false
         AND NOT EXISTS (SELECT 1 FROM push_sent ps WHERE ps.user_id = u.id AND ps.sequence_id = $1)
-        AND EXISTS (
-          SELECT 1 FROM push_sent ps2
-          WHERE ps2.user_id = u.id AND ps2.sequence_id = $2
-          AND ps2.sent_at <= NOW() - INTERVAL '1 minute' * $3
+        AND (
+          EXISTS (
+            SELECT 1 FROM push_sent ps2
+            WHERE ps2.user_id = u.id AND ps2.sequence_id = $2
+            AND ps2.sent_at <= NOW() - INTERVAL '1 minute' * $3
+          )
+          OR (
+            -- Fallback: если welcome#1 не в push_sent (очищен), используем created_at юзера
+            NOT EXISTS (SELECT 1 FROM push_sent ps3 WHERE ps3.user_id = u.id AND ps3.sequence_id = $2)
+            AND u.created_at <= NOW() - INTERVAL '1 minute' * $4
+          )
         )
-    `, [seq.id, prev.prevSeqId, prev.deltaMinutes]);
+    `, [seq.id, prev.prevSeqId, prev.deltaMinutes, seq.delay_minutes]);
     return rows.map((r: any) => r.id);
   }
   // Первый шаг цепочки: оригинальная логика

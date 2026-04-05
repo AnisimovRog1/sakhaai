@@ -637,7 +637,7 @@ function renderSeqs(){
 
     // Настройки
     html+='<div class="flex gap-2 mt-2 flex-wrap items-center">';
-    html+='<input class="flex-1 min-w-[160px] text-[11px] bg-black/20 border border-white/8 rounded-lg px-2 py-1.5 text-slate-400" placeholder="URL фото" value="'+esc(s.media_url||'')+'" id="seqimg-'+s.id+'" oninput="markSeqDirty('+s.id+')"><input type="hidden" id="seqfileid-'+s.id+'" value="'+esc(s.media_file_id||'')+'"><input type="hidden" id="seqmediatype-'+s.id+'" value="'+esc(s.media_type||'')+'">';
+    html+='<input class="flex-1 min-w-[160px] text-[11px] bg-black/20 border border-white/8 rounded-lg px-2 py-1.5 text-slate-400" placeholder="URL фото" value="'+esc(s.media_url||'')+'" id="seqimg-'+s.id+'" oninput="markSeqDirty('+s.id+')"><input type="hidden" id="seqfileid-'+s.id+'" value="'+esc(s.media_file_id||'')+'"><input type="hidden" id="seqmediatype-'+s.id+'" value="'+esc(s.media_type||'')+'"><input type="hidden" id="seqmediawidth-'+s.id+'" value="'+(s.media_width||'')+'"><input type="hidden" id="seqmediaheight-'+s.id+'" value="'+(s.media_height||'')+'">';
     html+='<div class="flex items-center gap-1 text-[11px] text-slate-500"><span>⏱ Через</span><input type="number" class="w-16 bg-black/20 border border-white/8 rounded px-1.5 py-1 text-slate-400 text-center" value="'+s.delay_minutes+'" id="seqdelay-'+s.id+'" oninput="markSeqDirty('+s.id+')"><span>мин после триггера</span></div>';
     html+='<input type="hidden" id="seqhfrom-'+s.id+'" value="'+(s.allow_hour_from||9)+'"><input type="hidden" id="seqhto-'+s.id+'" value="'+(s.allow_hour_to||22)+'">';
     html+='</div>';
@@ -723,8 +723,10 @@ async function saveSeq(id){
   var greeting_fixed=(document.getElementById('seqgreetfixed-'+id)||{}).value||null;
   var s=seqData.find(function(x){return x.id===id});
   var savedMediaType=(document.getElementById('seqmediatype-'+id)||{}).value||null;
-  var r=await P('/admin/push/sequences',{id:id,trigger_type:s.trigger_type,delay_minutes:delay_minutes,credits_threshold:s.credits_threshold,text:text,media_type:(media_url||media_file_id)?savedMediaType:null,media_url:media_url,media_file_id:media_file_id,label:s.label,is_active:s.is_active,allow_hour_from:allow_hour_from,allow_hour_to:allow_hour_to,send_mode:send_mode,strict_time:strict_time,preferred_time:preferred_time,weekday:weekday,greeting_mode:greeting_mode,greeting_fixed:greeting_fixed,media_width:s.media_width||null,media_height:s.media_height||null});
-  if(r.id){document.getElementById('seqsave-'+id).classList.add('hidden');loadSeqs()}
+  var media_width=parseInt((document.getElementById('seqmediawidth-'+id)||{}).value)||null;
+  var media_height=parseInt((document.getElementById('seqmediaheight-'+id)||{}).value)||null;
+  var r=await P('/admin/push/sequences',{id:id,trigger_type:s.trigger_type,delay_minutes:delay_minutes,credits_threshold:s.credits_threshold,text:text,media_type:(media_url||media_file_id)?savedMediaType:null,media_url:media_url,media_file_id:media_file_id,label:s.label,is_active:s.is_active,allow_hour_from:allow_hour_from,allow_hour_to:allow_hour_to,send_mode:send_mode,strict_time:strict_time,preferred_time:preferred_time,weekday:weekday,greeting_mode:greeting_mode,greeting_fixed:greeting_fixed,media_width:media_width,media_height:media_height});
+  if(r.id){document.getElementById('seqsave-'+id).classList.add('hidden');if(s)Object.assign(s,r)}
   else alert(r.error||'Ошибка')
 }
 
@@ -770,6 +772,8 @@ async function clearSeqImg(id){
   document.getElementById('seqimg-'+id).value='';
   var fid=document.getElementById('seqfileid-'+id);if(fid)fid.value='';
   var mt=document.getElementById('seqmediatype-'+id);if(mt)mt.value='';
+  var mw=document.getElementById('seqmediawidth-'+id);if(mw)mw.value='';
+  var mh=document.getElementById('seqmediaheight-'+id);if(mh)mh.value='';
   var s=seqData.find(function(x){return x.id===id});
   if(s){s.media_url=null;s.media_type=null;s.media_file_id=null;s.media_width=null;s.media_height=null}
   await saveSeq(id);
@@ -828,7 +832,9 @@ async function uploadSeqMedia(file,id){
       var s=seqData.find(function(x){return x.id===id});
       if(s){s.media_url=imgUrl;s.media_type=mtype;s.media_file_id=d.file_id;s.media_width=actualW;s.media_height=actualH}
       var mtypeInput=document.getElementById('seqmediatype-'+id);if(mtypeInput)mtypeInput.value=mtype;
-      markSeqDirty(id);
+      var mwInput=document.getElementById('seqmediawidth-'+id);if(mwInput)mwInput.value=actualW||'';
+      var mhInput=document.getElementById('seqmediaheight-'+id);if(mhInput)mhInput.value=actualH||'';
+      await saveSeq(id);
       var previewSrc=imgUrl||URL.createObjectURL(file);
       var mediaTag=isVideo?'<video src="'+previewSrc+'" class="w-full rounded-lg" style="max-height:300px;object-fit:contain;background:#111" controls playsinline></video>':'<img src="'+previewSrc+'" class="w-full rounded-lg" style="max-height:300px;object-fit:contain;background:#111">';
       if(media)media.innerHTML='<div class="relative mb-2">'+mediaTag+'<button class="absolute top-2 right-2 z-10 w-9 h-9 rounded-full bg-red-600 text-white text-lg flex items-center justify-center shadow-lg cursor-pointer" onclick="event.stopPropagation();clearSeqImg('+id+')">✕</button></div>';

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { downloadMedia } from '../utils/download';
 
 type HistoryItem = {
   id: number;
@@ -64,35 +65,8 @@ export function GenerationViewer({ items, startIndex, onClose }: Props) {
   async function handleSave() {
     if (!item || saving) return;
     const fileName = isVideo ? 'uraanxai-video.mp4' : 'uraanxai-image.png';
-
     setSaving(true);
-    try {
-      // Telegram Mini App: downloadFile — прямое скачивание
-      const tg = (window as any).Telegram?.WebApp;
-      if (tg?.downloadFile) {
-        tg.downloadFile({ url: item.resultUrl, file_name: fileName });
-        setSaving(false);
-        return;
-      }
-
-      // Fallback: blob + <a download>
-      const resp = await fetch(item.resultUrl);
-      const blob = await resp.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch {
-      // fallback если fetch не сработал — открыть напрямую
-      const a = document.createElement('a');
-      a.href = item.resultUrl;
-      a.download = fileName;
-      a.target = '_blank';
-      a.rel = 'noreferrer';
-      a.click();
-    }
+    await downloadMedia(item.resultUrl, fileName);
     setSaving(false);
   }
 

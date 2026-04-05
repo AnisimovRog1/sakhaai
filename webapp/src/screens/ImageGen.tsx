@@ -4,6 +4,7 @@ import type { User } from '../types';
 import { useLang } from '../LangContext';
 import { PromptGallery } from '../components/PromptGallery';
 import { GenerationViewer } from '../components/GenerationViewer';
+import { downloadMedia } from '../utils/download';
 
 type HistoryItem = { id: number; type: string; prompt: string | null; resultUrl: string; cost: number; createdAt: string };
 
@@ -470,11 +471,8 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
                   alt={`Результат ${i + 1}`}
                   className={`w-full object-contain rounded-2xl shadow-xl shadow-black/40 ${imageUrls.length === 1 ? 'max-h-[50vh]' : ''}`}
                 />
-                <a
-                  href={url}
-                  download={`uraanxai-image-${i + 1}.png`}
-                  target="_blank"
-                  rel="noreferrer"
+                <button
+                  onClick={() => downloadMedia(url, `uraanxai-image-${i + 1}.png`)}
                   className="w-full bg-white/[0.08] border border-white/[0.10] rounded-lg py-2 text-center text-xs font-bold text-white active:bg-white/[0.12] transition-all flex items-center justify-center gap-1"
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -483,7 +481,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
                     <line x1="12" y1="15" x2="12" y2="3"/>
                   </svg>
                   Скачать
-                </a>
+                </button>
               </div>
             ))}
           </div>

@@ -4,6 +4,7 @@ import type { User } from '../types';
 import { useLang } from '../LangContext';
 import { VideoPromptGallery } from '../components/VideoPromptGallery';
 import { GenerationViewer } from '../components/GenerationViewer';
+import { downloadMedia } from '../utils/download';
 
 type HistoryItem = { id: number; type: string; prompt: string | null; resultUrl: string; cost: number; createdAt: string };
 
@@ -1113,11 +1114,8 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
             playsInline
           />
           <div className="flex gap-2">
-            <a
-              href={videoUrl}
-              download="uraanxai-video.mp4"
-              target="_blank"
-              rel="noreferrer"
+            <button
+              onClick={() => downloadMedia(videoUrl, 'uraanxai-video.mp4')}
               className="flex-1 bg-white/[0.08] border border-white/[0.10] rounded-xl py-3 text-center text-sm font-bold text-white active:bg-white/[0.12] transition-all flex items-center justify-center gap-1.5"
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1126,7 +1124,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
                 <line x1="12" y1="15" x2="12" y2="3"/>
               </svg>
               {t('video.download')}
-            </a>
+            </button>
             <button
               onClick={reset}
               className="flex-1 bg-violet-500/15 border border-violet-500/20 rounded-xl py-3 text-sm font-bold text-violet-300 active:opacity-80 transition-all flex items-center justify-center gap-1.5"

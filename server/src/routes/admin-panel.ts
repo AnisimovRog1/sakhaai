@@ -119,7 +119,7 @@ input:focus,textarea:focus{border-color:rgba(139,92,246,.5);box-shadow:0 0 20px 
 </div>
 
 <!-- PANEL -->
-<div id="panelPage" class="hidden rel min-h-screen">
+<div id="panelPage" class="hidden rel">
   <div class="glass-strong mx-4 mt-4 px-6 py-3 flex items-center justify-between glow-border" style="border-radius:14px">
     <div class="flex items-center gap-3">
       <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 to-cyan-500 flex items-center justify-center text-lg anim-bounce">💎</div>

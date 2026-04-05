@@ -360,7 +360,7 @@ async function login(){
   try{const r=await fetch(API+'/panel/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:p})});
   const t=await r.text();let d;try{d=JSON.parse(t)}catch{alert(t);return}
   if(d.success){TOKEN=d.token;localStorage.setItem('at',TOKEN);showPanel()}
-  else{const el=document.getElementById('loginError');el.textContent=d.error||'Неверный пароль';el.classList.remove('hidden')}}catch(e){alert(e)}
+  else{const el=document.getElementById('loginError');if(el){el.textContent=d.error||'Неверный пароль';el.classList.remove('hidden')}}}catch(e){alert(e)}
 }
 function showPanel(){document.getElementById('loginPage').classList.add('hidden');document.getElementById('panelPage').classList.remove('hidden');loadStats('today');loadExRate();startAutoRefresh()}
 function logout(){TOKEN='';localStorage.removeItem('at');clearInterval(autoRefresh);location.reload()}

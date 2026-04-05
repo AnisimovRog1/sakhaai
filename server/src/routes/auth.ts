@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import https from 'https';
 import { pool } from '../db/pool';
 import { saveUserIp, registerReferral } from '../services/referral';
-import { calculateFraudScore, saveDeviceFingerprint } from '../services/welcome-antifraud';
+import { calculateFraudScore, saveDeviceFingerprint, tryGrantWelcomeBonus } from '../services/welcome-antifraud';
 
 // HTTP GET запрос через https модуль (работает на любой версии Node.js)
 function httpGet(url: string): Promise<any> {
@@ -100,7 +100,9 @@ authRouter.post('/', async (req: Request, res: Response) => {
           await saveDeviceFingerprint(Number(tgUser.id), deviceId);
         }
 
-        console.log(`Antifraud: user=${tgUser.id}, score=${result.score}, bonus=${result.bonus}, reasons=${result.reasons.join(',')}`);
+        // Начисляем welcome бонус сразу после антифрод-проверки
+        const bonus = await tryGrantWelcomeBonus(Number(tgUser.id));
+        console.log(`Antifraud: user=${tgUser.id}, score=${result.score}, bonus=${bonus}, reasons=${result.reasons.join(',')}`);
       } catch (err) {
         console.error('Antifraud error:', err);
       }

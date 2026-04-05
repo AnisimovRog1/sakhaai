@@ -356,7 +356,7 @@ const API=location.origin;
 let autoRefresh=null;
 
 async function login(){
-  const p=document.getElementById('passInput').value;
+  var pe=document.getElementById('passInput');if(!pe)return;const p=pe.value;
   try{const r=await fetch(API+'/panel/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:p})});
   const t=await r.text();let d;try{d=JSON.parse(t)}catch{alert(t);return}
   if(d.success){TOKEN=d.token;localStorage.setItem('at',TOKEN);showPanel()}
@@ -913,7 +913,7 @@ function seqEmoji(btn){
 async function clearSeqImg(id){
   var media=document.getElementById('seqmedia-'+id);
   if(media){var els=media.querySelectorAll('img,video,.relative');for(var i=0;i<els.length;i++)els[i].remove()}
-  document.getElementById('seqimg-'+id).value='';
+  var imgEl=document.getElementById('seqimg-'+id);if(imgEl)imgEl.value='';
   var fid=document.getElementById('seqfileid-'+id);if(fid)fid.value='';
   var mt=document.getElementById('seqmediatype-'+id);if(mt)mt.value='';
   var mw=document.getElementById('seqmediawidth-'+id);if(mw)mw.value='';

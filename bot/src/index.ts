@@ -77,7 +77,7 @@ bot.command('start', async (ctx) => {
   let campaignCode: string | null = null;
   if (payload && ctx.from) {
     const refMatch = payload.match(/^ref_(\d+)$/);
-    const campMatch = payload.match(/^c_([a-zA-Z0-9_-]+)$/);
+    const campMatch = payload.match(/^c_([a-z0-9_]+)$/i);
     if (refMatch) {
       const referrerId = parseInt(refMatch[1], 10);
       httpPost(`${SERVER_URL}/referral/preregister`, {

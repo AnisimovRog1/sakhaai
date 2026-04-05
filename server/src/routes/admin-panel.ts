@@ -1067,7 +1067,7 @@ async function loadCampaigns(){
     var link='https://t.me/UraanxAI_bot?start=c_'+c.code;
     var conv=c.total_users>0?Math.round(c.opened_app/c.total_users*100):0;
     var payConv=c.total_users>0?Math.round(c.paid_users/c.total_users*100):0;
-    return '<div class="glass p-4 mb-3"><div class="flex items-center justify-between mb-3"><div><span class="text-white font-bold text-sm">'+esc(c.name)+'</span><span class="text-slate-500 text-xs ml-2">'+new Date(c.created_at).toLocaleDateString('ru')+'</span></div><div class="flex gap-2"><button class="btn btn-ghost text-xs" onclick="showCampDetail(\''+c.code+'\',\''+esc(c.name).replace(/'/g,"\\'")+'\')">Подробнее</button><button class="btn btn-danger text-xs" style="padding:4px 10px" onclick="deleteCamp('+c.id+')">✕</button></div></div>'+
+    return '<div class="glass p-4 mb-3"><div class="flex items-center justify-between mb-3"><div><span class="text-white font-bold text-sm">'+esc(c.name)+'</span><span class="text-slate-500 text-xs ml-2">'+new Date(c.created_at).toLocaleDateString('ru')+'</span></div><div class="flex gap-2"><button class="btn btn-ghost text-xs" data-code="'+c.code+'" data-name="'+esc(c.name).replace(/"/g,'&quot;')+'" onclick="showCampDetail(this.dataset.code,this.dataset.name)">Подробнее</button><button class="btn btn-danger text-xs" style="padding:4px 10px" onclick="deleteCamp('+c.id+')">✕</button></div></div>'+
     '<div class="flex gap-2 mb-3 flex-wrap"><input value="'+link+'" readonly class="flex-1 text-xs font-mono bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-cyan-400 min-w-0" onclick="this.select()"><button class="btn btn-ghost text-xs" onclick="navigator.clipboard.writeText(\''+link+'\')">📋</button></div>'+
     '<div class="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">'+
     '<div class="glass p-2 rounded-lg"><div class="text-lg font-bold gradient-text">'+c.total_users+'</div><div class="text-xs text-slate-500">/start</div></div>'+
@@ -1088,7 +1088,7 @@ async function showCampDetail(code,name){
   document.getElementById('campUsersTable').innerHTML=users.map(function(u){
     var purch=u.purchases?u.purchases.map(function(p){return p.package+' ('+p.amount_rub+'₽)'}).join(', '):'<span class="text-slate-600">—</span>';
     return '<tr><td class="text-slate-500 text-xs font-mono">'+u.id+'</td>'+
-    '<td class="text-violet-300 font-medium">'+(u.username?'@'+u.username:'—')+'</td>'+
+    '<td class="text-violet-300 font-medium">'+(u.username?'@'+esc(u.username):'—')+'</td>'+
     '<td>'+esc(u.first_name)+'</td>'+
     '<td class="text-center">'+(u.app_opened?'<span class="text-green-400">📱</span>':'<span class="text-slate-600">—</span>')+'</td>'+
     '<td class="font-bold gradient-text">'+u.credits+'</td>'+

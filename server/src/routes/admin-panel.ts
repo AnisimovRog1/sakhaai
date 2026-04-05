@@ -654,7 +654,7 @@ function renderSeqs(){
     html+='</div>';
 
     // Текст
-    html+='<textarea class="w-full bg-black/20 border border-white/8 rounded-lg p-2.5 text-xs text-slate-300 resize-y leading-relaxed font-mono" rows="4" id="seqtext-'+s.id+'" onfocus="this.dataset.prev=this.value" oninput="markSeqDirty('+s.id+')" onblur="trackUndo('+s.id+',\'seqtext-'+s.id+'\')" onkeydown="seqHotkey(event,'+s.id+')">'+esc(s.text)+'</textarea>';
+    html+='<textarea class="w-full bg-black/20 border border-white/8 rounded-lg p-2.5 text-xs text-slate-300 resize-y leading-relaxed font-mono" rows="4" id="seqtext-'+s.id+'" onfocus="this.dataset.prev=this.value" oninput="markSeqDirty('+s.id+')" onblur="trackUndo('+s.id+',\\x27seqtext-'+s.id+'\\x27)" onkeydown="seqHotkey(event,'+s.id+')">'+esc(s.text)+'</textarea>';
 
     // Настройки
     html+='<div class="flex gap-2 mt-2 flex-wrap items-center">';
@@ -707,7 +707,7 @@ function renderSeqs(){
     var abText=s.ab_text||'';
     html+='<div class="mt-2" id="seqab-wrap-'+s.id+'" style="'+(abText?'':'display:none')+'">';
     html+='<div class="flex items-center gap-2 mb-1"><span class="text-[10px] font-bold text-amber-400">B вариант</span><button class="text-red-400/50 hover:text-red-400 text-[10px]" onclick="removeAB('+s.id+')" title="Удалить вариант B">✕</button></div>';
-    html+='<textarea class="w-full bg-black/20 border border-amber-500/20 rounded-lg p-2.5 text-xs text-slate-300 resize-y leading-relaxed font-mono" rows="3" id="seqabtext-'+s.id+'" onfocus="this.dataset.prev=this.value" oninput="markSeqDirty('+s.id+')" onblur="trackUndo('+s.id+',\'seqabtext-'+s.id+'\')" onkeydown="seqHotkey(event,'+s.id+')">'+esc(abText)+'</textarea>';
+    html+='<textarea class="w-full bg-black/20 border border-amber-500/20 rounded-lg p-2.5 text-xs text-slate-300 resize-y leading-relaxed font-mono" rows="3" id="seqabtext-'+s.id+'" onfocus="this.dataset.prev=this.value" oninput="markSeqDirty('+s.id+')" onblur="trackUndo('+s.id+',\\x27seqabtext-'+s.id+'\\x27)" onkeydown="seqHotkey(event,'+s.id+')">'+esc(abText)+'</textarea>';
     html+='</div>';
 
     // ═══ Кнопки сохранения/удаления ═══

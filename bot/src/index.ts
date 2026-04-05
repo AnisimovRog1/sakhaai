@@ -100,13 +100,14 @@ bot.command('start', async (ctx) => {
       first_name: ctx.from.first_name,
       username: ctx.from.username ?? null,
       ...(campaignCode ? { campaign_code: campaignCode } : {}),
-    }).catch(() => {});
+    }).catch((e: any) => { console.error(`❌ ensure-user FAILED for ${ctx.from?.id}:`, e?.message); });
   }
 
   // Welcome push: отправляем только ПЕРВЫЙ (delay_minutes=0), остальные идут через автопуши по таймингу
   let welcomeSent = false;
   try {
     const welcomeSeqs = await httpGet(`${SERVER_URL}/admin/push/sequences/welcome`) as any[];
+    console.log(`🔍 Welcome seqs for ${ctx.from?.id}: count=${Array.isArray(welcomeSeqs) ? welcomeSeqs.length : 'not-array'}, data=${JSON.stringify(welcomeSeqs).substring(0, 200)}`);
     const firstSeq = Array.isArray(welcomeSeqs) ? welcomeSeqs.find((s: any) => s.delay_minutes === 0) || welcomeSeqs[0] : null;
     if (firstSeq && firstSeq.text) {
       const media = firstSeq.media_file_id || firstSeq.media_url;

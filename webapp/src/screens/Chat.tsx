@@ -250,7 +250,7 @@ export function Chat({ chatId, chatTitle, onBack }: Props) {
               onKeyDown={handleKeyDown}
               placeholder={t('chat.placeholder')}
               rows={1}
-              className="flex-1 bg-white/[0.08] border border-white/[0.10] rounded-2xl px-4 py-3 text-sm font-medium resize-none outline-none placeholder-slate-500 text-white max-h-32 focus:border-violet-500/50 transition-colors"
+              className="flex-1 bg-white/[0.08] border border-white/[0.10] rounded-2xl px-4 py-3 text-base font-medium resize-none outline-none placeholder-slate-500 text-white max-h-32 focus:border-violet-500/50 transition-colors"
               style={{ lineHeight: '1.4' }}
             />
             <button

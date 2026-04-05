@@ -90,6 +90,7 @@ export function GenerationViewer({ items, startIndex, onClose }: Props) {
           loop
           playsInline
           autoPlay
+          muted
           className="absolute w-full h-full object-cover"
           style={{ top: '-30px', left: 0, right: 0, bottom: 0 }}
         />

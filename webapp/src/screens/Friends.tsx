@@ -192,15 +192,13 @@ export function Friends({ user }: Props) {
       <div className="glass-neon rounded-2xl p-4 space-y-3 opacity-70">
         <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Документы и контакты</p>
         <div className="space-y-2 text-xs text-slate-400">
-          <a
-            href="https://sakhaai-production.up.railway.app/landing#terms"
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            onClick={() => (window.Telegram?.WebApp as any)?.openLink?.('https://sakhaai-production.up.railway.app/landing#terms')}
             className="flex items-center gap-2 hover:text-white transition"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>
             Пользовательское соглашение
-          </a>
+          </button>
           <div className="flex items-center gap-2">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path d="M22 6l-10 7L2 6"/></svg>
             uraanx.ai.project@gmail.com

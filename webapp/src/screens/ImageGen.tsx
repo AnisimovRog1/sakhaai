@@ -307,7 +307,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
             placeholder={t('image.promptPlaceholder')}
             maxLength={20000}
             rows={4}
-            className="w-full glass-neon rounded-xl p-4 pb-8 text-sm font-medium resize-none outline-none placeholder-slate-400 text-white focus:border-violet-500/50 transition-colors"
+            className="w-full glass-neon rounded-xl p-4 pb-8 text-base font-medium resize-none outline-none placeholder-slate-400 text-white focus:border-violet-500/50 transition-colors"
           />
           <span className="absolute bottom-3 left-4 text-slate-400 text-xs">{prompt.length} / 20000</span>
         </div>
@@ -535,6 +535,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
                   <img
                     src={item.resultUrl}
                     alt={item.prompt || 'Генерация'}
+                    loading="lazy"
                     className="w-full rounded-xl border border-white/[0.10]"
                     onLoad={(e) => {
                       const img = e.currentTarget;

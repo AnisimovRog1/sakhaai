@@ -1,4 +1,5 @@
 import express from 'express';
+import compression from 'compression';
 import cors from 'cors';
 import * as dotenv from 'dotenv';
 import path from 'path';
@@ -30,6 +31,7 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',')
   : ['http://localhost:5173'];
 
+app.use(compression());
 app.use(cors({
   origin: (origin, callback) => {
     // origin = undefined у server-to-server запросов и curl — пропускаем

@@ -685,7 +685,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
                 onChange={(e) => setPrompt(e.target.value)}
                 placeholder="Опишите сцену, действия, камеру..."
                 rows={4}
-                className="w-full glass-neon rounded-xl p-4 pb-8 text-sm font-medium resize-none outline-none placeholder-slate-400 text-white focus:border-violet-500/50 transition-colors"
+                className="w-full glass-neon rounded-xl p-4 pb-8 text-base font-medium resize-none outline-none placeholder-slate-400 text-white focus:border-violet-500/50 transition-colors"
               />
               <span className="absolute bottom-3 left-4 text-white text-xs">{prompt.length}</span>
             </div>
@@ -829,7 +829,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="Опишите сцену, окружение, стиль..."
               rows={3}
-              className="w-full glass-neon rounded-xl p-4 text-sm font-medium resize-none outline-none placeholder-slate-400 text-white focus:border-violet-500/50 transition-colors"
+              className="w-full glass-neon rounded-xl p-4 text-base font-medium resize-none outline-none placeholder-slate-400 text-white focus:border-violet-500/50 transition-colors"
             />
           </div>
 
@@ -897,7 +897,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
               onChange={(e) => setSpeechText(e.target.value)}
               placeholder="Введите текст, который персонаж произнесёт..."
               rows={3}
-              className="w-full glass-neon rounded-xl p-4 text-sm font-medium resize-none outline-none placeholder-slate-400 text-white focus:border-violet-500/50 transition-colors"
+              className="w-full glass-neon rounded-xl p-4 text-base font-medium resize-none outline-none placeholder-slate-400 text-white focus:border-violet-500/50 transition-colors"
             />
           </div>
 
@@ -1043,7 +1043,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
               onChange={(e) => setAvatarPrompt(e.target.value)}
               placeholder="Действия, эмоции, жесты персонажа..."
               rows={3}
-              className="w-full glass-neon rounded-xl p-4 text-sm font-medium resize-none outline-none placeholder-slate-400 text-white focus:border-violet-500/50 transition-colors"
+              className="w-full glass-neon rounded-xl p-4 text-base font-medium resize-none outline-none placeholder-slate-400 text-white focus:border-violet-500/50 transition-colors"
             />
           </div>
         </>

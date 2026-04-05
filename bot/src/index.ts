@@ -93,14 +93,16 @@ bot.command('start', async (ctx) => {
 
   const inlineKb = new InlineKeyboard().webApp('🚀 Открыть UraanxAI', WEBAPP_URL);
 
-  // Создаём юзера в БД СРАЗУ при /start (чтобы mark-sent и push цепочки работали)
+  // Создаём юзера в БД СРАЗУ при /start — AWAIT чтобы mark-sent не упал на FK
   if (ctx.from) {
-    httpPost(`${SERVER_URL}/admin/ensure-user`, {
-      id: ctx.from.id,
-      first_name: ctx.from.first_name,
-      username: ctx.from.username ?? null,
-      ...(campaignCode ? { campaign_code: campaignCode } : {}),
-    }).catch((e: any) => { console.error(`❌ ensure-user FAILED for ${ctx.from?.id}:`, e?.message); });
+    try {
+      await httpPost(`${SERVER_URL}/admin/ensure-user`, {
+        id: ctx.from.id,
+        first_name: ctx.from.first_name,
+        username: ctx.from.username ?? null,
+        ...(campaignCode ? { campaign_code: campaignCode } : {}),
+      });
+    } catch (e: any) { console.error(`❌ ensure-user FAILED for ${ctx.from?.id}:`, e?.message); }
   }
 
   // Welcome push: отправляем только ПЕРВЫЙ (delay_minutes=0), остальные идут через автопуши по таймингу

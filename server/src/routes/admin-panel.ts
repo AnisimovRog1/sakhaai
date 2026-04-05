@@ -273,7 +273,11 @@ input:focus,textarea:focus{border-color:rgba(139,92,246,.5);box-shadow:0 0 20px 
             <h3 class="text-base font-bold flex items-center gap-2">🤖 Автоматические цепочки</h3>
             <p class="text-slate-500 text-xs mt-1">Включите галочку ✅ — пуш начнёт вылетать по триггеру и таймингу</p>
           </div>
-          <button class="btn btn-ghost text-xs" onclick="addNewSeq()">➕ Добавить</button>
+          <div class="flex items-center gap-2">
+            <button id="undoBtn" class="text-slate-500 hover:text-white text-sm" onclick="undo()" title="Отменить (Ctrl+Z)" style="opacity:0.3">↩️</button>
+            <button id="redoBtn" class="text-slate-500 hover:text-white text-sm" onclick="redo()" title="Повторить (Ctrl+Y)" style="opacity:0.3">↪️</button>
+            <button class="btn btn-ghost text-xs" onclick="addNewSeq()">➕ Добавить</button>
+          </div>
         </div>
 
         <!-- Табы цепочек -->
@@ -600,7 +604,7 @@ function renderSeqs(){
     var dotColor=active?'#4ade80':'#64748b';
     var borderColor=active?'border-green-500/20':'border-white/6';
 
-    html+='<div class="relative pl-12 pb-5" id="seq-'+s.id+'">';
+    html+='<div class="relative pl-12 pb-5" id="seq-'+s.id+'" draggable="true" ondragstart="seqDragStart(event,'+s.id+')" ondragover="seqDragOver(event)" ondrop="seqDrop(event,'+s.id+')" style="cursor:grab">';
     // Точка на таймлайне
     html+='<div style="position:absolute;left:13px;top:8px;width:16px;height:16px;border-radius:50%;background:'+dotColor+';border:3px solid #0a0f1a;z-index:2"></div>';
     // Время на таймлайне
@@ -650,7 +654,7 @@ function renderSeqs(){
     html+='</div>';
 
     // Текст
-    html+='<textarea class="w-full bg-black/20 border border-white/8 rounded-lg p-2.5 text-xs text-slate-300 resize-y leading-relaxed font-mono" rows="4" id="seqtext-'+s.id+'" oninput="markSeqDirty('+s.id+')" onkeydown="seqHotkey(event,'+s.id+')">'+esc(s.text)+'</textarea>';
+    html+='<textarea class="w-full bg-black/20 border border-white/8 rounded-lg p-2.5 text-xs text-slate-300 resize-y leading-relaxed font-mono" rows="4" id="seqtext-'+s.id+'" onfocus="this.dataset.prev=this.value" oninput="markSeqDirty('+s.id+')" onblur="trackUndo('+s.id+',\'seqtext-'+s.id+'\')" onkeydown="seqHotkey(event,'+s.id+')">'+esc(s.text)+'</textarea>';
 
     // Настройки
     html+='<div class="flex gap-2 mt-2 flex-wrap items-center">';
@@ -699,10 +703,18 @@ function renderSeqs(){
       html+='</div>';
     }
 
+    // ═══ A/B тест ═══
+    var abText=s.ab_text||'';
+    html+='<div class="mt-2" id="seqab-wrap-'+s.id+'" style="'+(abText?'':'display:none')+'">';
+    html+='<div class="flex items-center gap-2 mb-1"><span class="text-[10px] font-bold text-amber-400">B вариант</span><button class="text-red-400/50 hover:text-red-400 text-[10px]" onclick="removeAB('+s.id+')" title="Удалить вариант B">✕</button></div>';
+    html+='<textarea class="w-full bg-black/20 border border-amber-500/20 rounded-lg p-2.5 text-xs text-slate-300 resize-y leading-relaxed font-mono" rows="3" id="seqabtext-'+s.id+'" onfocus="this.dataset.prev=this.value" oninput="markSeqDirty('+s.id+')" onblur="trackUndo('+s.id+',\'seqabtext-'+s.id+'\')">'+esc(abText)+'</textarea>';
+    html+='</div>';
+
     // ═══ Кнопки сохранения/удаления ═══
     html+='<div class="flex gap-2 mt-2 items-center">';
     html+='<button class="btn btn-primary text-[11px] hidden" id="seqsave-'+s.id+'" onclick="saveSeq('+s.id+')" style="padding:4px 12px">💾 Сохранить</button>';
     html+='<button class="text-violet-400/70 hover:text-violet-400 text-[11px]" onclick="previewSeq('+s.id+')" title="Превью">👁 Превью</button>';
+    if(!abText) html+='<button class="text-amber-400/50 hover:text-amber-400 text-[11px]" onclick="addAB('+s.id+')" title="A/B тест">🔀 A/B</button>';
     html+='<button class="text-cyan-400/50 hover:text-cyan-400 text-[11px]" onclick="dupeSeq('+s.id+')" title="Дублировать">📋</button>';
     html+='<button class="text-red-400/50 hover:text-red-400 text-[11px]" onclick="delSeq('+s.id+')">🗑</button>';
     html+='</div>';
@@ -725,7 +737,8 @@ function renderSeqs(){
 function esc(s){var d=document.createElement('div');d.textContent=s||'';return d.innerHTML}
 
 function toggleGreetFixed(id,val){var f=document.getElementById('seqgreetfixed-'+id);if(f)f.classList.toggle('hidden',val!=='fixed')}
-function markSeqDirty(id){var b=document.getElementById('seqsave-'+id);if(b)b.classList.remove('hidden')}
+function markSeqDirty(id){var b=document.getElementById('seqsave-'+id);if(b)b.classList.remove('hidden');startDraftTimer(id)}
+function trackUndo(id,fieldId){var el=document.getElementById(fieldId);if(!el)return;if(!el.dataset.prev)el.dataset.prev=el.value;var prev=el.dataset.prev;if(prev!==el.value){pushUndo({id:id,field:fieldId,value:prev});el.dataset.prev=el.value}}
 
 async function saveSeq(id){
   var text=document.getElementById('seqtext-'+id).value;
@@ -745,7 +758,9 @@ async function saveSeq(id){
   var savedMediaType=(document.getElementById('seqmediatype-'+id)||{}).value||null;
   var media_width=parseInt((document.getElementById('seqmediawidth-'+id)||{}).value)||null;
   var media_height=parseInt((document.getElementById('seqmediaheight-'+id)||{}).value)||null;
-  var r=await P('/admin/push/sequences',{id:id,trigger_type:s.trigger_type,delay_minutes:delay_minutes,credits_threshold:s.credits_threshold,text:text,media_type:(media_url||media_file_id)?savedMediaType:null,media_url:media_url,media_file_id:media_file_id,label:s.label,is_active:s.is_active,allow_hour_from:allow_hour_from,allow_hour_to:allow_hour_to,send_mode:send_mode,strict_time:strict_time,preferred_time:preferred_time,weekday:weekday,greeting_mode:greeting_mode,greeting_fixed:greeting_fixed,media_width:media_width,media_height:media_height});
+  var ab_text=(document.getElementById('seqabtext-'+id)||{}).value||null;
+  if(ab_text==='')ab_text=null;
+  var r=await P('/admin/push/sequences',{id:id,trigger_type:s.trigger_type,delay_minutes:delay_minutes,credits_threshold:s.credits_threshold,text:text,media_type:(media_url||media_file_id)?savedMediaType:null,media_url:media_url,media_file_id:media_file_id,label:s.label,is_active:s.is_active,allow_hour_from:allow_hour_from,allow_hour_to:allow_hour_to,send_mode:send_mode,strict_time:strict_time,preferred_time:preferred_time,weekday:weekday,greeting_mode:greeting_mode,greeting_fixed:greeting_fixed,media_width:media_width,media_height:media_height,ab_text:ab_text});
   if(r.id){document.getElementById('seqsave-'+id).classList.add('hidden');if(s)Object.assign(s,r)}
   else alert(r.error||'Ошибка')
 }
@@ -795,7 +810,65 @@ async function loadSentStats(){
   }
 }
 
+// ═══ Drag & Drop перетаскивание шагов ═══
+var seqDragId=null;
+function seqDragStart(e,id){seqDragId=id;e.dataTransfer.effectAllowed='move';e.target.style.opacity='0.4'}
+function seqDragOver(e){e.preventDefault();e.dataTransfer.dropEffect='move'}
+async function seqDrop(e,targetId){
+  e.preventDefault();
+  if(seqDragId===null||seqDragId===targetId)return;
+  var src=seqData.find(function(x){return x.id===seqDragId});
+  var tgt=seqData.find(function(x){return x.id===targetId});
+  if(!src||!tgt)return;
+  // Swap delay_minutes
+  var tmpDelay=src.delay_minutes;
+  src.delay_minutes=tgt.delay_minutes;
+  tgt.delay_minutes=tmpDelay;
+  // Save both
+  await P('/admin/push/sequences',{id:src.id,trigger_type:src.trigger_type,delay_minutes:src.delay_minutes,credits_threshold:src.credits_threshold,text:src.text,media_type:src.media_type,media_url:src.media_url,media_file_id:src.media_file_id,label:src.label,is_active:src.is_active,allow_hour_from:src.allow_hour_from,allow_hour_to:src.allow_hour_to,send_mode:src.send_mode,strict_time:src.strict_time,preferred_time:src.preferred_time,weekday:src.weekday,greeting_mode:src.greeting_mode,greeting_fixed:src.greeting_fixed,media_width:src.media_width||null,media_height:src.media_height||null});
+  await P('/admin/push/sequences',{id:tgt.id,trigger_type:tgt.trigger_type,delay_minutes:tgt.delay_minutes,credits_threshold:tgt.credits_threshold,text:tgt.text,media_type:tgt.media_type,media_url:tgt.media_url,media_file_id:tgt.media_file_id,label:tgt.label,is_active:tgt.is_active,allow_hour_from:tgt.allow_hour_from,allow_hour_to:tgt.allow_hour_to,send_mode:tgt.send_mode,strict_time:tgt.strict_time,preferred_time:tgt.preferred_time,weekday:tgt.weekday,greeting_mode:tgt.greeting_mode,greeting_fixed:tgt.greeting_fixed,media_width:tgt.media_width||null,media_height:tgt.media_height||null});
+  seqDragId=null;
+  renderSeqs();
+}
+document.addEventListener('dragend',function(){seqDragId=null;document.querySelectorAll('[id^="seq-"]').forEach(function(el){el.style.opacity='1'})});
+
+// ═══ Undo/Redo система ═══
+var undoStack=[];
+var redoStack=[];
+function pushUndo(action){undoStack.push(action);if(undoStack.length>50)undoStack.shift();redoStack=[];updateUndoButtons()}
+function updateUndoButtons(){var u=document.getElementById('undoBtn');var r=document.getElementById('redoBtn');if(u)u.style.opacity=undoStack.length?'1':'0.3';if(r)r.style.opacity=redoStack.length?'1':'0.3'}
+async function undo(){
+  if(!undoStack.length)return;
+  var a=undoStack.pop();
+  redoStack.push({id:a.id,field:a.field,value:document.getElementById(a.field)?.value||''});
+  var el=document.getElementById(a.field);if(el)el.value=a.value;
+  markSeqDirty(a.id);updateUndoButtons();
+}
+async function redo(){
+  if(!redoStack.length)return;
+  var a=redoStack.pop();
+  undoStack.push({id:a.id,field:a.field,value:document.getElementById(a.field)?.value||''});
+  var el=document.getElementById(a.field);if(el)el.value=a.value;
+  markSeqDirty(a.id);updateUndoButtons();
+}
+document.addEventListener('keydown',function(e){
+  if((e.ctrlKey||e.metaKey)&&e.key==='z'&&!e.shiftKey){e.preventDefault();undo()}
+  if((e.ctrlKey||e.metaKey)&&e.key==='z'&&e.shiftKey){e.preventDefault();redo()}
+  if((e.ctrlKey||e.metaKey)&&e.key==='y'){e.preventDefault();redo()}
+});
+
+// ═══ Draft автосохранение ═══
+var draftTimers={};
+function startDraftTimer(id){
+  if(draftTimers[id])clearTimeout(draftTimers[id]);
+  draftTimers[id]=setTimeout(function(){saveSeq(id);delete draftTimers[id]},8000);
+}
+
 async function toggleSeq(id){await apiFetch('/admin/push/sequences/'+id+'/toggle',{method:'PUT'});loadSeqs()}
+// A/B тест: добавить/удалить вариант B
+function addAB(id){var w=document.getElementById('seqab-wrap-'+id);if(w)w.style.display='';markSeqDirty(id)}
+function removeAB(id){var w=document.getElementById('seqab-wrap-'+id);if(w)w.style.display='none';var ta=document.getElementById('seqabtext-'+id);if(ta)ta.value='';markSeqDirty(id)}
+
 async function delSeq(id){if(!confirm('Удалить?'))return;await D('/admin/push/sequences/'+id);loadSeqs()}
 async function dupeSeq(id){
   var s=seqData.find(function(x){return x.id===id});if(!s)return;

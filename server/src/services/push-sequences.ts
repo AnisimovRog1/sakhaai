@@ -41,6 +41,7 @@ export interface PendingPush {
   greeting_mode: string;
   greeting_fixed: string | null;
   user_local_hour: number;
+  ab_text: string | null;
 }
 
 // ─── Получить все активные последовательности ───
@@ -378,6 +379,7 @@ export async function findPendingPushes(): Promise<PendingPush[]> {
         greeting_mode: seq.greeting_mode || 'none',
         greeting_fixed: seq.greeting_fixed || null,
         user_local_hour: u.localHour,
+        ab_text: (seq as any).ab_text || null,
       });
     }
   }
@@ -465,7 +467,7 @@ export async function upsertSequence(data: Partial<PushSequence> & { trigger_typ
         is_active = $9, allow_hour_from = $10, allow_hour_to = $11,
         send_mode = $13, strict_time = $14, preferred_time = $15,
         weekday = $16, greeting_mode = $17, greeting_fixed = $18,
-        media_width = $19, media_height = $20
+        media_width = $19, media_height = $20, ab_text = $21
       WHERE id = $1 RETURNING *
     `, [data.id, data.trigger_type, data.delay_minutes || 0, data.credits_threshold,
         data.text, data.media_type, data.media_url, data.label,
@@ -473,18 +475,18 @@ export async function upsertSequence(data: Partial<PushSequence> & { trigger_typ
         data.media_file_id || null,
         data.send_mode || 'immediate', data.strict_time || null, data.preferred_time || null,
         data.weekday || null, data.greeting_mode || 'none', data.greeting_fixed || null,
-        data.media_width || null, data.media_height || null]);
+        data.media_width || null, data.media_height || null, (data as any).ab_text || null]);
     return rows[0];
   }
   const { rows } = await pool.query(`
-    INSERT INTO push_sequences (trigger_type, delay_minutes, credits_threshold, text, media_type, media_url, media_file_id, label, is_active, allow_hour_from, allow_hour_to, send_mode, strict_time, preferred_time, weekday, greeting_mode, greeting_fixed, media_width, media_height)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19) RETURNING *
+    INSERT INTO push_sequences (trigger_type, delay_minutes, credits_threshold, text, media_type, media_url, media_file_id, label, is_active, allow_hour_from, allow_hour_to, send_mode, strict_time, preferred_time, weekday, greeting_mode, greeting_fixed, media_width, media_height, ab_text)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) RETURNING *
   `, [data.trigger_type, data.delay_minutes || 0, data.credits_threshold,
       data.text, data.media_type, data.media_url, data.media_file_id || null, data.label,
       data.is_active ?? true, data.allow_hour_from ?? 9, data.allow_hour_to ?? 22,
       data.send_mode || 'immediate', data.strict_time || null, data.preferred_time || null,
       data.weekday || null, data.greeting_mode || 'none', data.greeting_fixed || null,
-      (data as any).media_width || null, (data as any).media_height || null]);
+      (data as any).media_width || null, (data as any).media_height || null, (data as any).ab_text || null]);
   return rows[0];
 }
 

@@ -1144,8 +1144,8 @@ async function processAutoSequences() {
     let sent = 0;
     for (const p of pending) {
       try {
-        // Применяем приветствие
-        let text = p.text || '';
+        // A/B тест: случайно выбираем вариант A или B
+        let text = (p.ab_text && Math.random() < 0.5) ? p.ab_text : (p.text || '');
         if (p.greeting_mode === 'dynamic' && p.user_local_hour !== undefined) {
           text = getGreeting(p.user_local_hour) + '! ' + text;
         } else if (p.greeting_mode === 'fixed' && p.greeting_fixed) {

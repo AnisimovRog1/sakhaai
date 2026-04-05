@@ -231,6 +231,12 @@ export async function migrate() {
     EXCEPTION WHEN duplicate_column THEN NULL;
     END $$;
 
+    -- A/B тест текст
+    DO $$ BEGIN
+      ALTER TABLE push_sequences ADD COLUMN ab_text TEXT;
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$;
+
     -- Видео размеры для push_templates
     DO $$ BEGIN
       ALTER TABLE push_templates ADD COLUMN media_width INTEGER;

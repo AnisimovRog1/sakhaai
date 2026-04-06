@@ -358,6 +358,13 @@ export async function migrate() {
       name        TEXT NOT NULL,
       created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+
+    -- Индексы для производительности
+    CREATE INDEX IF NOT EXISTS idx_chats_user_id ON chats (user_id);
+    CREATE INDEX IF NOT EXISTS idx_messages_chat_id ON messages (chat_id);
+    CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON transactions (user_id);
+    CREATE INDEX IF NOT EXISTS idx_generations_user_id ON generations (user_id);
+    CREATE INDEX IF NOT EXISTS idx_push_sent_user_id ON push_sent (user_id);
   `);
 
   console.log('✅ Миграции применены');

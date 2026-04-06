@@ -132,7 +132,7 @@ bot.command('start', async (ctx) => {
       }
       // Помечаем первый welcome как отправленный — без этого цепочка не пойдёт дальше
       if (firstSeq.id && ctx.from?.id) {
-        httpPost(`${SERVER_URL}/admin/push/sequences/mark-sent`, {
+        await httpPost(`${SERVER_URL}/admin/push/sequences/mark-sent`, {
           user_id: ctx.from.id, sequence_id: firstSeq.id,
         }).catch((e: any) => {
           console.error(`❌ mark-sent FAILED welcome #${firstSeq.id} for user ${ctx.from?.id}:`, e?.message || e);
@@ -355,6 +355,7 @@ bot.callbackQuery('goto_push', async (ctx) => {
 });
 
 bot.callbackQuery('cmd_menu', async (ctx) => {
+  if (!isAdmin(ctx.from.id)) { await ctx.answerCallbackQuery({ text: '⛔' }); return; }
   await ctx.answerCallbackQuery();
   const keyboard = new InlineKeyboard()
     .text('📊 Сегодня', 'cmd_stats_today')
@@ -598,6 +599,7 @@ bot.command('broadcast', async (ctx) => {
 // ═══════════════════════════════════════════════════════
 
 bot.callbackQuery('top_users', async (ctx) => {
+  if (!isAdmin(ctx.from.id)) { await ctx.answerCallbackQuery({ text: '⛔' }); return; }
   try {
     const s = await httpGet(`${SERVER_URL}/admin/stats?period=today`);
     const list = (s.topActive || [])
@@ -609,6 +611,7 @@ bot.callbackQuery('top_users', async (ctx) => {
 });
 
 bot.callbackQuery('deposits', async (ctx) => {
+  if (!isAdmin(ctx.from.id)) { await ctx.answerCallbackQuery({ text: '⛔' }); return; }
   try {
     const deps = await httpGet(`${SERVER_URL}/admin/deposits`);
     await ctx.answerCallbackQuery();
@@ -624,6 +627,7 @@ bot.callbackQuery('deposits', async (ctx) => {
 });
 
 bot.callbackQuery('errors', async (ctx) => {
+  if (!isAdmin(ctx.from.id)) { await ctx.answerCallbackQuery({ text: '⛔' }); return; }
   try {
     const data = await httpGet(`${SERVER_URL}/admin/errors`);
     await ctx.answerCallbackQuery();

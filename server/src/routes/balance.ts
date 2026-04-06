@@ -7,24 +7,28 @@ balanceRouter.use(requireAuth);
 
 // GET /balance — текущий баланс (из Redis кэша или БД)
 balanceRouter.get('/', async (req: Request, res: Response) => {
-  const credits = await getBalance(req.userId!);
-  res.json({ credits });
+  try {
+    const credits = await getBalance(req.userId!);
+    res.json({ credits });
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
 });
 
 // GET /balance/transactions — история операций
 balanceRouter.get('/transactions', async (req: Request, res: Response) => {
-  const limit = Math.min(Number(req.query.limit ?? 20), 100);
-  const transactions = await getTransactions(req.userId!, limit);
+  try {
+    const limit = Math.min(Number(req.query.limit ?? 20), 100);
+    const transactions = await getTransactions(req.userId!, limit);
 
-  // Добавляем понятные иконки и подписи для UI
-  const withMeta = transactions.map((tx: { type: string; amount: number; description: string; id: number; created_at: string }) => ({
-    ...tx,
-    icon: iconForType(tx.type),
-    label: labelForType(tx.type),
-    isDebit: tx.amount < 0,
-  }));
+    // Добавляем понятные иконки и подписи для UI
+    const withMeta = transactions.map((tx: { type: string; amount: number; description: string; id: number; created_at: string }) => ({
+      ...tx,
+      icon: iconForType(tx.type),
+      label: labelForType(tx.type),
+      isDebit: tx.amount < 0,
+    }));
 
-  res.json(withMeta);
+    res.json(withMeta);
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
 });
 
 function iconForType(type: string): string {

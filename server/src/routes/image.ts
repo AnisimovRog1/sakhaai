@@ -64,7 +64,15 @@ imageRouter.post('/generate', async (req: Request, res: Response) => {
           const resp = await fetch(dataUrl);
           if (!resp.ok) throw new Error('Не удалось загрузить референс-изображение');
           const buf = Buffer.from(await resp.arrayBuffer());
-          const ct = resp.headers.get('content-type') || 'image/jpeg';
+          let ct = resp.headers.get('content-type') || '';
+          // CloudFront часто отдаёт binary/octet-stream — определяем по расширению
+          if (!ct || ct === 'binary/octet-stream' || ct === 'application/octet-stream') {
+            const ext = dataUrl.split('?')[0].split('.').pop()?.toLowerCase();
+            if (ext === 'png') ct = 'image/png';
+            else if (ext === 'webp') ct = 'image/webp';
+            else if (ext === 'gif') ct = 'image/gif';
+            else ct = 'image/jpeg';
+          }
           parsedImages.push({ mimeType: ct, base64: buf.toString('base64') });
         } else {
           // data URL — парсим base64

@@ -56,13 +56,24 @@ imageRouter.post('/generate', async (req: Request, res: Response) => {
     let parsedImages: Array<{ mimeType: string; base64: string }> | undefined;
 
     if (hasRefImages) {
-      parsedImages = refImages.slice(0, 4).map((dataUrl: string, idx: number) => {
-        console.log(`[image] refImage[${idx}]: type=${typeof dataUrl}, len=${dataUrl?.length}, prefix=${String(dataUrl).substring(0, 50)}`);
-        const clean = String(dataUrl).replace(/\s/g, '');
-        const match = clean.match(/^data:([^;]+);base64,(.+)$/);
-        if (!match) throw new Error('Некорректный формат изображения');
-        return { mimeType: match[1], base64: match[2] };
-      });
+      parsedImages = [];
+      for (let idx = 0; idx < Math.min(refImages.length, 4); idx++) {
+        const dataUrl = String(refImages[idx]);
+        if (dataUrl.startsWith('http://') || dataUrl.startsWith('https://')) {
+          // URL — скачиваем и конвертируем в base64
+          const resp = await fetch(dataUrl);
+          if (!resp.ok) throw new Error('Не удалось загрузить референс-изображение');
+          const buf = Buffer.from(await resp.arrayBuffer());
+          const ct = resp.headers.get('content-type') || 'image/jpeg';
+          parsedImages.push({ mimeType: ct, base64: buf.toString('base64') });
+        } else {
+          // data URL — парсим base64
+          const clean = dataUrl.replace(/\s/g, '');
+          const match = clean.match(/^data:([^;]+);base64,(.+)$/);
+          if (!match) throw new Error('Некорректный формат изображения');
+          parsedImages.push({ mimeType: match[1], base64: match[2] });
+        }
+      }
     }
 
     // Переводим промпт ОДИН раз (не для каждого фото)

@@ -465,8 +465,11 @@ async function showUser(id){
       '<div class="flex justify-between py-2 border-b border-white/5"><span class="text-slate-500">🗣 Язык</span><span>'+(u.language_code==='sah'?'Сахалыы':'Русский')+'</span></div>'+
       '<div class="flex justify-between py-2 border-b border-white/5"><span class="text-slate-500">📅 Регистрация</span><span>'+new Date(u.created_at).toLocaleDateString('ru')+'</span></div>'+
       '<div class="flex justify-between py-2 border-b border-white/5"><span class="text-slate-500">📝 Транзакций</span><span>'+u.transactions+'</span></div>'+
-      '<div class="flex justify-between py-2"><span class="text-slate-500">🚫 Забанен</span><span>'+(u.is_banned?'Да':'Нет')+'</span></div>'+
+      '<div class="flex justify-between py-2 border-b border-white/5"><span class="text-slate-500">🚫 Забанен</span><span>'+(u.is_banned?'Да':'Нет')+'</span></div>'+
+      '<div class="flex justify-between py-2 border-b border-white/5"><span class="text-slate-500">🎁 Welcome бонус</span><span>'+(u.welcome_bonus_granted?'Получен':'Нет')+'</span></div>'+
+      '<div class="flex justify-between py-2"><span class="text-slate-500">🛡 Fraud score</span><span>'+(u.fraud_score!==null?u.fraud_score:'—')+'</span></div>'+
     '</div>'+
+    (u.orders&&u.orders.length?'<div class="mt-4"><h4 class="text-sm font-bold mb-2 text-green-400">💰 Покупки</h4>'+u.orders.map(function(o){return '<div class="glass p-2 mb-1 flex justify-between text-xs"><span class="text-white font-medium">'+o.package+'</span><span class="text-amber-400">'+o.amount_rub+'₽</span><span class="gradient-text">+'+o.credits+' кр.</span><span class="'+(o.status==='paid'?'text-green-400':'text-slate-500')+'">'+o.status+'</span>'+(o.paid_at?'<span class="text-slate-500">'+new Date(o.paid_at).toLocaleDateString('ru')+'</span>':'')+'</div>'}).join('')+'</div>':'<div class="mt-4 text-xs text-slate-600 text-center">Покупок нет</div>')+
     '<button class="btn btn-ghost w-full mt-4" onclick="closeUserModal()">Закрыть</button>';
   document.getElementById('userModal').classList.remove('hidden');
 }

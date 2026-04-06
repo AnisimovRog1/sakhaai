@@ -262,12 +262,14 @@ adminRouter.get('/user/:id', async (req: Request, res: Response) => {
     const chatCount = await pool.query('SELECT COUNT(*) as count FROM chats WHERE user_id = $1', [userId]);
     const genCount = await pool.query('SELECT COUNT(*) as count FROM generations WHERE user_id = $1', [userId]);
     const spent = await pool.query('SELECT COALESCE(SUM(-amount), 0) as total FROM transactions WHERE user_id = $1 AND amount < 0', [userId]);
+    const orders = await pool.query('SELECT package, amount_rub, credits, status, paid_at FROM orders WHERE user_id = $1 ORDER BY created_at DESC', [userId]);
     res.json({
       ...user.rows[0],
       transactions: +txCount.rows[0].count,
       chats: +chatCount.rows[0].count,
       generations: +genCount.rows[0].count,
       totalSpent: +spent.rows[0].total,
+      orders: orders.rows,
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message });

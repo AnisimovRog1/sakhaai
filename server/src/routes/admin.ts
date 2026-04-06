@@ -12,13 +12,16 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 
 
 function requireBotAuth(req: Request, res: Response, next: () => void) {
   const auth = req.headers.authorization;
-  const adminPass = process.env.ADMIN_PASSWORD || '';
-  // Принимаем и BOT_TOKEN (от бота) и ADMIN_PASSWORD (от веб-панели)
-  if (!auth || (auth !== `Bearer ${process.env.BOT_TOKEN}` && auth !== `Bearer ${adminPass}`)) {
-    res.status(403).json({ error: 'Доступ запрещён' });
-    return;
-  }
-  next();
+  if (!auth) { res.status(403).json({ error: 'Доступ запрещён' }); return; }
+  const token = auth.replace('Bearer ', '');
+  // Принимаем BOT_TOKEN (от бота), JWT admin token (от веб-панели), или ADMIN_PASSWORD (legacy)
+  if (token === process.env.BOT_TOKEN) { next(); return; }
+  if (token === (process.env.ADMIN_PASSWORD || '')) { next(); return; }
+  try {
+    const payload = require('jsonwebtoken').verify(token, process.env.JWT_SECRET || process.env.ADMIN_PASSWORD) as any;
+    if (payload.admin) { next(); return; }
+  } catch {}
+  res.status(403).json({ error: 'Доступ запрещён' });
 }
 
 adminRouter.use(requireBotAuth);
@@ -207,7 +210,7 @@ adminRouter.get('/errors', async (_req: Request, res: Response) => {
 adminRouter.post('/addcredits', async (req: Request, res: Response) => {
   try {
     const { userId, amount } = req.body;
-    if (!userId || !amount) { res.status(400).json({ error: 'userId и amount обязательны' }); return; }
+    if (!userId || !amount || Number(amount) <= 0) { res.status(400).json({ error: 'userId и положительный amount обязательны' }); return; }
     const newBalance = await addCredits(Number(userId), Number(amount), 'topup', `Админ: +${amount}`);
     res.json({ success: true, userId, added: amount, newBalance });
   } catch (err: any) {

@@ -13,7 +13,7 @@ declare global {
 
 // Этот middleware проверяет JWT токен в каждом защищённом запросе.
 // Middleware — это функция, которая запускается ДО обработчика роута.
-export function requireAuth(req: Request, res: Response, next: NextFunction) {
+export async function requireAuth(req: Request, res: Response, next: NextFunction) {
   const header = req.headers.authorization;
 
   if (!header || !header.startsWith('Bearer ')) {
@@ -26,9 +26,13 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET!) as { userId: number };
     req.userId = payload.userId;
-    // Обновляем last_seen (fire-and-forget, не блокируем запрос)
-    pool.query('UPDATE users SET last_seen = NOW() WHERE id = $1', [payload.userId]).catch(() => {});
-    next(); // всё ок — передаём управление дальше
+    // Проверяем бан + обновляем last_seen
+    const { rows } = await pool.query('UPDATE users SET last_seen = NOW() WHERE id = $1 AND is_banned = false RETURNING id', [payload.userId]);
+    if (!rows.length) {
+      res.status(403).json({ error: 'Аккаунт заблокирован или не найден' });
+      return;
+    }
+    next();
   } catch {
     res.status(401).json({ error: 'Токен недействителен или истёк' });
   }

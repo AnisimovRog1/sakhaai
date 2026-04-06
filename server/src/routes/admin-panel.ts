@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 
 export const adminPanelRouter = Router();
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
@@ -8,8 +9,12 @@ if (!ADMIN_PASSWORD) console.warn('⚠️ ADMIN_PASSWORD не задан — а�
 adminPanelRouter.post('/login', (req: Request, res: Response) => {
   const { password } = req.body;
   if (!ADMIN_PASSWORD) { res.status(503).json({ error: 'Панель не настроена' }); return; }
-  const passOk = password && password.length === ADMIN_PASSWORD.length && crypto.timingSafeEqual(Buffer.from(password), Buffer.from(ADMIN_PASSWORD));
-  if (passOk) res.json({ success: true, token: ADMIN_PASSWORD });
+  const padded = password ? password.padEnd(ADMIN_PASSWORD.length, '\0') : '\0'.repeat(ADMIN_PASSWORD.length);
+  const passOk = password && password.length === ADMIN_PASSWORD.length && crypto.timingSafeEqual(Buffer.from(padded), Buffer.from(ADMIN_PASSWORD));
+  if (passOk) {
+    const token = jwt.sign({ admin: true }, process.env.JWT_SECRET || ADMIN_PASSWORD, { expiresIn: '7d' });
+    res.json({ success: true, token });
+  }
   else res.status(401).json({ error: 'Неверный пароль' });
 });
 

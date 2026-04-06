@@ -57,7 +57,7 @@ imageRouter.post('/generate', async (req: Request, res: Response) => {
 
     if (hasRefImages) {
       parsedImages = refImages.slice(0, 4).map((dataUrl: string) => {
-        const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+        const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/s);
         if (!match) throw new Error('Некорректный формат изображения');
         return { mimeType: match[1], base64: match[2] };
       });

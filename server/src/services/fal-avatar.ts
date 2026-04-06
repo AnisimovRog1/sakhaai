@@ -10,7 +10,7 @@ const FAL_TIMEOUT = 1_800_000; // 30 мин
 // Конвертация data: URL → fal.ai hosted URL
 async function ensureHttpUrl(url: string): Promise<string> {
   if (!url.startsWith('data:')) return url;
-  const match = url.match(/^data:([^;]+);base64,(.+)$/);
+  const match = url.match(/^data:([^;]+);base64,(.+)$/s);
   if (!match) throw new Error('Некорректный data URL');
   const [, mimeType, base64Data] = match;
   const buffer = Buffer.from(base64Data, 'base64');

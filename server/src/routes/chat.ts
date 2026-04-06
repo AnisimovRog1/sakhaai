@@ -180,7 +180,7 @@ chatRouter.post('/:id/messages', async (req: Request, res: Response) => {
   // Парсим вложения (base64 data URLs)
   const parsedAttachments = hasAttachments
     ? attachments.slice(0, 4).map((dataUrl: string) => {
-        const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+        const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/s);
         if (!match) return null;
         return { mimeType: match[1], base64: match[2] };
       }).filter(Boolean)

@@ -46,7 +46,7 @@ export function serveTempFile(id: string): { buffer: Buffer; mime: string } | nu
 function dataUrlToHttpUrl(url: string): string {
   if (!url.startsWith('data:')) return url;
 
-  const match = url.match(/^data:([^;]+);base64,(.+)$/);
+  const match = url.match(/^data:([^;]+);base64,(.+)$/s);
   if (!match) throw new Error('Некорректный data URL');
 
   const [, mimeType, base64Data] = match;
@@ -180,7 +180,7 @@ export async function submitImageToVideo(params: {
     // Если Kling не смог скачать temp URL — попробовать base64
     if ((err as Error).message?.includes('image') && params.imageUrl.startsWith('data:')) {
       console.log('[kling-direct] HTTP URL failed, trying base64 image');
-      const match = params.imageUrl.match(/^data:([^;]+);base64,(.+)$/);
+      const match = params.imageUrl.match(/^data:([^;]+);base64,(.+)$/s);
       if (match) {
         body.image = match[2]; // base64 без prefix
         delete body.image_url;

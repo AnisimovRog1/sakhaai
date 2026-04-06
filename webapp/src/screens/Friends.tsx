@@ -193,7 +193,7 @@ export function Friends({ user }: Props) {
         <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Документы и контакты</p>
         <div className="space-y-2 text-xs text-slate-400">
           <button
-            onClick={() => (window.Telegram?.WebApp as any)?.openLink?.('https://sakhaai-production.up.railway.app/landing#terms')}
+            onClick={() => (window.Telegram?.WebApp as any)?.openLink?.(`${import.meta.env.VITE_API_URL || ''}/landing#terms`)}
             className="flex items-center gap-2 hover:text-white transition"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>

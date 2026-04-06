@@ -59,14 +59,15 @@ export function Home({ user, onCreditsUpdate }: Props) {
   }
 
   const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState<string | null>(null);
 
   async function handleConfirmPay() {
     if (!selectedPkg || paying) return;
     setPaying(true);
+    setPayError(null);
     try {
       const res = await api.createPayment(selectedPkg.key);
       if (res.paymentUrl) {
-        // Открываем страницу оплаты UnitPay
         const tg = window.Telegram?.WebApp as any;
         if (tg?.openLink) {
           tg.openLink(res.paymentUrl);
@@ -75,10 +76,10 @@ export function Home({ user, onCreditsUpdate }: Props) {
         }
         setShowPayment(false);
       } else {
-        alert(res.message || 'Ошибка создания платежа');
+        setPayError(res.message || 'Ошибка создания платежа');
       }
     } catch {
-      alert('Не удалось создать платёж. Попробуйте позже.');
+      setPayError('Не удалось создать платёж. Попробуйте позже.');
     } finally {
       setPaying(false);
     }
@@ -256,6 +257,7 @@ export function Home({ user, onCreditsUpdate }: Props) {
             >
               {paying ? 'Создаём платёж...' : t('home.next')}
             </button>
+            {payError && <p className="text-red-400 text-sm text-center mt-2">{payError}</p>}
           </div>
         </div>
       )}

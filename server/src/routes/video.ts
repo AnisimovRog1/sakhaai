@@ -229,6 +229,7 @@ videoRouter.get('/tasks', async (req: Request, res: Response) => {
 
 // ─── GET /video/motion-status/:requestId — legacy (backward compat) ──
 videoRouter.get('/motion-status/:requestId', async (req: Request, res: Response) => {
+  try {
   const { requestId } = req.params;
 
   // Сначала проверяем новую таблицу
@@ -280,7 +281,11 @@ videoRouter.get('/motion-status/:requestId', async (req: Request, res: Response)
     res.json({ status: result.status });
   } catch (e: any) {
     console.error('[motion-status] error:', e?.message);
-    res.status(500).json({ error: e.message ?? 'Ошибка проверки статуса' });
+    if (!res.headersSent) res.status(500).json({ error: e.message ?? 'Ошибка проверки статуса' });
+  }
+  } catch (outerErr: any) {
+    console.error('[motion-status] outer error:', outerErr?.message);
+    if (!res.headersSent) res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 

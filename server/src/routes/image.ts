@@ -60,8 +60,12 @@ imageRouter.post('/generate', async (req: Request, res: Response) => {
       for (let idx = 0; idx < Math.min(refImages.length, 4); idx++) {
         const dataUrl = String(refImages[idx]);
         if (dataUrl.startsWith('http://') || dataUrl.startsWith('https://')) {
-          // URL — скачиваем и конвертируем в base64
-          const resp = await fetch(dataUrl);
+          // URL — скачиваем и конвертируем в base64 (только внешние CDN)
+          const urlObj = new URL(dataUrl);
+          if (['localhost', '127.0.0.1', '0.0.0.0', '169.254.169.254'].includes(urlObj.hostname) || urlObj.hostname.startsWith('10.') || urlObj.hostname.startsWith('192.168.') || urlObj.hostname.startsWith('172.')) {
+            throw new Error('Недопустимый URL изображения');
+          }
+          const resp = await fetch(dataUrl, { signal: AbortSignal.timeout(15000) });
           if (!resp.ok) throw new Error('Не удалось загрузить референс-изображение');
           const buf = Buffer.from(await resp.arrayBuffer());
           let ct = resp.headers.get('content-type') || '';

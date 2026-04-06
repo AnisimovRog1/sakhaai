@@ -163,26 +163,30 @@ paymentRouter.get('/unitpay', async (req: Request, res: Response) => {
           if (refRow.rows[0]) referrerId = refRow.rows[0].referrer_id;
         }
 
-        await client.query('COMMIT');
-
-        // Начисляем кредиты покупателю (addCredits имеет свою транзакцию)
-        await addCredits(
-          order.user_id,
-          order.credits,
-          'topup',
-          `Пакет "${PACKAGES[order.package]?.label}" — ${order.amount_rub}₽`
+        // Начисляем кредиты покупателю ВНУТРИ транзакции
+        await client.query(
+          `UPDATE users SET credits = credits + $1, updated_at = NOW() WHERE id = $2`,
+          [order.credits, order.user_id]
+        );
+        await client.query(
+          `INSERT INTO transactions (user_id, type, amount, description) VALUES ($1, 'topup', $2, $3)`,
+          [order.user_id, order.credits, `Пакет "${PACKAGES[order.package]?.label}" — ${order.amount_rub}₽`]
         );
 
-        // Начисляем бонус реферу (после commit — безопасно, статус уже paid)
+        // Начисляем бонус реферу ВНУТРИ транзакции
         if (referrerId && rewardCredits > 0) {
-          await addCredits(
-            referrerId,
-            rewardCredits,
-            'referral',
-            `Реферальная награда (${PACKAGES[order.package]?.label}): +${rewardCredits} кр.`
+          await client.query(
+            `UPDATE users SET credits = credits + $1, updated_at = NOW() WHERE id = $2`,
+            [rewardCredits, referrerId]
+          );
+          await client.query(
+            `INSERT INTO transactions (user_id, type, amount, description) VALUES ($1, 'referral', $2, $3)`,
+            [referrerId, rewardCredits, `Реферальная награда (${PACKAGES[order.package]?.label}): +${rewardCredits} кр.`]
           );
           console.log(`🎁 Реферал: +${rewardCredits} кр. реферу ${referrerId}`);
         }
+
+        await client.query('COMMIT');
 
         console.log(`✅ Оплата UnitPay: user=${order.user_id}, пакет=${order.package}, +${order.credits} кр.`);
         notifyAdmins(order).catch(console.error);

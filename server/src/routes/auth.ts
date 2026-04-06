@@ -30,6 +30,7 @@ function getIp(req: Request): string {
 
 // POST /auth
 authRouter.post('/', async (req: Request, res: Response) => {
+  try {
   const { initData, referralCode, timezoneOffset, deviceId, headless } = req.body;
   // referralCode — передаётся webapp'ом, если URL был ?start=ref_123
 
@@ -180,4 +181,8 @@ authRouter.post('/', async (req: Request, res: Response) => {
       photoUrl,
     },
   });
+  } catch (err: any) {
+    console.error('POST /auth error:', err?.message);
+    if (!res.headersSent) res.status(500).json({ error: 'Ошибка авторизации' });
+  }
 });

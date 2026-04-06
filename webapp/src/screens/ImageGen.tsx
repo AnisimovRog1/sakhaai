@@ -93,6 +93,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
     reader.onload = () => {
       setRefImages(prev => [...prev, reader.result as string]);
     };
+    reader.onerror = () => { console.error('FileReader error'); };
     reader.readAsDataURL(file);
     if (fileRef.current) fileRef.current.value = '';
   }

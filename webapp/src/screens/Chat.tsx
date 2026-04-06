@@ -40,6 +40,7 @@ export function Chat({ chatId, chatTitle, onBack }: Props) {
     reader.onload = () => {
       setAttachments(prev => [...prev, reader.result as string]);
     };
+    reader.onerror = () => { console.error('FileReader error'); };
     reader.readAsDataURL(file);
   }
 

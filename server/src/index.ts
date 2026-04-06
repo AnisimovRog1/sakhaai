@@ -1,4 +1,5 @@
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import compression from 'compression';
 import cors from 'cors';
 import * as dotenv from 'dotenv';
@@ -24,6 +25,7 @@ import { LANDING_HTML } from './landing';
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 const app = express();
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 
 // В проде разрешаем только домен Vercel, в dev — всё
@@ -41,6 +43,13 @@ app.use(cors({
   },
 }));
 app.use(express.json({ limit: '50mb' }));
+
+// Rate limiting
+app.use(rateLimit({ windowMs: 60000, max: 300, message: { error: 'Слишком много запросов' } }));
+app.use('/auth', rateLimit({ windowMs: 60000, max: 10, message: { error: 'Слишком много попыток авторизации' } }));
+app.use('/image', rateLimit({ windowMs: 60000, max: 20, message: { error: 'Слишком много запросов генерации' } }));
+app.use('/video', rateLimit({ windowMs: 60000, max: 10, message: { error: 'Слишком много запросов генерации' } }));
+app.use('/panel/login', rateLimit({ windowMs: 60000, max: 5, message: { error: 'Слишком много попыток входа' } }));
 
 // Статические файлы (верификация UnitPay и т.д.)
 app.use(express.static(path.resolve(__dirname, '../public')));

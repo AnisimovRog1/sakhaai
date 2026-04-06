@@ -239,6 +239,9 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
   // Tab
   const [tab, setTab] = useState<Tab>('video');
   const promptRef = useRef<HTMLTextAreaElement>(null);
+  const abortRef = useRef(false);
+
+  useEffect(() => () => { abortRef.current = true; }, []);
 
   // Video Generation
   const [videoModel, setVideoModel] = useState<VideoModel>('video-3.0');
@@ -317,6 +320,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
   function fileToDataUrl(file: File, cb: (url: string) => void) {
     const reader = new FileReader();
     reader.onload = () => cb(reader.result as string);
+    reader.onerror = () => { console.error('FileReader error'); };
     reader.readAsDataURL(file);
   }
 
@@ -325,6 +329,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
     setMotionStatus('Отправлено в Kling...');
     let errorCount = 0;
     for (let i = 0; i < 360; i++) { // макс 60 мин
+      if (abortRef.current) return;
       await new Promise(r => setTimeout(r, 10_000));
       try {
         const result = await api.checkTaskStatus(taskId);

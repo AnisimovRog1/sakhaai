@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import crypto from 'crypto';
 
 export const adminPanelRouter = Router();
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
@@ -7,7 +8,8 @@ if (!ADMIN_PASSWORD) console.warn('⚠️ ADMIN_PASSWORD не задан — а�
 adminPanelRouter.post('/login', (req: Request, res: Response) => {
   const { password } = req.body;
   if (!ADMIN_PASSWORD) { res.status(503).json({ error: 'Панель не настроена' }); return; }
-  if (password === ADMIN_PASSWORD) res.json({ success: true, token: ADMIN_PASSWORD });
+  const passOk = password && password.length === ADMIN_PASSWORD.length && crypto.timingSafeEqual(Buffer.from(password), Buffer.from(ADMIN_PASSWORD));
+  if (passOk) res.json({ success: true, token: ADMIN_PASSWORD });
   else res.status(401).json({ error: 'Неверный пароль' });
 });
 

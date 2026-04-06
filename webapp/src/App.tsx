@@ -10,6 +10,7 @@ import { Friends } from './screens/Friends';
 import { BottomNav } from './components/BottomNav';
 import SpaceBackground from './components/SpaceBackground';
 import { LangProvider } from './LangContext';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { getDeviceFingerprint } from './utils/fingerprint';
 import type { Lang } from './i18n';
 
@@ -106,6 +107,7 @@ export function App() {
   if (!user) return null;
 
   return (
+    <ErrorBoundary>
     <LangProvider initialLang={lang}>
     <div className="flex flex-col min-h-screen text-slate-100 relative">
 
@@ -146,6 +148,7 @@ export function App() {
       )}
     </div>
     </LangProvider>
+    </ErrorBoundary>
   );
 }
 

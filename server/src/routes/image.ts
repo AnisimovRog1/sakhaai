@@ -56,8 +56,10 @@ imageRouter.post('/generate', async (req: Request, res: Response) => {
     let parsedImages: Array<{ mimeType: string; base64: string }> | undefined;
 
     if (hasRefImages) {
-      parsedImages = refImages.slice(0, 4).map((dataUrl: string) => {
-        const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/s);
+      parsedImages = refImages.slice(0, 4).map((dataUrl: string, idx: number) => {
+        console.log(`[image] refImage[${idx}]: type=${typeof dataUrl}, len=${dataUrl?.length}, prefix=${String(dataUrl).substring(0, 50)}`);
+        const clean = String(dataUrl).replace(/\s/g, '');
+        const match = clean.match(/^data:([^;]+);base64,(.+)$/);
         if (!match) throw new Error('Некорректный формат изображения');
         return { mimeType: match[1], base64: match[2] };
       });

@@ -177,7 +177,7 @@ export async function saveDeviceFingerprint(userId: number, deviceId: string): P
 export async function tryGrantWelcomeBonus(userId: number): Promise<number> {
   // Проверяем: есть ли fraud_score и был ли уже бонус
   const { rows } = await pool.query(
-    `SELECT fraud_score, welcome_bonus_granted FROM users WHERE id = $1`,
+    `SELECT fraud_score, welcome_bonus_granted FROM users WHERE id = $1 FOR UPDATE`,
     [userId]
   );
   if (!rows[0]) return 0;
@@ -198,12 +198,12 @@ export async function tryGrantWelcomeBonus(userId: number): Promise<number> {
 
   if (bonus > 0) {
     await pool.query(
-      `UPDATE users SET credits = credits + $1, welcome_bonus_granted = true WHERE id = $2`,
+      `UPDATE users SET credits = credits + $1, welcome_bonus_granted = true WHERE id = $2 AND welcome_bonus_granted = false`,
       [bonus, userId]
     );
   } else {
     await pool.query(
-      `UPDATE users SET welcome_bonus_granted = true WHERE id = $1`,
+      `UPDATE users SET welcome_bonus_granted = true WHERE id = $1 AND welcome_bonus_granted = false`,
       [userId]
     );
   }

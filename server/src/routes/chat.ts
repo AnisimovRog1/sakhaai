@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { pool } from '../db/pool';
 import { requireAuth } from '../middleware/auth';
 import { sendToGemini, ChatMessage } from '../services/gemini';
-import { deduct } from '../services/balance';
+import { deduct, addCredits } from '../services/balance';
 // markAiRequest убран — реферальный бонус начисляется сразу при оплате
 import { tryGrantWelcomeBonus } from '../services/welcome-antifraud';
 
@@ -219,6 +219,8 @@ chatRouter.post('/:id/messages', async (req: Request, res: Response) => {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('POST /chats/:id/messages error:', msg);
+    const CHAT_COST_REFUND = Math.ceil(BASE_CHAT_COST * getMultiplier());
+    await addCredits(req.userId!, CHAT_COST_REFUND, 'chat', `Рефанд: ошибка чата`).catch(console.error);
     res.status(500).json({ error: msg });
   }
 });

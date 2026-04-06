@@ -450,7 +450,7 @@ async function showUser(id){
   const localTime=new Date(Date.now()+(u.timezone_offset||540)*60000).toLocaleTimeString('ru',{timeZone:'UTC',hour:'2-digit',minute:'2-digit'});
   document.getElementById('userModalContent').innerHTML=
     '<div class="text-center mb-5">'+
-      '<div class="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-violet-600 to-cyan-500 flex items-center justify-center text-2xl font-bold mb-3">'+u.first_name[0].toUpperCase()+'</div>'+
+      '<div class="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-violet-600 to-cyan-500 flex items-center justify-center text-2xl font-bold mb-3">'+(u.first_name&&u.first_name[0]?u.first_name[0].toUpperCase():'?')+'</div>'+
       '<h2 class="text-xl font-bold">'+(u.username?'@'+u.username:u.first_name)+'</h2>'+
       '<p class="text-slate-500 text-sm">ID: '+u.id+'</p>'+
     '</div>'+

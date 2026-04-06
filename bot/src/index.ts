@@ -1161,8 +1161,12 @@ async function processAutoSequences() {
         sent++;
         if (sent % 25 === 0) await new Promise(r => setTimeout(r, 1000));
       } catch (e: any) {
-        // Пользователь заблокировал бота — помечаем чтобы не спамить
-        if (e?.error_code === 403 || e?.message?.includes('403')) {
+        if (e?.error_code === 429 || e?.message?.includes('429')) {
+          const retryAfter = e?.parameters?.retry_after || 30;
+          console.warn(`⏳ Rate limited (429). Ждём ${retryAfter}s...`);
+          await new Promise(r => setTimeout(r, retryAfter * 1000));
+        } else if (e?.error_code === 403 || e?.message?.includes('403')) {
+          // Пользователь заблокировал бота — помечаем чтобы не спамить
           await httpPost(`${SERVER_URL}/admin/push/sequences/mark-sent`, {
             user_id: p.user_id, sequence_id: p.sequence_id,
           }).catch(() => {});

@@ -68,7 +68,7 @@ authRouter.post('/', async (req: Request, res: Response) => {
            app_opened = true,
            updated_at = NOW()
      RETURNING id, username, first_name, credits, language_code, is_banned,
-               (xmax = 0) AS is_new`,
+               welcome_bonus_granted, (xmax = 0) AS is_new`,
     [tgUser.id, tgUser.username ?? null, tgUser.firstName, tgUser.lastName ?? null]
   );
 
@@ -79,8 +79,8 @@ authRouter.post('/', async (req: Request, res: Response) => {
     return;
   }
 
-  // 3.5. Антифрод-проверка для новых юзеров
-  if (user.is_new && ip) {
+  // 3.5. Антифрод-проверка + welcome бонус (для юзеров без бонуса)
+  if (!user.welcome_bonus_granted && ip) {
     (async () => {
       try {
         const hasPhoto = !!(await httpGet(`https://api.telegram.org/bot${process.env.BOT_TOKEN!}/getUserProfilePhotos?user_id=${tgUser.id}&limit=1`)

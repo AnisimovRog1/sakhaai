@@ -82,33 +82,31 @@ authRouter.post('/', async (req: Request, res: Response) => {
 
   // 3.5. Антифрод-проверка + welcome бонус (для юзеров без бонуса)
   if (!user.welcome_bonus_granted && ip) {
-    (async () => {
-      try {
-        const hasPhoto = !!(await httpGet(`https://api.telegram.org/bot${process.env.BOT_TOKEN!}/getUserProfilePhotos?user_id=${tgUser.id}&limit=1`)
-          .then((d: any) => d.ok && d.result?.photos?.length > 0).catch(() => false));
+    try {
+      const hasPhoto = !!(await httpGet(`https://api.telegram.org/bot${process.env.BOT_TOKEN!}/getUserProfilePhotos?user_id=${tgUser.id}&limit=1`)
+        .then((d: any) => d.ok && d.result?.photos?.length > 0).catch(() => false));
 
-        const result = await calculateFraudScore(ip, deviceId || null, {
-          id: tgUser.id,
-          username: tgUser.username,
-          isPremium: (tgUser as any).isPremium,
-          hasPhoto,
-        }, headless || null);
+      const result = await calculateFraudScore(ip, deviceId || null, {
+        id: tgUser.id,
+        username: tgUser.username,
+        isPremium: (tgUser as any).isPremium,
+        hasPhoto,
+      }, headless || null);
 
-        // Сохраняем score
-        await pool.query('UPDATE users SET fraud_score = $1 WHERE id = $2', [result.score, tgUser.id]);
+      await pool.query('UPDATE users SET fraud_score = $1 WHERE id = $2', [result.score, tgUser.id]);
 
-        // Сохраняем device fingerprint
-        if (deviceId) {
-          await saveDeviceFingerprint(Number(tgUser.id), deviceId);
-        }
-
-        // Начисляем welcome бонус сразу после антифрод-проверки
-        const bonus = await tryGrantWelcomeBonus(Number(tgUser.id));
-        console.log(`Antifraud: user=${tgUser.id}, score=${result.score}, bonus=${bonus}, reasons=${result.reasons.join(',')}`);
-      } catch (err) {
-        console.error('Antifraud error:', err);
+      if (deviceId) {
+        await saveDeviceFingerprint(Number(tgUser.id), deviceId);
       }
-    })();
+
+      const bonus = await tryGrantWelcomeBonus(Number(tgUser.id));
+      if (bonus > 0) user.credits += bonus;
+      console.log(`Antifraud: user=${tgUser.id}, score=${result.score}, bonus=${bonus}, reasons=${result.reasons.join(',')}`);
+    } catch (err) {
+      console.error('Antifraud error:', err);
+      // Fallback — даём бонус даже если антифрод упал
+      try { const b = await tryGrantWelcomeBonus(Number(tgUser.id)); if (b > 0) user.credits += b; } catch {}
+    }
   }
 
   // 3.6. Сохраняем часовой пояс (если передан)

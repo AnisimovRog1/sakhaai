@@ -42,7 +42,7 @@ app.use(cors({
     callback(new Error(`CORS: origin ${origin} не разрешён`));
   },
 }));
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '50mb' }));
 
 // Rate limiting
 app.use(rateLimit({ windowMs: 60000, max: 300, message: { error: 'Слишком много запросов' } }));

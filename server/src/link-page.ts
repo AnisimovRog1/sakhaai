@@ -148,10 +148,18 @@ body{
 .badge.free strong{color:#22c55e}
 
 .hint{
-  margin-top:16px;
-  font-size:13px;color:rgba(255,255,255,.25);
-  font-style:italic;
+  margin-top:20px;
+  font-size:15px;
+  font-weight:600;
+  color:#94a3b8;
+  line-height:1.6;
+  letter-spacing:-.2px;
   animation:fadeUp 1s ease-out .5s both;
+}
+.hint strong{
+  background:linear-gradient(135deg,#a78bfa,#22d3ee);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  font-weight:800;
 }
 
 /* Footer */
@@ -188,7 +196,7 @@ body{
   <div class="badges">
     <div class="badge free"><strong>300 бесплатных кредитов</strong> ждут тебя в мини-аппе</div>
   </div>
-  <p class="hint">Создавай трендовый контент и начни зарабатывать на нём</p>
+  <p class="hint">Создавай <strong>трендовый контент</strong> для Reels и TikTok<br>и начни <strong>зарабатывать</strong> на AI-генерации</p>
 </div>
 
 <div class="footer">UraanxAI &copy; 2026</div>

@@ -171,7 +171,7 @@ body{
 <div id="tsparticles"></div>
 
 <div class="card">
-  <div class="logo">U</div>
+  <div class="logo"><img src="/logo-mammoth.png" alt="UraanxAI" style="width:60px;height:60px;object-fit:contain"></div>
   <div class="brand"><span>UraanxAI</span></div>
   <p class="subtitle">AI-генерация фото, видео и аватаров<br>прямо в Telegram за секунды</p>
 
@@ -188,7 +188,7 @@ body{
   <div class="badges">
     <div class="badge free"><strong>300 бесплатных кредитов</strong> ждут тебя в мини-аппе</div>
   </div>
-  <p class="hint">Создавай контент, который невозможно отличить от реального</p>
+  <p class="hint">Создавай трендовый контент и начни зарабатывать на нём</p>
 </div>
 
 <div class="footer">UraanxAI &copy; 2026</div>

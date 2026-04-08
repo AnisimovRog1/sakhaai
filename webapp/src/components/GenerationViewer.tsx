@@ -99,7 +99,7 @@ export function GenerationViewer({ items, startIndex, onClose }: Props) {
           src={item.resultUrl}
           alt={item.prompt || ''}
           className="absolute w-full h-full object-contain"
-          style={{ top: 0, left: 0, right: 0, bottom: '80px' }}
+          style={{ top: 0, left: 0, right: 0, bottom: 0 }}
         />
       )}
 

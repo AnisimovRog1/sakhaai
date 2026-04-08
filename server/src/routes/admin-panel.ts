@@ -448,7 +448,7 @@ function renderUsers(list){
     '<td class="text-center">'+(u.app_opened?'<span title="Открыл приложение" class="text-green-400">📱</span>':'<span title="Только /start" class="text-slate-600">—</span>')+'</td>'+
     '<td class="font-bold gradient-text">'+u.credits+'</td>'+
     '<td class="text-xs">'+(u.campaign_code?'<span class="text-cyan-400">'+u.campaign_code.substring(0,15)+'</span>':'<span class="text-slate-600">—</span>')+'</td>'+
-    '<td class="text-center">'+(u.welcome_bonus_granted?'<span class="text-green-400">✓</span>':'<span class="text-slate-600">—</span>')+'</td>'+
+    '<td class="text-xs text-center">'+(u.welcome_bonus_granted?(u.fraud_score>=5?'<span class="text-red-400" title="Антифрод: score='+u.fraud_score+'">0 кр (фрод '+u.fraud_score+')</span>':u.fraud_score>=3?'<span class="text-yellow-400" title="Подозрительный: score='+u.fraud_score+'">50 кр ('+u.fraud_score+')</span>':'<span class="text-green-400" title="score='+u.fraud_score+'">300 кр ✓</span>'):(u.fraud_score!==null&&u.fraud_score!==undefined?'<span class="text-orange-400" title="Бонус не выдан, score='+u.fraud_score+'">ожидание ('+u.fraud_score+')</span>':'<span class="text-slate-500" title="IP пустой или антифрод не запустился">не запустился</span>'))+'</td>'+
     '<td>'+(u.is_banned?'<span class="text-red-400 text-xs font-bold">🚫</span>':'<span class="text-green-400 text-xs">✅</span>')+'</td>'+
     '<td class="text-slate-500 text-xs">UTC'+(u.timezone_offset>=0?'+':'')+Math.round((u.timezone_offset||540)/60)+'</td>'+
     '<td class="text-slate-500 text-xs">'+new Date(u.created_at).toLocaleDateString('ru')+'</td>'+

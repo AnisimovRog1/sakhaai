@@ -81,27 +81,34 @@ authRouter.post('/', async (req: Request, res: Response) => {
   }
 
   // 3.5. Антифрод-проверка + welcome бонус (для юзеров без бонуса)
-  if (!user.welcome_bonus_granted && ip) {
+  if (!user.welcome_bonus_granted) {
     try {
-      const hasPhoto = !!(await httpGet(`https://api.telegram.org/bot${process.env.BOT_TOKEN!}/getUserProfilePhotos?user_id=${tgUser.id}&limit=1`)
-        .then((d: any) => d.ok && d.result?.photos?.length > 0).catch(() => false));
+      if (ip) {
+        const hasPhoto = !!(await httpGet(`https://api.telegram.org/bot${process.env.BOT_TOKEN!}/getUserProfilePhotos?user_id=${tgUser.id}&limit=1`)
+          .then((d: any) => d.ok && d.result?.photos?.length > 0).catch(() => false));
 
-      const result = await calculateFraudScore(ip, deviceId || null, {
-        id: tgUser.id,
-        username: tgUser.username,
-        isPremium: (tgUser as any).isPremium,
-        hasPhoto,
-      }, headless || null);
+        const result = await calculateFraudScore(ip, deviceId || null, {
+          id: tgUser.id,
+          username: tgUser.username,
+          isPremium: (tgUser as any).isPremium,
+          hasPhoto,
+        }, headless || null);
 
-      await pool.query('UPDATE users SET fraud_score = $1 WHERE id = $2', [result.score, tgUser.id]);
+        await pool.query('UPDATE users SET fraud_score = $1 WHERE id = $2', [result.score, tgUser.id]);
 
-      if (deviceId) {
-        await saveDeviceFingerprint(Number(tgUser.id), deviceId);
+        if (deviceId) {
+          await saveDeviceFingerprint(Number(tgUser.id), deviceId);
+        }
+        console.log(`Antifraud: user=${tgUser.id}, score=${result.score}, reasons=${result.reasons.join(',')}`);
+      } else {
+        // IP пустой — ставим score=0, не блокируем
+        await pool.query('UPDATE users SET fraud_score = 0 WHERE id = $1 AND fraud_score IS NULL', [tgUser.id]);
+        console.log(`Antifraud: user=${tgUser.id}, IP empty — score=0 (no block)`);
       }
 
       const bonus = await tryGrantWelcomeBonus(Number(tgUser.id));
       if (bonus > 0) user.credits += bonus;
-      console.log(`Antifraud: user=${tgUser.id}, score=${result.score}, bonus=${bonus}, reasons=${result.reasons.join(',')}`);
+      console.log(`Welcome bonus: user=${tgUser.id}, bonus=${bonus}`);
     } catch (err) {
       console.error('Antifraud error:', err);
       // Fallback — даём бонус даже если антифрод упал

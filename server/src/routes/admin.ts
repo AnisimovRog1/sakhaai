@@ -879,12 +879,22 @@ adminRouter.post('/cleanup-users', async (req: Request, res: Response) => {
 // РЕКЛАМНЫЕ КАМПАНИИ (реферальные ссылки для блогеров)
 // ═══════════════════════════════════════════════════════
 
+// Транслитерация кириллицы → латиница (Telegram start_param поддерживает только A-Za-z0-9_-)
+function translit(str: string): string {
+  const map: Record<string, string> = {
+    'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'yo','ж':'zh','з':'z','и':'i','й':'y',
+    'к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r','с':'s','т':'t','у':'u','ф':'f',
+    'х':'h','ц':'ts','ч':'ch','ш':'sh','щ':'sch','ъ':'','ы':'y','ь':'','э':'e','ю':'yu','я':'ya',
+  };
+  return str.split('').map(c => map[c] || map[c.toLowerCase()]?.toUpperCase?.() || c).join('');
+}
+
 // Создать кампанию
 adminRouter.post('/campaigns', async (req: Request, res: Response) => {
   try {
     const { name } = req.body;
     if (!name) { res.status(400).json({ error: 'name required' }); return; }
-    const code = name.toLowerCase().replace(/[^a-z0-9а-яё]/gi, '_').replace(/_+/g, '_').replace(/^_|_$/g, '').substring(0, 30) + '_' + Date.now().toString(36);
+    const code = translit(name.toLowerCase()).replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_').replace(/^_|_$/g, '').substring(0, 30) + '_' + Date.now().toString(36);
     const { rows } = await pool.query(
       `INSERT INTO ref_campaigns (code, name) VALUES ($1, $2) RETURNING *`,
       [code, name]

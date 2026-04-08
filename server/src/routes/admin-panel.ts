@@ -176,6 +176,7 @@ input:focus,textarea:focus{border-color:rgba(139,92,246,.5);box-shadow:0 0 20px 
         </div>
         <button class="btn btn-ghost text-xs ml-auto" onclick="updateExRate()">🔄 Обновить курс</button>
       </div>
+      <div id="revenueBar" class="glass-neon p-5 mb-5 flex items-center justify-between glow-border" style="border-radius:14px"></div>
       <div id="statsGrid" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5"></div>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="glass-neon p-5"><h3 class="text-xs font-bold text-violet-400 uppercase tracking-wider mb-3"><span class="anim-bounce">🏆</span> Топ активных</h3><div id="topActive"></div></div>
@@ -413,8 +414,19 @@ async function loadStats(period){
   var btns=document.querySelectorAll('button[onclick^="loadStats"]');btns.forEach(function(b){b.classList.remove('btn-primary');b.classList.add('btn-ghost')});btns.forEach(function(b){if(b.getAttribute('onclick').indexOf(period)>-1){b.classList.remove('btn-ghost');b.classList.add('btn-primary')}});
   const s=await G('/admin/stats?period='+period);if(s.error)return;
   document.getElementById('lastUpdate').textContent='Обновлено: '+new Date().toLocaleTimeString('ru');
+  document.getElementById('revenueBar').innerHTML=
+    '<div class="flex items-center gap-4">'+
+      '<div class="text-3xl anim-pulse">💰</div>'+
+      '<div><div class="text-xs text-slate-400 uppercase tracking-wider font-bold">Выручка за всё время</div>'+
+      '<div class="text-3xl font-black gradient-text">'+s.revenueAllTime.toLocaleString('ru')+' ₽</div></div>'+
+    '</div>'+
+    '<div class="flex gap-6">'+
+      '<div class="text-center"><div class="text-2xl font-bold text-cyan-400">'+s.ordersAllTime+'</div><div class="text-xs text-slate-500">Оплат</div></div>'+
+      '<div class="text-center"><div class="text-2xl font-bold text-violet-400">'+s.revenue+' ₽</div><div class="text-xs text-slate-500">'+s.label+'</div></div>'+
+      '<div class="text-center"><div class="text-2xl font-bold text-green-400">'+s.users+'</div><div class="text-xs text-slate-500">Юзеров</div></div>'+
+    '</div>';
   document.getElementById('statsGrid').innerHTML=[
-    sc('💰','Выручка',s.revenue+' ₽','neon'),sc('📈','Прибыль',s.profit+' ₽','neon'),
+    sc('💰','Выручка ('+s.label+')',s.revenue+' ₽','neon'),sc('📈','Прибыль',s.profit+' ₽','neon'),
     sc('📊','Маржа',s.margin+'%','cyan'),sc('👥','DAU',s.dau,'cyan'),
     sc('🆕','Новых','+'+s.newUsers,'neon'),sc('📝','Запросов',s.transactions,'cyan'),
     sc('🎨','Генераций',s.generations,'neon'),sc('🤝','Рефералов','+'+s.referrals,'cyan'),

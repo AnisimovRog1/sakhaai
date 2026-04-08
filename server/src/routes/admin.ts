@@ -73,14 +73,20 @@ adminRouter.get('/stats', async (req: Request, res: Response) => {
     const generations = await pool.query(`SELECT COUNT(*) as count FROM generations WHERE ${dateFilter}`);
     const totalCredits = await pool.query('SELECT COALESCE(SUM(credits), 0) as total FROM users');
 
-    // DAU — уникальные юзеры с транзакциями сегодня
-    const dau = await pool.query(`SELECT COUNT(DISTINCT user_id) as count FROM transactions WHERE created_at >= CURRENT_DATE`);
+    // DAU — уникальные юзеры с транзакциями за период
+    const dau = await pool.query(`SELECT COUNT(DISTINCT user_id) as count FROM transactions WHERE ${dateFilter}`);
 
     // Транзакции за период
     const txCount = await pool.query(`SELECT COUNT(*) as count FROM transactions WHERE ${dateFilter}`);
 
-    // Выручка (пополнения)
+    // Выручка за период
     const revenue = await pool.query(`SELECT COALESCE(SUM(amount_rub), 0) as total FROM orders WHERE status = 'paid' AND ${dateFilter.replace(/created_at/g, 'paid_at')}`);
+
+    // Выручка all-time
+    const revenueAllTime = await pool.query(`SELECT COALESCE(SUM(amount_rub), 0) as total FROM orders WHERE status = 'paid'`);
+
+    // Оплаченных заказов all-time
+    const ordersAllTime = await pool.query(`SELECT COUNT(*) as count FROM orders WHERE status = 'paid'`);
 
     // Себестоимость (расход API) — считаем по генерациям
     const genCosts = await pool.query(`SELECT COALESCE(SUM(cost), 0) as total FROM generations WHERE ${dateFilter}`);
@@ -91,11 +97,11 @@ adminRouter.get('/stats', async (req: Request, res: Response) => {
     // Топ-5 юзеров
     const topUsers = await pool.query(`SELECT id, username, first_name, credits FROM users ORDER BY credits DESC LIMIT 5`);
 
-    // Топ-10 активных за день
+    // Топ-10 активных за период
     const topActive = await pool.query(`
       SELECT t.user_id, u.username, u.first_name, COUNT(*) as requests
       FROM transactions t JOIN users u ON t.user_id = u.id
-      WHERE t.created_at >= CURRENT_DATE
+      WHERE ${dateFilter.replace(/created_at/g, 't.created_at')}
       GROUP BY t.user_id, u.username, u.first_name
       ORDER BY requests DESC LIMIT 10
     `);
@@ -118,6 +124,8 @@ adminRouter.get('/stats', async (req: Request, res: Response) => {
       transactions: +txCount.rows[0].count,
       referrals: +refs.rows[0].count,
       revenue: revenueRub,
+      revenueAllTime: +revenueAllTime.rows[0].total,
+      ordersAllTime: +ordersAllTime.rows[0].count,
       costEstimate: Math.round(costEstimate),
       profit: Math.round(profit),
       margin,

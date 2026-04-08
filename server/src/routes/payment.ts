@@ -231,7 +231,11 @@ async function notifyAdmins(order: any) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ chat_id: adminId.trim(), text }),
-    }).catch(() => {});
+    }).then(async (r) => {
+      if (!r.ok) console.error(`notifyAdmins failed for ${adminId}:`, await r.text().catch(() => r.status));
+    }).catch((e) => {
+      console.error(`notifyAdmins fetch error for ${adminId}:`, e.message);
+    });
   }
 }
 

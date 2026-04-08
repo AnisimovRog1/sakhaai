@@ -28,7 +28,21 @@ export function GenerationViewer({ items, startIndex, onClose }: Props) {
 
   useEffect(() => {
     const timer = setTimeout(() => setSheetOpen(true), 300);
-    return () => clearTimeout(timer);
+    // Telegram header: ставим чёрный фон чтобы не просвечивал контент
+    try {
+      const wa = window.Telegram?.WebApp as any;
+      if (wa?.setHeaderColor) wa.setHeaderColor('#000000');
+      if (wa?.setBackgroundColor) wa.setBackgroundColor('#000000');
+    } catch {}
+    return () => {
+      clearTimeout(timer);
+      // Возвращаем оригинальный цвет
+      try {
+        const wa = window.Telegram?.WebApp as any;
+        if (wa?.setHeaderColor) wa.setHeaderColor('#070b14');
+        if (wa?.setBackgroundColor) wa.setBackgroundColor('#070b14');
+      } catch {}
+    };
   }, []);
 
   useEffect(() => {

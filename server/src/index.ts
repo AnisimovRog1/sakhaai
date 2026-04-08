@@ -136,6 +136,40 @@ function startWorker() {
     res.send(file.buffer);
   });
 
+  // Proxy-скачивание файлов (обход CORS для Telegram Desktop)
+  app.get('/download', async (req, res) => {
+    try {
+      const url = req.query.url as string;
+      const name = (req.query.name as string) || 'uraanxai-file';
+      if (!url) { res.status(400).send('url required'); return; }
+
+      // Data URL → бинарный файл
+      if (url.startsWith('data:')) {
+        const match = url.match(/^data:([^;]+);base64,(.+)$/);
+        if (!match) { res.status(400).send('Invalid data URL'); return; }
+        const buffer = Buffer.from(match[2], 'base64');
+        res.setHeader('Content-Type', match[1]);
+        res.setHeader('Content-Disposition', `attachment; filename="${name}"`);
+        res.setHeader('Content-Length', buffer.length);
+        res.send(buffer);
+        return;
+      }
+
+      // Внешний URL → fetch + proxy
+      const resp = await fetch(url);
+      if (!resp.ok) { res.status(502).send('Fetch failed'); return; }
+      const contentType = resp.headers.get('content-type') || 'application/octet-stream';
+      const buffer = Buffer.from(await resp.arrayBuffer());
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${name}"`);
+      res.setHeader('Content-Length', buffer.length);
+      res.send(buffer);
+    } catch (err: any) {
+      console.error('Download proxy error:', err.message);
+      res.status(500).send('Download error');
+    }
+  });
+
   // Лендинг (перенесён с / на /landing — корень теперь отдаёт SPA)
   app.get('/landing', (_req, res) => {
     res.type('text/html').send(LANDING_HTML);

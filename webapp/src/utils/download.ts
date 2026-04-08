@@ -46,19 +46,13 @@ export async function downloadMedia(url: string, fileName: string): Promise<'ok'
     }
   }
 
-  // Layer 3: Blob URL + <a download> — desktop browsers
+  // Layer 3: Server proxy download — работает на ВСЕХ платформах (обход CORS)
+  // Сервер fetch'ит файл и отдаёт с Content-Disposition: attachment
   try {
-    const blobUrl = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = blobUrl;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    const proxyUrl = `/download?url=${encodeURIComponent(url)}&name=${encodeURIComponent(fileName)}`;
+    window.open(proxyUrl, '_self');
     return 'ok';
   } catch {
-    // Абсолютный fallback — открыть в новой вкладке
     window.open(url, '_blank');
     return 'fallback';
   }

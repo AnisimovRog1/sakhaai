@@ -26,9 +26,10 @@ export async function downloadMedia(url: string, fileName: string): Promise<'ok'
     return 'fallback';
   }
 
-  // Layer 2: navigator.share с файлом — iOS Safari, Android Chrome
-  // Сохраняет прямо в галерею через "Save Image" / "Save Video"
-  if (navigator.share && navigator.canShare) {
+  // Layer 2: navigator.share с файлом — ТОЛЬКО мобильные (iOS Safari, Android Chrome)
+  // На десктопе (macOS) share sheet бесполезен — сразу Layer 3
+  const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  if (isMobile && navigator.share && navigator.canShare) {
     try {
       const file = new File([blob], fileName, { type: blob.type });
       if (navigator.canShare({ files: [file] })) {

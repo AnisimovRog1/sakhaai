@@ -98,8 +98,7 @@ export function GenerationViewer({ items, startIndex, onClose }: Props) {
         <img
           src={item.resultUrl}
           alt={item.prompt || ''}
-          className="absolute w-full object-cover"
-          style={{ top: '-30px', left: 0, right: 0, bottom: '140px' }}
+          className="absolute inset-0 w-full h-full object-cover object-top"
         />
       )}
 

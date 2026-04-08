@@ -5,7 +5,7 @@ import { markCreditsZero, clearCreditsZero, resetNoPurchasePushes, resetZeroCred
 const BALANCE_KEY = (userId: number) => `balance:${userId}`;
 const BALANCE_TTL = 60;
 
-export type TxType = 'chat' | 'image' | 'video' | 'motion' | 'avatar' | 'topup' | 'referral';
+export type TxType = 'chat' | 'image' | 'video' | 'motion' | 'avatar' | 'topup' | 'referral' | 'admin_deduct';
 
 export async function getBalance(userId: number): Promise<number> {
   const cached = await memCache.get(BALANCE_KEY(userId));

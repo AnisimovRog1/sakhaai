@@ -218,8 +218,10 @@ adminRouter.get('/errors', async (_req: Request, res: Response) => {
 adminRouter.post('/addcredits', async (req: Request, res: Response) => {
   try {
     const { userId, amount } = req.body;
-    if (!userId || !amount || Number(amount) <= 0) { res.status(400).json({ error: 'userId и положительный amount обязательны' }); return; }
-    const newBalance = await addCredits(Number(userId), Number(amount), 'topup', `Админ: +${amount}`);
+    if (!userId || !amount || Number(amount) === 0) { res.status(400).json({ error: 'userId и amount обязательны' }); return; }
+    const amt = Number(amount);
+    const desc = amt > 0 ? `Админ: +${amt}` : `Админ: ${amt} (списание)`;
+    const newBalance = await addCredits(Number(userId), amt, amt > 0 ? 'topup' : 'admin_deduct', desc);
     res.json({ success: true, userId, added: amount, newBalance });
   } catch (err: any) {
     res.status(500).json({ error: err.message });

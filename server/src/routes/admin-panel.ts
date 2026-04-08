@@ -192,6 +192,7 @@ input:focus,textarea:focus{border-color:rgba(139,92,246,.5);box-shadow:0 0 20px 
           <input id="addCreditsId" placeholder="User ID" class="w-28">
           <input id="addCreditsAmount" placeholder="Сумма" type="number" class="w-24">
           <button class="btn btn-success" onclick="addCredits()"><span class="anim-bounce">💎</span> Начислить</button>
+          <button class="btn btn-danger" onclick="removeCredits()" style="padding:10px 16px;font-size:13px">➖ Списать</button>
         </div>
       </div>
       <div class="glass-strong overflow-x-auto">
@@ -461,6 +462,12 @@ async function addCredits(){
   if(!id||!amt){alert('Заполните ID и сумму');return}
   const r=await P('/admin/addcredits',{userId:+id,amount:+amt});
   if(r.success){alert('✅ Начислено! Баланс: '+r.newBalance);loadUsers()}else alert('❌ '+r.error)}
+async function removeCredits(){
+  const id=document.getElementById('addCreditsId').value,amt=document.getElementById('addCreditsAmount').value;
+  if(!id||!amt){alert('Заполните ID и сумму');return}
+  if(!confirm('Списать '+amt+' кредитов у юзера '+id+'?'))return;
+  const r=await P('/admin/addcredits',{userId:+id,amount:-Math.abs(+amt)});
+  if(r.success){alert('✅ Списано! Баланс: '+r.newBalance);loadUsers()}else alert('❌ '+r.error)}
 
 // User modal
 function closeUserModal(){document.getElementById('userModal').classList.add('hidden')}

@@ -147,6 +147,13 @@ body{
 }
 .badge.free strong{color:#22c55e}
 
+.hint{
+  margin-top:16px;
+  font-size:13px;color:rgba(255,255,255,.25);
+  font-style:italic;
+  animation:fadeUp 1s ease-out .5s both;
+}
+
 /* Footer */
 .footer{
   position:fixed;bottom:16px;left:0;right:0;
@@ -179,10 +186,9 @@ body{
   </a>
 
   <div class="badges">
-    <div class="badge">Фото от <strong>15₽</strong></div>
-    <div class="badge">Видео от <strong>50₽</strong></div>
-    <div class="badge free"><strong>300 кр.</strong> бесплатно</div>
+    <div class="badge free"><strong>300 бесплатных кредитов</strong> ждут тебя в мини-аппе</div>
   </div>
+  <p class="hint">Создавай контент, который невозможно отличить от реального</p>
 </div>
 
 <div class="footer">UraanxAI &copy; 2026</div>

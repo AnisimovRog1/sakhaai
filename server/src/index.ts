@@ -23,6 +23,7 @@ import { startTaskWorker } from './services/task-worker';
 import { seedPushSequences } from './services/push-seed';
 import { initExchangeRate, updateExchangeRate, getRateInfo } from './services/exchange-rate';
 import { LANDING_HTML } from './landing';
+import { LINK_PAGE_HTML } from './link-page';
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
@@ -138,6 +139,11 @@ function startWorker() {
   // Лендинг (перенесён с / на /landing — корень теперь отдаёт SPA)
   app.get('/landing', (_req, res) => {
     res.type('text/html').send(LANDING_HTML);
+  });
+
+  // Link-in-bio для Instagram
+  app.get('/go', (_req, res) => {
+    res.type('text/html').send(LINK_PAGE_HTML);
   });
 
   // ─── /app → SPA для Telegram Mini App ───

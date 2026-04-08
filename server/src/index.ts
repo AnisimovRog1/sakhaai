@@ -1,3 +1,5 @@
+import cluster from 'cluster';
+import os from 'os';
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import compression from 'compression';
@@ -24,140 +26,162 @@ import { LANDING_HTML } from './landing';
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
-const app = express();
-app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
+const WORKERS = Math.max(os.cpus().length, 2);
 
-// В проде разрешаем только домен Vercel, в dev — всё
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',')
-  : ['http://localhost:5173'];
+// ═══════════════════════════════════════════════════════
+// CLUSTER: Master форкает воркеры, каждый запускает Express
+// ═══════════════════════════════════════════════════════
 
-app.use(compression());
-app.use(cors({
-  origin: (origin, callback) => {
-    // origin = undefined у server-to-server запросов и curl — пропускаем
-    // Также пропускаем свой же домен (для admin panel)
-    if (!origin || allowedOrigins.includes(origin) || origin === 'https://sakhaai-production.up.railway.app') return callback(null, true);
-    callback(new Error(`CORS: origin ${origin} не разрешён`));
-  },
-}));
-app.use(express.json({ limit: '50mb' }));
+if (cluster.isPrimary) {
+  console.log(`🚀 Master ${process.pid}: запуск ${WORKERS} воркеров`);
 
-// Rate limiting
-app.use(rateLimit({ windowMs: 60000, max: 300, message: { error: 'Слишком много запросов' } }));
-app.use('/auth', rateLimit({ windowMs: 60000, max: 10, message: { error: 'Слишком много попыток авторизации' } }));
-app.use('/image', rateLimit({ windowMs: 60000, max: 20, message: { error: 'Слишком много запросов генерации' } }));
-app.use('/video', rateLimit({ windowMs: 60000, max: 10, message: { error: 'Слишком много запросов генерации' } }));
-app.use('/panel/login', rateLimit({ windowMs: 60000, max: 5, message: { error: 'Слишком много попыток входа' } }));
+  // Миграции + seed — только в master, до форка воркеров
+  migrate()
+    .then(() => {
+      console.log('✅ Миграции выполнены');
 
-// Статические файлы (верификация UnitPay и т.д.)
-app.use(express.static(path.resolve(__dirname, '../public')));
+      // Форкаем воркеры
+      for (let i = 0; i < WORKERS; i++) {
+        cluster.fork();
+      }
 
-// Роуты
-app.use('/auth',     authRouter);
-app.use('/chats',    chatRouter);
-app.use('/image',    imageRouter);
-app.use('/video',    videoRouter);
-app.use('/balance',  balanceRouter);
-app.use('/referral', referralRouter);
-app.use('/payment', paymentRouter);
-app.use('/generations', generationsRouter);
-app.use('/admin', adminRouter);
-app.use('/panel', adminPanelRouter);
+      cluster.on('exit', (worker, code) => {
+        console.error(`⚠️ Worker ${worker.process.pid} упал (code=${code}), рестарт...`);
+        cluster.fork();
+      });
 
-app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', service: 'sakhaai-server' });
-});
+      // Task worker — только в master (чтобы не дублировать polling)
+      startTaskWorker();
 
-// Публичный endpoint: текущий курс и множитель (для фронта)
-app.get('/exchange-rate', (_req, res) => {
-  res.json(getRateInfo());
-});
+      // Курс ЦБ — только в master
+      initExchangeRate().catch(console.error);
+      setTimeout(updateExchangeRate, 10_000);
+      setInterval(updateExchangeRate, 7 * 24 * 60 * 60 * 1000);
 
-// Временные файлы для Kling API (data URL → HTTP URL)
-app.get('/tmp-upload/:id', (req, res) => {
-  const fileId = req.params.id.replace(/\.[^.]+$/, '');
-  const file = serveTempFile(fileId);
-  if (!file) { res.status(404).send('Not found'); return; }
-  res.setHeader('Content-Type', file.mime);
-  res.setHeader('Content-Length', file.buffer.length);
-  res.send(file.buffer);
-});
-
-
-// Лендинг (перенесён с / на /landing — корень теперь отдаёт SPA)
-app.get('/landing', (_req, res) => {
-  res.type('text/html').send(LANDING_HTML);
-});
-
-// ─── /app → SPA для Telegram Mini App ───
-app.get('/app', (_req, res) => {
-  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  res.sendFile(path.join(path.resolve(__dirname, '../webapp-dist'), 'index.html'));
-});
-
-// ─── Корень / → лендинг (для UnitPay, модерации, обычных браузеров) ───
-app.get('/', (_req, res) => {
-  res.type('text/html').send(LANDING_HTML);
-});
-
-// ─── Webapp SPA (React) ─────────────────────────────────
-// Собранный фронтенд копируется в server/webapp-dist/ при билде на Railway
-const webappDist = path.resolve(__dirname, '../webapp-dist');
-
-// Статика (JS/CSS/images) — кэш на 1 год (хэш в имени файла)
-app.use('/assets', express.static(path.join(webappDist, 'assets'), {
-  maxAge: '1y',
-  immutable: true,
-}));
-
-// Всё остальное (index.html, favicon) — без кэша
-app.use(express.static(webappDist, {
-  etag: false,
-  lastModified: false,
-  setHeaders: (res) => {
-    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    res.set('Pragma', 'no-cache');
-    res.set('Expires', '0');
-    res.set('Surrogate-Control', 'no-store');
-  },
-}));
-
-// SPA fallback — все неизвестные роуты → index.html (React Router)
-app.get('*', (_req, res) => {
-  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  res.set('Pragma', 'no-cache');
-  res.set('Expires', '0');
-  res.set('Surrogate-Control', 'no-store');
-  res.sendFile(path.join(webappDist, 'index.html'));
-});
-
-// Запуск
-migrate()
-  .then(() => {
-    const server = app.listen(PORT, () => {
-      console.log(`✅ Сервер запущен на порту ${PORT}`);
+      // Seed пушей — только в master
+      seedPushSequences().then(n => { if (n) console.log('📥 Seed пушей: ' + n); }).catch(e => console.error('❌ Seed пушей:', e));
+    })
+    .catch((err) => {
+      console.error('❌ Ошибка миграции:', err);
+      process.exit(1);
     });
-    // Таймаут 30 мин — avatar через fal.ai может занимать долго
-    server.timeout = 1_800_000;
-    server.keepAliveTimeout = 1_820_000;
 
-    // Реферальные бонусы начисляются сразу при оплате (в payment.ts)
+} else {
+  // ═══════════════════════════════════════════════════════
+  // WORKER: Express сервер
+  // ═══════════════════════════════════════════════════════
+  startWorker();
+}
 
-    // Фоновый worker: проверяет pending задачи через Kling Direct API каждые 30 сек
-    startTaskWorker();
+function startWorker() {
+  const app = express();
+  app.set('trust proxy', 1);
 
-    // Курс ЦБ: инициализация из БД + первый fetch через 10с + обновление каждые 7 дней
-    initExchangeRate().catch(console.error);
-    setTimeout(updateExchangeRate, 10_000);
-    setInterval(updateExchangeRate, 7 * 24 * 60 * 60 * 1000);
+  // В проде разрешаем только домен Vercel, в dev — всё
+  const allowedOrigins = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',')
+    : ['http://localhost:5173'];
 
-    // Заполняем пуш-последовательности при первом запуске
-    // Добавляем только отсутствующие seed-тексты (не трогаем отредактированные в админке)
-    seedPushSequences().then(n => { if (n) console.log('📥 Seed пушей: ' + n); }).catch(e => console.error('❌ Seed пушей:', e));
-  })
-  .catch((err) => {
-    console.error('❌ Ошибка миграции:', err);
-    process.exit(1);
+  app.use(compression());
+  app.use(cors({
+    origin: (origin, callback) => {
+      // origin = undefined у server-to-server запросов и curl — пропускаем
+      // Также пропускаем свой же домен (для admin panel)
+      if (!origin || allowedOrigins.includes(origin) || origin === 'https://sakhaai-production.up.railway.app') return callback(null, true);
+      callback(new Error(`CORS: origin ${origin} не разрешён`));
+    },
+  }));
+  app.use(express.json({ limit: '50mb' }));
+
+  // Rate limiting (x10 для масштаба, per-worker)
+  app.use(rateLimit({ windowMs: 60000, max: 3000, message: { error: 'Слишком много запросов' } }));
+  app.use('/auth', rateLimit({ windowMs: 60000, max: 60, message: { error: 'Слишком много попыток авторизации' } }));
+  app.use('/image', rateLimit({ windowMs: 60000, max: 120, message: { error: 'Слишком много запросов генерации' } }));
+  app.use('/video', rateLimit({ windowMs: 60000, max: 60, message: { error: 'Слишком много запросов генерации' } }));
+  app.use('/panel/login', rateLimit({ windowMs: 60000, max: 15, message: { error: 'Слишком много попыток входа' } }));
+
+  // Статические файлы (верификация UnitPay и т.д.)
+  app.use(express.static(path.resolve(__dirname, '../public')));
+
+  // Роуты
+  app.use('/auth',     authRouter);
+  app.use('/chats',    chatRouter);
+  app.use('/image',    imageRouter);
+  app.use('/video',    videoRouter);
+  app.use('/balance',  balanceRouter);
+  app.use('/referral', referralRouter);
+  app.use('/payment', paymentRouter);
+  app.use('/generations', generationsRouter);
+  app.use('/admin', adminRouter);
+  app.use('/panel', adminPanelRouter);
+
+  app.get('/health', (_req, res) => {
+    res.json({ status: 'ok', service: 'sakhaai-server', worker: process.pid });
   });
+
+  // Публичный endpoint: текущий курс и множитель (для фронта)
+  app.get('/exchange-rate', (_req, res) => {
+    res.json(getRateInfo());
+  });
+
+  // Временные файлы для Kling API (data URL → HTTP URL)
+  app.get('/tmp-upload/:id', (req, res) => {
+    const fileId = req.params.id.replace(/\.[^.]+$/, '');
+    const file = serveTempFile(fileId);
+    if (!file) { res.status(404).send('Not found'); return; }
+    res.setHeader('Content-Type', file.mime);
+    res.setHeader('Content-Length', file.buffer.length);
+    res.send(file.buffer);
+  });
+
+  // Лендинг (перенесён с / на /landing — корень теперь отдаёт SPA)
+  app.get('/landing', (_req, res) => {
+    res.type('text/html').send(LANDING_HTML);
+  });
+
+  // ─── /app → SPA для Telegram Mini App ───
+  app.get('/app', (_req, res) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.sendFile(path.join(path.resolve(__dirname, '../webapp-dist'), 'index.html'));
+  });
+
+  // ─── Корень / → лендинг (для UnitPay, модерации, обычных браузеров) ───
+  app.get('/', (_req, res) => {
+    res.type('text/html').send(LANDING_HTML);
+  });
+
+  // ─── Webapp SPA (React) ─────────────────────────────────
+  const webappDist = path.resolve(__dirname, '../webapp-dist');
+
+  // Статика (JS/CSS/images) — кэш на 1 год (хэш в имени файла)
+  app.use('/assets', express.static(path.join(webappDist, 'assets'), {
+    maxAge: '1y',
+    immutable: true,
+  }));
+
+  // index.html — кэш 5 мин (снижает нагрузку при повторных визитах)
+  app.use(express.static(webappDist, {
+    etag: true,
+    lastModified: true,
+    setHeaders: (res) => {
+      res.set('Cache-Control', 'public, max-age=300');
+    },
+  }));
+
+  // SPA fallback — все неизвестные роуты → index.html
+  app.get('*', (_req, res) => {
+    res.set('Cache-Control', 'public, max-age=300');
+    res.sendFile(path.join(webappDist, 'index.html'));
+  });
+
+  // Запуск воркера
+  const server = app.listen(PORT, () => {
+    console.log(`✅ Worker ${process.pid} слушает порт ${PORT}`);
+  });
+
+  // Production таймауты
+  server.timeout = 300_000;          // 5 мин (было 30 мин)
+  server.keepAliveTimeout = 65_000;  // 65 сек (стандарт)
+  server.headersTimeout = 66_000;    // 66 сек (чуть больше keepAlive)
+}

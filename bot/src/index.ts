@@ -74,10 +74,11 @@ bot.catch((err) => {
 
 bot.command('start', async (ctx) => {
   const payload = ctx.match;
+  console.log('🔍 START payload:', JSON.stringify(payload), 'from:', ctx.from?.id, 'raw:', typeof payload, 'len:', payload?.length);
   let campaignCode: string | null = null;
   if (payload && ctx.from) {
     const refMatch = payload.match(/^ref_(\d+)$/);
-    const campMatch = payload.match(/^c_([a-z0-9_]+)$/i);
+    const campMatch = payload.match(/^c_([a-z0-9_]+)$/i) || payload.match(/^c_([a-zа-яёА-ЯЁ0-9_]+)$/i);
     if (refMatch) {
       const referrerId = parseInt(refMatch[1], 10);
       httpPost(`${SERVER_URL}/referral/preregister`, {

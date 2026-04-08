@@ -34,7 +34,7 @@ adminRouter.post('/ensure-user', async (req: Request, res: Response) => {
     await pool.query(
       `INSERT INTO users (id, first_name, username, campaign_code)
        VALUES ($1, $2, $3, $4)
-       ON CONFLICT (id) DO UPDATE SET first_name = EXCLUDED.first_name, username = EXCLUDED.username, campaign_code = COALESCE(EXCLUDED.campaign_code, users.campaign_code), last_seen = NOW(), updated_at = NOW()`,
+       ON CONFLICT (id) DO UPDATE SET first_name = EXCLUDED.first_name, username = EXCLUDED.username, campaign_code = COALESCE(users.campaign_code, EXCLUDED.campaign_code), last_seen = NOW(), updated_at = NOW()`,
       [id, first_name, username ?? null, campaign_code ?? null]
     );
     res.json({ ok: true });

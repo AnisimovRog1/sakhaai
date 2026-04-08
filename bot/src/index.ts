@@ -1207,8 +1207,16 @@ bot.on('message', async (ctx) => {
     return;
   }
 
-  // Обычные юзеры — пересылаем админу
+  // Обычные юзеры — кнопка открытия приложения + пересылаем админу
   if (isAdmin(ctx.chat.id)) return;
+
+  // Отвечаем юзеру с кнопкой мини-аппа
+  const appKb = new InlineKeyboard().webApp('🚀 Открыть UraanxAI', WEBAPP_URL);
+  await ctx.reply(
+    '👋 Чтобы создавать фото, видео и аватары — открой мини-приложение по кнопке ниже.\n\nВсе функции работают внутри приложения!',
+    { reply_markup: appKb }
+  ).catch(() => {});
+
   if (!ADMIN_CHAT_ID) return;
 
   const from = ctx.from;

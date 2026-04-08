@@ -929,6 +929,48 @@ adminRouter.get('/campaigns/:code/users', async (req: Request, res: Response) =>
   } catch (err: any) { res.status(500).json({ error: err.message }); }
 });
 
+// Диагностика: юзеры без campaign_code, зарегистрированные после создания кампаний
+adminRouter.get('/campaigns/orphans', async (_req: Request, res: Response) => {
+  try {
+    // Находим юзеров без campaign_code которые зарегались после создания кампаний
+    const { rows } = await pool.query(`
+      SELECT u.id, u.username, u.first_name, u.credits, u.welcome_bonus_granted,
+             u.created_at, u.campaign_code, u.fraud_score
+      FROM users u
+      WHERE u.campaign_code IS NULL
+        AND u.created_at >= (SELECT MIN(created_at) FROM ref_campaigns)
+      ORDER BY u.created_at DESC
+    `);
+    // Также список кампаний с датами
+    const camps = await pool.query(`SELECT code, name, created_at FROM ref_campaigns ORDER BY created_at`);
+    res.json({ orphanUsers: rows, campaigns: camps.rows });
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+// Привязать юзера к кампании вручную
+adminRouter.post('/campaigns/assign', async (req: Request, res: Response) => {
+  try {
+    const { userId, campaignCode } = req.body;
+    if (!userId || !campaignCode) { res.status(400).json({ error: 'userId and campaignCode required' }); return; }
+    await pool.query('UPDATE users SET campaign_code = $1 WHERE id = $2 AND campaign_code IS NULL', [campaignCode, userId]);
+    res.json({ ok: true });
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+// Массовая привязка юзеров к кампании по диапазону дат
+adminRouter.post('/campaigns/assign-bulk', async (req: Request, res: Response) => {
+  try {
+    const { campaignCode, fromDate, toDate } = req.body;
+    if (!campaignCode || !fromDate || !toDate) { res.status(400).json({ error: 'campaignCode, fromDate, toDate required' }); return; }
+    const result = await pool.query(
+      `UPDATE users SET campaign_code = $1
+       WHERE campaign_code IS NULL AND created_at >= $2 AND created_at <= $3`,
+      [campaignCode, fromDate, toDate]
+    );
+    res.json({ ok: true, updated: result.rowCount });
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
 // Удалить кампанию
 adminRouter.delete('/campaigns/:id', async (req: Request, res: Response) => {
   try {

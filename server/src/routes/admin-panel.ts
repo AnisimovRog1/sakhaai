@@ -195,7 +195,7 @@ input:focus,textarea:focus{border-color:rgba(139,92,246,.5);box-shadow:0 0 20px 
         </div>
       </div>
       <div class="glass-strong overflow-x-auto">
-        <table><thead><tr><th>ID</th><th>Username</th><th>Имя</th><th>App</th><th><span class="anim-pulse">💎</span> Кредиты</th><th>Статус</th><th>TZ</th><th>Дата</th><th>Действия</th></tr></thead>
+        <table><thead><tr><th>ID</th><th>Username</th><th>Имя</th><th>App</th><th><span class="anim-pulse">💎</span> Кредиты</th><th>Кампания</th><th>Бонус</th><th>Статус</th><th>TZ</th><th>Дата</th><th>Действия</th></tr></thead>
         <tbody id="usersTable"></tbody></table>
       </div>
     </div>
@@ -447,6 +447,8 @@ function renderUsers(list){
     '<td>'+u.first_name+'</td>'+
     '<td class="text-center">'+(u.app_opened?'<span title="Открыл приложение" class="text-green-400">📱</span>':'<span title="Только /start" class="text-slate-600">—</span>')+'</td>'+
     '<td class="font-bold gradient-text">'+u.credits+'</td>'+
+    '<td class="text-xs">'+(u.campaign_code?'<span class="text-cyan-400">'+u.campaign_code.substring(0,15)+'</span>':'<span class="text-slate-600">—</span>')+'</td>'+
+    '<td class="text-center">'+(u.welcome_bonus_granted?'<span class="text-green-400">✓</span>':'<span class="text-slate-600">—</span>')+'</td>'+
     '<td>'+(u.is_banned?'<span class="text-red-400 text-xs font-bold">🚫</span>':'<span class="text-green-400 text-xs">✅</span>')+'</td>'+
     '<td class="text-slate-500 text-xs">UTC'+(u.timezone_offset>=0?'+':'')+Math.round((u.timezone_offset||540)/60)+'</td>'+
     '<td class="text-slate-500 text-xs">'+new Date(u.created_at).toLocaleDateString('ru')+'</td>'+

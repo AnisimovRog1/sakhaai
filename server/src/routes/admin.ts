@@ -254,7 +254,7 @@ adminRouter.post('/ban', async (req: Request, res: Response) => {
 adminRouter.get('/users', async (_req: Request, res: Response) => {
   try {
     const result = await pool.query(`
-      SELECT id, username, first_name, credits, is_banned, timezone_offset, language_code, created_at, app_opened
+      SELECT id, username, first_name, credits, is_banned, timezone_offset, language_code, created_at, app_opened, campaign_code, welcome_bonus_granted, fraud_score
       FROM users ORDER BY created_at DESC LIMIT 100
     `);
     res.json(result.rows);

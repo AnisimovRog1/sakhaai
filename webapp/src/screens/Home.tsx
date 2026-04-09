@@ -42,11 +42,18 @@ export function Home({ user, onCreditsUpdate }: Props) {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('sbp');
   const { t } = useLang();
 
-  // Обновляем баланс при входе на главный экран
+  // Обновляем баланс при входе на главный экран + при возврате из оплаты
   useEffect(() => {
-    api.getBalance().then(({ credits }) => {
-      if (onCreditsUpdate && credits !== user.credits) onCreditsUpdate(credits);
-    }).catch(() => {});
+    const refresh = () => {
+      api.getBalance().then(({ credits }) => {
+        if (onCreditsUpdate && credits !== user.credits) onCreditsUpdate(credits);
+      }).catch(() => {});
+    };
+    refresh();
+    // Когда юзер возвращается из UnitPay/другого окна → обновляем баланс
+    const onVisible = () => { if (!document.hidden) refresh(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
   }, []);
   const { levelKey, next } = getLevel(user.credits);
   const progress = Math.max(0, Math.min((user.credits / next) * 100, 100));

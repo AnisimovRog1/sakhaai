@@ -136,7 +136,8 @@ input:focus,textarea:focus{border-color:rgba(139,92,246,.5);box-shadow:0 0 20px 
       <div class="tab active" onclick="showTab(this,'dashboard')"><span class="anim-pulse">📊</span> Дашборд</div>
       <div class="tab" onclick="showTab(this,'users')"><span class="anim-bounce">👥</span> Юзеры</div>
       <div class="tab" onclick="showTab(this,'pushes')"><span class="anim-spin">📢</span> Пуши</div>
-      <div class="tab" onclick="showTab(this,'campaigns')"><span>📣</span> Рефералы</div>
+      <div class="tab" onclick="showTab(this,'referrals')"><span>🤝</span> Рефералы</div>
+      <div class="tab" onclick="showTab(this,'campaigns')"><span>📣</span> Кампании</div>
     </div>
     <div class="flex items-center gap-3">
       <div class="flex items-center gap-1.5 text-xs text-green-400"><div class="live-dot"></div>Live</div>
@@ -357,6 +358,21 @@ input:focus,textarea:focus{border-color:rgba(139,92,246,.5);box-shadow:0 0 20px 
   </div>
 </div>
 
+    <!-- REFERRALS -->
+    <div id="tab-referrals" class="hidden">
+      <div id="refStats" class="grid grid-cols-2 sm:grid-cols-6 gap-3 mb-5"></div>
+      <div class="glass-neon p-4 glow-border">
+        <div class="overflow-x-auto">
+          <table class="text-xs">
+            <thead><tr>
+              <th>Кто привёл</th><th>Приглашённый</th><th>Статус</th><th>Пакет</th><th>Награда</th><th>AI запрос</th><th>Дата</th><th>Оплата</th>
+            </tr></thead>
+            <tbody id="refTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- CAMPAIGNS -->
     <div id="tab-campaigns" class="hidden">
       <div class="glass-neon p-4 mb-5 glow-border">
@@ -390,7 +406,7 @@ function G(p){return apiFetch(p)}
 function P(p,d){return apiFetch(p,{method:'POST',body:JSON.stringify(d)})}
 function D(p){return apiFetch(p,{method:'DELETE'})}
 
-function showTab(el,n){document.querySelectorAll('[id^=tab-]').forEach(e=>e.classList.add('hidden'));document.getElementById('tab-'+n).classList.remove('hidden');document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));el.classList.add('active');if(n==='users')loadUsers();if(n==='pushes'){loadPushTemplates();loadPushLog();loadSeqs();loadPushStats()}if(n==='campaigns')loadCampaigns()}
+function showTab(el,n){document.querySelectorAll('[id^=tab-]').forEach(e=>e.classList.add('hidden'));document.getElementById('tab-'+n).classList.remove('hidden');document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));el.classList.add('active');if(n==='users')loadUsers();if(n==='pushes'){loadPushTemplates();loadPushLog();loadSeqs();loadPushStats()}if(n==='campaigns')loadCampaigns();if(n==='referrals')loadReferrals()}
 
 // Курс ЦБ
 async function loadExRate(){
@@ -484,7 +500,7 @@ async function showUser(id){
     '</div>'+
     '<div class="grid grid-cols-2 gap-3 mb-4">'+
       '<div class="glass p-3 text-center"><div class="text-lg font-bold gradient-text">'+u.credits+'</div><div class="text-xs text-slate-500">💎 Кредиты</div></div>'+
-      '<div class="glass p-3 text-center"><div class="text-lg font-bold gradient-text">'+u.totalSpent+'</div><div class="text-xs text-slate-500">💸 Потрачено</div></div>'+
+      '<div class="glass p-3 text-center"><div class="text-lg font-bold text-amber-400">'+u.totalSpent+'</div><div class="text-xs text-slate-500">🔥 Использовано</div></div>'+
       '<div class="glass p-3 text-center"><div class="text-lg font-bold gradient-text">'+u.chats+'</div><div class="text-xs text-slate-500">💬 Чатов</div></div>'+
       '<div class="glass p-3 text-center"><div class="text-lg font-bold gradient-text">'+u.generations+'</div><div class="text-xs text-slate-500">🎨 Генераций</div></div>'+
     '</div>'+
@@ -1068,6 +1084,33 @@ function renderTrash(){
 }
 async function restoreSeq(id){await P('/admin/push/sequences/'+id+'/restore',{});loadSeqs();loadTrash()}
 async function permDeleteSeq(id){if(!confirm('Удалить навсегда? Это нельзя отменить!'))return;await D('/admin/push/sequences/'+id+'/permanent');loadTrash()}
+
+// ═══ REFERRALS ═══
+async function loadReferrals(){
+  var d=await G('/admin/referrals/full');if(!d||d.error){return}
+  var s=d.stats||{};
+  document.getElementById('refStats').innerHTML=
+    '<div class="glass p-3 text-center"><div class="text-lg font-bold gradient-text">'+(s.total||0)+'</div><div class="text-xs text-slate-500">Всего</div></div>'+
+    '<div class="glass p-3 text-center"><div class="text-lg font-bold text-green-400">'+(s.paid||0)+'</div><div class="text-xs text-slate-500">Оплачено</div></div>'+
+    '<div class="glass p-3 text-center"><div class="text-lg font-bold text-amber-400">'+(s.pending||0)+'</div><div class="text-xs text-slate-500">Ожидание</div></div>'+
+    '<div class="glass p-3 text-center"><div class="text-lg font-bold text-blue-400">'+(s.held||0)+'</div><div class="text-xs text-slate-500">Холд</div></div>'+
+    '<div class="glass p-3 text-center"><div class="text-lg font-bold text-red-400">'+(s.rejected||0)+'</div><div class="text-xs text-slate-500">Отклонено</div></div>'+
+    '<div class="glass p-3 text-center"><div class="text-lg font-bold text-cyan-400">'+Number(s.total_rewards||0).toLocaleString('ru')+'</div><div class="text-xs text-slate-500">Награды (кр.)</div></div>';
+  var rows=d.referrals||[];
+  document.getElementById('refTableBody').innerHTML=rows.length?rows.map(function(r){
+    var stColor=r.status==='paid'?'text-green-400':r.status==='pending'?'text-amber-400':r.status==='held'?'text-blue-400':'text-red-400';
+    return '<tr>'+
+      '<td class="text-violet-300 font-medium cursor-pointer" onclick="showUser('+r.referrer_id+')">'+(r.referrer_username?'@'+esc(r.referrer_username):esc(r.referrer_name))+'</td>'+
+      '<td class="text-cyan-300 font-medium cursor-pointer" onclick="showUser('+r.referee_id+')">'+(r.referee_username?'@'+esc(r.referee_username):esc(r.referee_name))+'</td>'+
+      '<td class="'+stColor+' font-bold">'+r.status+'</td>'+
+      '<td>'+(r.package||'<span class="text-slate-600">—</span>')+'</td>'+
+      '<td class="font-bold">'+(r.reward_credits?'+'+r.reward_credits+' кр.':'<span class="text-slate-600">—</span>')+'</td>'+
+      '<td class="text-center">'+(r.has_ai_request?'<span class="text-green-400">✓</span>':'<span class="text-slate-600">✗</span>')+'</td>'+
+      '<td class="text-slate-500">'+new Date(r.created_at).toLocaleDateString('ru')+'</td>'+
+      '<td class="text-slate-500">'+(r.paid_at?new Date(r.paid_at).toLocaleDateString('ru'):'—')+'</td>'+
+    '</tr>'
+  }).join(''):'<tr><td colspan="8" class="text-center text-slate-500 py-8">Нет рефералов</td></tr>'
+}
 
 // ═══ CAMPAIGNS ═══
 var campCache={};

@@ -190,6 +190,38 @@ adminRouter.get('/referrals', async (_req: Request, res: Response) => {
   }
 });
 
+// ─── /referrals/full — полная реферальная система ──────────
+adminRouter.get('/referrals/full', async (_req: Request, res: Response) => {
+  try {
+    const stats = await pool.query(`
+      SELECT
+        COUNT(*) as total,
+        COUNT(*) FILTER (WHERE status='paid') as paid,
+        COUNT(*) FILTER (WHERE status='pending') as pending,
+        COUNT(*) FILTER (WHERE status='held') as held,
+        COUNT(*) FILTER (WHERE status='rejected') as rejected,
+        COALESCE(SUM(reward_credits) FILTER (WHERE status='paid'), 0) as total_rewards
+      FROM referrals
+    `);
+    const rows = await pool.query(`
+      SELECT r.id, r.referrer_id, r.referee_id, r.status, r.package,
+        r.reward_credits, r.has_ai_request, r.paid_at, r.reward_paid_at,
+        r.reject_reason, r.created_at,
+        u1.username as referrer_username, u1.first_name as referrer_name,
+        u2.username as referee_username, u2.first_name as referee_name,
+        u2.credits as referee_credits, u2.app_opened as referee_app_opened
+      FROM referrals r
+      JOIN users u1 ON r.referrer_id = u1.id
+      JOIN users u2 ON r.referee_id = u2.id
+      ORDER BY r.created_at DESC
+      LIMIT 200
+    `);
+    res.json({ stats: stats.rows[0], referrals: rows.rows });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── /errors — ошибки (из логов генераций с пустым result) ──
 adminRouter.get('/errors', async (_req: Request, res: Response) => {
   try {

@@ -23,7 +23,9 @@ export async function initExchangeRate(): Promise<void> {
     );
     if (rows.length && Number(rows[0].rate) > 0) {
       currentRate = Number(rows[0].rate);
-      updatedAt = rows[0].updated_at || null;
+      updatedAt = rows[0].updated_at
+        ? new Date(rows[0].updated_at).toISOString()
+        : new Date().toISOString();
       console.log(`💱 Курс из БД: $1 = ${currentRate}₽ (×${getMultiplier().toFixed(4)})`);
     } else {
       console.log(`💱 Курс по умолчанию: $1 = ${BASE_RATE}₽`);

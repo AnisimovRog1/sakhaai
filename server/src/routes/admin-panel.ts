@@ -361,16 +361,7 @@ input:focus,textarea:focus{border-color:rgba(139,92,246,.5);box-shadow:0 0 20px 
     <!-- REFERRALS -->
     <div id="tab-referrals" class="hidden">
       <div id="refStats" class="grid grid-cols-2 sm:grid-cols-6 gap-3 mb-5"></div>
-      <div class="glass-neon p-4 glow-border">
-        <div class="overflow-x-auto">
-          <table class="text-xs">
-            <thead><tr>
-              <th>Кто привёл</th><th>Приглашённый</th><th>Статус</th><th>Пакет</th><th>Награда</th><th>AI запрос</th><th>Дата</th><th>Оплата</th>
-            </tr></thead>
-            <tbody id="refTableBody"></tbody>
-          </table>
-        </div>
-      </div>
+      <div id="refList"></div>
     </div>
 
     <!-- CAMPAIGNS -->
@@ -1096,20 +1087,57 @@ async function loadReferrals(){
     '<div class="glass p-3 text-center"><div class="text-lg font-bold text-blue-400">'+(s.held||0)+'</div><div class="text-xs text-slate-500">Холд</div></div>'+
     '<div class="glass p-3 text-center"><div class="text-lg font-bold text-red-400">'+(s.rejected||0)+'</div><div class="text-xs text-slate-500">Отклонено</div></div>'+
     '<div class="glass p-3 text-center"><div class="text-lg font-bold text-cyan-400">'+Number(s.total_rewards||0).toLocaleString('ru')+'</div><div class="text-xs text-slate-500">Награды (кр.)</div></div>';
+  // Группировка по рефереру
   var rows=d.referrals||[];
-  document.getElementById('refTableBody').innerHTML=rows.length?rows.map(function(r){
-    var stColor=r.status==='paid'?'text-green-400':r.status==='pending'?'text-amber-400':r.status==='held'?'text-blue-400':'text-red-400';
-    return '<tr>'+
-      '<td class="text-violet-300 font-medium cursor-pointer" onclick="showUser('+r.referrer_id+')">'+(r.referrer_username?'@'+esc(r.referrer_username):esc(r.referrer_name))+'</td>'+
-      '<td class="text-cyan-300 font-medium cursor-pointer" onclick="showUser('+r.referee_id+')">'+(r.referee_username?'@'+esc(r.referee_username):esc(r.referee_name))+'</td>'+
-      '<td class="'+stColor+' font-bold">'+r.status+'</td>'+
-      '<td>'+(r.package||'<span class="text-slate-600">—</span>')+'</td>'+
-      '<td class="font-bold">'+(r.reward_credits?'+'+r.reward_credits+' кр.':'<span class="text-slate-600">—</span>')+'</td>'+
-      '<td class="text-center">'+(r.has_ai_request?'<span class="text-green-400">✓</span>':'<span class="text-slate-600">✗</span>')+'</td>'+
-      '<td class="text-slate-500">'+new Date(r.created_at).toLocaleDateString('ru')+'</td>'+
-      '<td class="text-slate-500">'+(r.paid_at?new Date(r.paid_at).toLocaleDateString('ru'):'—')+'</td>'+
-    '</tr>'
-  }).join(''):'<tr><td colspan="8" class="text-center text-slate-500 py-8">Нет рефералов</td></tr>'
+  var grouped={};var order=[];
+  rows.forEach(function(r){
+    var key=r.referrer_id;
+    if(!grouped[key]){grouped[key]={id:key,name:r.referrer_username?'@'+r.referrer_username:r.referrer_name,refs:[],paid:0,pending:0,totalReward:0};order.push(key)}
+    grouped[key].refs.push(r);
+    if(r.status==='paid'){grouped[key].paid++;grouped[key].totalReward+=r.reward_credits||0}
+    else{grouped[key].pending++}
+  });
+  var el=document.getElementById('refList');
+  if(!order.length){el.innerHTML='<p class="text-slate-500 text-center py-8">Нет рефералов</p>';return}
+  el.innerHTML=order.map(function(key){
+    var g=grouped[key];
+    return '<div class="glass p-4 mb-3" id="ref-'+key+'">'+
+      '<div class="flex items-center justify-between cursor-pointer" onclick="toggleRefUsers('+key+')">'+
+        '<div class="flex items-center gap-3"><span class="text-slate-500 text-xs" id="ref-arrow-'+key+'">&#9654;</span>'+
+        '<span class="text-violet-300 font-bold text-sm cursor-pointer" onclick="event.stopPropagation();showUser('+key+')">'+esc(g.name)+'</span></div>'+
+        '<div class="flex gap-3 text-xs">'+
+          '<span class="text-slate-400">Всего: <span class="text-white font-bold">'+g.refs.length+'</span></span>'+
+          '<span class="text-green-400">Оплачено: <span class="font-bold">'+g.paid+'</span></span>'+
+          '<span class="text-amber-400">Ожидание: <span class="font-bold">'+g.pending+'</span></span>'+
+          '<span class="text-cyan-400">Награда: <span class="font-bold">'+g.totalReward.toLocaleString('ru')+' кр.</span></span>'+
+        '</div>'+
+      '</div>'+
+      '<div id="ref-users-'+key+'" class="hidden mt-4">'+
+        '<div class="overflow-x-auto"><table class="text-xs"><thead><tr>'+
+          '<th>Приглашённый</th><th>Статус</th><th>Пакет</th><th>Награда</th><th>AI запрос</th><th>Приглашён</th><th>Оплата</th>'+
+        '</tr></thead><tbody>'+
+        g.refs.map(function(r){
+          var stColor=r.status==='paid'?'text-green-400':r.status==='pending'?'text-amber-400':r.status==='held'?'text-blue-400':'text-red-400';
+          return '<tr>'+
+            '<td class="text-cyan-300 font-medium cursor-pointer" onclick="showUser('+r.referee_id+')">'+(r.referee_username?'@'+esc(r.referee_username):esc(r.referee_name))+'</td>'+
+            '<td class="'+stColor+' font-bold">'+r.status+'</td>'+
+            '<td>'+(r.package||'<span class="text-slate-600">—</span>')+'</td>'+
+            '<td class="font-bold">'+(r.reward_credits?'+'+r.reward_credits+' кр.':'<span class="text-slate-600">—</span>')+'</td>'+
+            '<td class="text-center">'+(r.has_ai_request?'<span class="text-green-400">✓</span>':'<span class="text-slate-600">✗</span>')+'</td>'+
+            '<td class="text-slate-500">'+new Date(r.created_at).toLocaleDateString('ru')+'</td>'+
+            '<td class="text-slate-500">'+(r.paid_at?new Date(r.paid_at).toLocaleDateString('ru'):'—')+'</td>'+
+          '</tr>'
+        }).join('')+
+        '</tbody></table></div>'+
+      '</div>'+
+    '</div>'
+  }).join('')
+}
+function toggleRefUsers(id){
+  var el=document.getElementById('ref-users-'+id);if(!el)return;
+  var arrow=document.getElementById('ref-arrow-'+id);
+  if(el.classList.contains('hidden')){el.classList.remove('hidden');if(arrow)arrow.innerHTML='&#9660;'}
+  else{el.classList.add('hidden');if(arrow)arrow.innerHTML='&#9654;'}
 }
 
 // ═══ CAMPAIGNS ═══

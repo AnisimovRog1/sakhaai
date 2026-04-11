@@ -222,10 +222,14 @@ table.bordered tr:last-child td{border-bottom:none}
 
     <!-- DASHBOARD -->
     <div id="tab-dashboard">
-      <div class="flex items-center gap-3 mb-5">
-        <button class="btn btn-primary" onclick="loadStats('today')"><span class="anim-pulse">📊</span> Сегодня</button>
-        <button class="btn btn-ghost" onclick="loadStats('7d')">📅 7 дней</button>
-        <button class="btn btn-ghost" onclick="loadStats('month')">📆 Месяц</button>
+      <div class="flex flex-wrap items-center gap-2 mb-5">
+        <button class="btn btn-primary" data-period="today"><span class="anim-pulse">📊</span> Сегодня</button>
+        <button class="btn btn-ghost" data-period="7d">7д</button>
+        <button class="btn btn-ghost" data-period="month">Месяц</button>
+        <button class="btn btn-ghost" data-period="2m">2 мес</button>
+        <button class="btn btn-ghost" data-period="3m">3 мес</button>
+        <button class="btn btn-ghost" data-period="6m">6 мес</button>
+        <button class="btn btn-ghost" data-period="1y">Год</button>
       </div>
       <!-- Курс ЦБ -->
       <div class="glass p-4 mb-5 flex flex-wrap items-center gap-4">
@@ -251,6 +255,13 @@ table.bordered tr:last-child td{border-bottom:none}
       </div>
       <div id="revenueBar" class="glass-neon p-5 mb-5 flex items-center justify-between glow-border" style="border-radius:14px"></div>
       <div id="statsGrid" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5"></div>
+      <div id="statDetail" class="hidden glass-strong p-5 mb-5" style="border-radius:14px">
+        <div class="flex items-center justify-between mb-4">
+          <h3 id="statDetailTitle" class="text-sm font-bold gradient-text uppercase tracking-wider"></h3>
+          <button class="btn btn-ghost text-xs" data-action="closeDetail">✕ Закрыть</button>
+        </div>
+        <div id="statDetailBody" class="scroll-container"></div>
+      </div>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="glass-neon p-5"><h3 class="text-xs font-bold text-violet-400 uppercase tracking-wider mb-3"><span class="anim-bounce">🏆</span> Топ активных</h3><div id="topActive"></div></div>
         <div class="glass-cyan p-5"><h3 class="text-xs font-bold text-cyan-400 uppercase tracking-wider mb-3"><span class="anim-pulse">💎</span> Топ по кредитам</h3><div id="topCredits"></div></div>
@@ -519,7 +530,7 @@ let currentPeriod='today';
 
 async function loadStats(period){
   currentPeriod=period;
-  var btns=document.querySelectorAll('button[onclick^="loadStats"]');btns.forEach(function(b){b.classList.remove('btn-primary');b.classList.add('btn-ghost')});btns.forEach(function(b){if(b.getAttribute('onclick').indexOf(period)>-1){b.classList.remove('btn-ghost');b.classList.add('btn-primary')}});
+  var btns=document.querySelectorAll('button[data-period]');btns.forEach(function(b){b.classList.remove('btn-primary');b.classList.add('btn-ghost')});btns.forEach(function(b){if(b.getAttribute('data-period')===period){b.classList.remove('btn-ghost');b.classList.add('btn-primary')}});
   const s=await G('/admin/stats?period='+period);if(s.error)return;
   document.getElementById('lastUpdate').textContent='Обновлено: '+new Date().toLocaleTimeString('ru');
   document.getElementById('revenueBar').innerHTML=
@@ -534,15 +545,85 @@ async function loadStats(period){
       '<div class="text-center"><div class="text-2xl font-bold text-green-400">'+s.users+'</div><div class="text-xs text-slate-500">Юзеров</div></div>'+
     '</div>';
   document.getElementById('statsGrid').innerHTML=[
-    sc('💰','Выручка ('+s.label+')',s.revenue+' ₽','neon','green'),sc('📈','Прибыль',s.profit+' ₽','neon','yellow'),
-    sc('📊','Маржа',s.margin+'%','cyan','cyan'),sc('👥','DAU',s.dau,'cyan','orange'),
-    sc('🆕','Новых','+'+s.newUsers,'neon','violet'),sc('📝','Запросов',s.transactions,'cyan','blue'),
-    sc('🎨','Генераций',s.generations,'neon','pink'),sc('🤝','Рефералов','+'+s.referrals,'cyan','cyan'),
+    sc('💰','Выручка ('+s.label+')',s.revenue+' ₽','neon','green','revenue'),sc('📈','Прибыль',s.profit+' ₽','neon','yellow'),
+    sc('📊','Маржа',s.margin+'%','cyan','cyan'),sc('👥','DAU',s.dau,'cyan','orange','dau'),
+    sc('🆕','Новых','+'+s.newUsers,'neon','violet','newUsers'),sc('📝','Запросов',s.transactions,'cyan','blue','chats'),
+    sc('🎨','Генераций',s.generations,'neon','pink','generations'),sc('🤝','Рефералов','+'+s.referrals,'cyan','cyan','referrals'),
   ].join('');
   document.getElementById('topActive').innerHTML=topList(s.topActive,'requests','запр.');
   document.getElementById('topCredits').innerHTML=topList(s.topUsers,'credits','кр.');
 }
-function sc(emoji,label,value,type,border){var b=border||'violet';return '<div class="stat-card-v2 border-'+b+'"><div class="stat-label-v2">'+emoji+' '+label+'</div><div class="stat-value-v2">'+value+'</div></div>'}
+function sc(emoji,label,value,type,border,statKey){var b=border||'violet';var click=statKey?' data-stat="'+statKey+'" style="cursor:pointer"':'';return '<div class="stat-card-v2 border-'+b+'"'+click+'><div class="stat-label-v2">'+emoji+' '+label+'</div><div class="stat-value-v2">'+value+'</div></div>'}
+
+// Period buttons event delegation
+document.addEventListener('click',function(e){var btn=e.target.closest('[data-period]');if(btn)loadStats(btn.getAttribute('data-period'))});
+
+// Stat card click → detail
+document.addEventListener('click',function(e){var card=e.target.closest('[data-stat]');if(!card)return;var stat=card.getAttribute('data-stat');if(stat==='referrals'){document.querySelectorAll('.nav-item').forEach(function(n){if(n.textContent.indexOf('Рефералы')>-1)n.click()});return}loadStatDetail(stat)});
+
+var statDetailEndpoints={generations:'/admin/generations',dau:'/admin/active-users',newUsers:'/admin/new-users',revenue:'/admin/orders-list',chats:'/admin/detail-chats'};
+var statDetailTitles={generations:'Генерации',dau:'Активные пользователи (DAU)',newUsers:'Новые пользователи',revenue:'Оплаты',chats:'Чаты (запросы)'};
+
+async function loadStatDetail(stat){
+  var el=document.getElementById('statDetail');var body=document.getElementById('statDetailBody');
+  if(!el||!body)return;
+  document.getElementById('statDetailTitle').textContent=statDetailTitles[stat]||stat;
+  body.innerHTML='<p class="text-slate-400 text-sm">Загрузка...</p>';
+  el.classList.remove('hidden');
+  el.scrollIntoView({behavior:'smooth',block:'start'});
+  var url=statDetailEndpoints[stat];if(!url)return;
+  var data=await G(url+'?period='+currentPeriod);if(data.error){body.innerHTML='<p class="text-red-400">'+esc(data.error)+'</p>';return}
+  if(!Array.isArray(data)||data.length===0){body.innerHTML='<p class="text-slate-500 text-sm">Нет данных за этот период</p>';return}
+  if(stat==='generations')body.innerHTML=renderGenerationsTable(data);
+  else if(stat==='chats')body.innerHTML=renderChatsTable(data);
+  else if(stat==='newUsers')body.innerHTML=renderNewUsersTable(data);
+  else if(stat==='revenue')body.innerHTML=renderOrdersTable(data);
+  else if(stat==='dau')body.innerHTML=renderActiveUsersTable(data);
+}
+function closeStatDetail(){var el=document.getElementById('statDetail');if(el)el.classList.add('hidden')}
+document.addEventListener('click',function(e){if(e.target.closest('[data-action="closeDetail"]'))closeStatDetail()});
+
+function renderGenerationsTable(data){
+  return '<table class="bordered"><thead><tr><th>#</th><th>Юзер</th><th>TG ID</th><th>Тип</th><th>Промпт</th><th>Стоимость</th><th>Дата</th></tr></thead><tbody>'+
+  data.map(function(r,i){return '<tr><td class="text-slate-500 text-xs">'+(i+1)+'</td><td class="text-violet-300">'+(r.username?'@'+esc(r.username):esc(r.first_name||'—'))+'</td><td class="text-slate-500 text-xs font-mono">'+r.user_id+'</td><td><span class="text-xs px-2 py-0.5 rounded-full '+(r.type==='image'?'bg-pink-500/20 text-pink-300':r.type==='video'?'bg-blue-500/20 text-blue-300':r.type==='avatar'?'bg-cyan-500/20 text-cyan-300':'bg-violet-500/20 text-violet-300')+'">'+esc(r.type)+'</span></td><td class="text-xs text-slate-300 max-w-[200px] truncate" title="'+esc(r.prompt||'')+'">'+esc((r.prompt||'').substring(0,60))+(r.prompt&&r.prompt.length>60?'...':'')+'</td><td class="text-yellow-300 text-xs">'+r.cost+' кр</td><td class="text-slate-500 text-xs">'+new Date(r.created_at).toLocaleString('ru',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</td></tr>'}).join('')+'</tbody></table>';
+}
+function renderChatsTable(data){
+  return '<table class="bordered"><thead><tr><th>#</th><th>Юзер</th><th>TG ID</th><th>Название</th><th>Сообщений</th><th>Дата</th></tr></thead><tbody>'+
+  data.map(function(r,i){return '<tr data-chat-id="'+r.id+'" style="cursor:pointer" title="Нажмите для просмотра сообщений"><td class="text-slate-500 text-xs">'+(i+1)+'</td><td class="text-violet-300">'+(r.username?'@'+esc(r.username):esc(r.first_name||'—'))+'</td><td class="text-slate-500 text-xs font-mono">'+r.user_id+'</td><td class="text-slate-200 text-sm">'+esc(r.title||'Без названия')+'</td><td class="text-cyan-400 font-bold text-center">'+r.message_count+'</td><td class="text-slate-500 text-xs">'+new Date(r.created_at).toLocaleString('ru',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</td></tr><tr class="chat-messages-row hidden" id="chat-msgs-'+r.id+'"><td colspan="6" class="p-0"><div class="p-3 bg-white/[0.03]"></div></td></tr>'}).join('')+'</tbody></table>';
+}
+function renderNewUsersTable(data){
+  return '<table class="bordered"><thead><tr><th>#</th><th>Username</th><th>TG ID</th><th>Имя</th><th>Кампания</th><th>App</th><th>Дата</th></tr></thead><tbody>'+
+  data.map(function(r,i){return '<tr><td class="text-slate-500 text-xs">'+(i+1)+'</td><td class="text-violet-300">'+(r.username?'@'+esc(r.username):'—')+'</td><td class="text-slate-500 text-xs font-mono">'+r.id+'</td><td>'+esc(r.first_name||'—')+'</td><td class="text-xs">'+(r.campaign_code?'<span class="text-cyan-400">'+esc(r.campaign_code)+'</span>':'<span class="text-slate-600">—</span>')+'</td><td class="text-center">'+(r.app_opened?'<span class="text-green-400">📱</span>':'<span class="text-slate-600">—</span>')+'</td><td class="text-slate-500 text-xs">'+new Date(r.created_at).toLocaleString('ru',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</td></tr>'}).join('')+'</tbody></table>';
+}
+function renderOrdersTable(data){
+  return '<table class="bordered"><thead><tr><th>#</th><th>Юзер</th><th>TG ID</th><th>Пакет</th><th>Сумма</th><th>Кредиты</th><th>Дата</th></tr></thead><tbody>'+
+  data.map(function(r,i){return '<tr><td class="text-slate-500 text-xs">'+(i+1)+'</td><td class="text-violet-300">'+(r.username?'@'+esc(r.username):esc(r.first_name||'—'))+'</td><td class="text-slate-500 text-xs font-mono">'+r.user_id+'</td><td class="text-xs"><span class="px-2 py-0.5 rounded-full bg-green-500/20 text-green-300">'+esc(r.package||'—')+'</span></td><td class="text-green-400 font-bold">'+r.amount_rub+' ₽</td><td class="text-yellow-300">'+r.credits+' кр</td><td class="text-slate-500 text-xs">'+new Date(r.paid_at||r.created_at).toLocaleString('ru',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</td></tr>'}).join('')+'</tbody></table>';
+}
+function renderActiveUsersTable(data){
+  return '<table class="bordered"><thead><tr><th>#</th><th>Юзер</th><th>TG ID</th><th>Запросов</th></tr></thead><tbody>'+
+  data.map(function(r,i){return '<tr><td class="text-slate-500 text-xs">'+(i+1)+'</td><td class="text-violet-300">'+(r.username?'@'+esc(r.username):esc(r.first_name||'—'))+'</td><td class="text-slate-500 text-xs font-mono">'+r.user_id+'</td><td class="font-bold gradient-text">'+r.requests+'</td></tr>'}).join('')+'</tbody></table>';
+}
+
+// Chat messages drill-down
+document.addEventListener('click',function(e){
+  var row=e.target.closest('[data-chat-id]');if(!row)return;
+  var chatId=row.getAttribute('data-chat-id');
+  var msgsRow=document.getElementById('chat-msgs-'+chatId);if(!msgsRow)return;
+  if(!msgsRow.classList.contains('hidden')){msgsRow.classList.add('hidden');return}
+  var container=msgsRow.querySelector('div');
+  container.innerHTML='<p class="text-slate-400 text-xs">Загрузка...</p>';
+  msgsRow.classList.remove('hidden');
+  G('/admin/chat/'+chatId+'/messages').then(function(data){
+    if(data.error){container.innerHTML='<p class="text-red-400 text-xs">'+esc(data.error)+'</p>';return}
+    var msgs=data.messages||[];
+    if(!msgs.length){container.innerHTML='<p class="text-slate-500 text-xs">Нет сообщений</p>';return}
+    container.innerHTML='<div class="text-xs text-slate-500 mb-2">Чат: <span class="text-violet-300">'+esc(data.chat.title||'—')+'</span> | '+(data.chat.username?'@'+esc(data.chat.username):esc(data.chat.first_name||''))+'</div>'+
+    msgs.map(function(m){
+      var isUser=m.role==='user';
+      return '<div class="flex '+(isUser?'justify-end':'justify-start')+' mb-1.5"><div class="max-w-[80%] px-3 py-2 rounded-xl text-xs '+(isUser?'bg-violet-500/20 text-violet-200':'bg-white/[0.07] text-slate-300')+'">'+esc(m.content.substring(0,500))+(m.content.length>500?'...':'')+'<div class="text-slate-600 text-[10px] mt-1">'+new Date(m.created_at).toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'})+'</div></div></div>';
+    }).join('');
+  });
+})
 function topList(arr,key,suf){if(!arr||!arr.length)return'<p class="text-slate-600 text-sm">Пусто</p>';return arr.map((u,i)=>'<div class="flex justify-between py-2.5 text-sm border-b border-white/5"><span class="text-slate-400">'+(i+1)+'. '+(u.username?'@'+esc(u.username):esc(u.first_name||'—'))+' <span class="text-slate-600 text-xs font-mono">'+u.id+'</span></span><span class="font-bold gradient-text">'+u[key]+' '+suf+'</span></div>').join('')}
 
 // USERS
@@ -555,7 +636,7 @@ function renderUsers(list){
     '<td>'+esc(u.first_name||'—')+'</td>'+
     '<td class="text-center">'+(u.app_opened?'<span title="Открыл приложение" class="text-green-400">📱</span>':'<span title="Только /start" class="text-slate-600">—</span>')+'</td>'+
     '<td class="font-bold gradient-text">'+u.credits+'</td>'+
-    '<td class="text-xs">'+(u.campaign_code?'<span class="text-cyan-400">'+u.campaign_code.substring(0,15)+'</span>':'<span class="text-slate-600">—</span>')+'</td>'+
+    '<td class="text-xs">'+(u.campaign_code?'<span class="text-cyan-400">'+esc(u.campaign_code.substring(0,15))+'</span>':'<span class="text-slate-600">—</span>')+'</td>'+
     '<td class="text-xs text-center">'+(u.welcome_bonus_granted?(u.fraud_score>=5?'<span class="text-red-400" title="Антифрод: score='+u.fraud_score+'">0 кр (фрод '+u.fraud_score+')</span>':u.fraud_score>=3?'<span class="text-yellow-400" title="Подозрительный: score='+u.fraud_score+'">50 кр ('+u.fraud_score+')</span>':'<span class="text-green-400" title="score='+u.fraud_score+'">300 кр ✓</span>'):(u.fraud_score!==null&&u.fraud_score!==undefined?'<span class="text-orange-400" title="Бонус не выдан, score='+u.fraud_score+'">ожидание ('+u.fraud_score+')</span>':'<span class="text-slate-500" title="IP пустой или антифрод не запустился">не запустился</span>'))+'</td>'+
     '<td>'+(u.is_banned?'<span class="text-red-400 text-xs font-bold">🚫</span>':'<span class="text-green-400 text-xs">✅</span>')+'</td>'+
     '<td class="text-slate-500 text-xs">UTC'+(u.timezone_offset>=0?'+':'')+Math.round((u.timezone_offset||540)/60)+'</td>'+
@@ -585,8 +666,8 @@ async function showUser(id){
   const localTime=new Date(Date.now()+(u.timezone_offset||540)*60000).toLocaleTimeString('ru',{timeZone:'UTC',hour:'2-digit',minute:'2-digit'});
   document.getElementById('userModalContent').innerHTML=
     '<div class="text-center mb-5">'+
-      '<div class="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-violet-600 to-cyan-500 flex items-center justify-center text-2xl font-bold mb-3">'+(u.first_name&&u.first_name[0]?u.first_name[0].toUpperCase():'?')+'</div>'+
-      '<h2 class="text-xl font-bold">'+(u.username?'@'+u.username:u.first_name)+'</h2>'+
+      '<div class="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-violet-600 to-cyan-500 flex items-center justify-center text-2xl font-bold mb-3">'+esc(u.first_name&&u.first_name[0]?u.first_name[0].toUpperCase():'?')+'</div>'+
+      '<h2 class="text-xl font-bold">'+(u.username?'@'+esc(u.username):esc(u.first_name||'—'))+'</h2>'+
       '<p class="text-slate-500 text-sm">ID: '+u.id+'</p>'+
     '</div>'+
     '<div class="grid grid-cols-2 gap-3 mb-4">'+
@@ -604,7 +685,7 @@ async function showUser(id){
       '<div class="flex justify-between py-2 border-b border-white/5"><span class="text-slate-500">🎁 Welcome бонус</span><span>'+(u.welcome_bonus_granted?'Получен':'Нет')+'</span></div>'+
       '<div class="flex justify-between py-2"><span class="text-slate-500">🛡 Fraud score</span><span>'+(u.fraud_score!==null?u.fraud_score:'—')+'</span></div>'+
     '</div>'+
-    (u.orders&&u.orders.length?'<div class="mt-4"><h4 class="text-sm font-bold mb-2 text-green-400">💰 Покупки</h4>'+u.orders.map(function(o){return '<div class="glass p-2 mb-1 flex justify-between text-xs"><span class="text-white font-medium">'+o.package+'</span><span class="text-amber-400">'+o.amount_rub+'₽</span><span class="gradient-text">+'+o.credits+' кр.</span><span class="'+(o.status==='paid'?'text-green-400':'text-slate-500')+'">'+o.status+'</span>'+(o.paid_at?'<span class="text-slate-500">'+new Date(o.paid_at).toLocaleDateString('ru')+'</span>':'')+'</div>'}).join('')+'</div>':'<div class="mt-4 text-xs text-slate-600 text-center">Покупок нет</div>')+
+    (u.orders&&u.orders.length?'<div class="mt-4"><h4 class="text-sm font-bold mb-2 text-green-400">💰 Покупки</h4>'+u.orders.map(function(o){return '<div class="glass p-2 mb-1 flex justify-between text-xs"><span class="text-white font-medium">'+esc(o.package||'—')+'</span><span class="text-amber-400">'+o.amount_rub+'₽</span><span class="gradient-text">+'+o.credits+' кр.</span><span class="'+(o.status==='paid'?'text-green-400':'text-slate-500')+'">'+esc(o.status||'—')+'</span>'+(o.paid_at?'<span class="text-slate-500">'+new Date(o.paid_at).toLocaleDateString('ru')+'</span>':'')+'</div>'}).join('')+'</div>':'<div class="mt-4 text-xs text-slate-600 text-center">Покупок нет</div>')+
     '<button class="btn btn-ghost w-full mt-4" onclick="closeUserModal()">Закрыть</button>';
   document.getElementById('userModal').classList.remove('hidden');
 }

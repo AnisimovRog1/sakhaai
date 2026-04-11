@@ -41,30 +41,45 @@ adminRouter.post('/ensure-user', async (req: Request, res: Response) => {
   } catch (err: any) { res.status(500).json({ error: err.message }); }
 });
 
-// ─── /stats?period=today|7d|month|2026-03 ───────────────
+// ─── Хелпер: dateFilter по периоду (Якутск UTC+9) ──────
+function buildDateFilter(period: string, column = 'created_at'): { filter: string; label: string } {
+  const YKT_START = "date_trunc('day', NOW() AT TIME ZONE 'Asia/Yakutsk') AT TIME ZONE 'Asia/Yakutsk'";
+  let filter = `${column} >= ${YKT_START}`;
+  let label = 'сегодня';
+
+  if (period === '7d') {
+    filter = `${column} >= (${YKT_START} - INTERVAL '7 days')`;
+    label = 'за 7 дней';
+  } else if (period === 'month') {
+    filter = `${column} >= date_trunc('month', NOW() AT TIME ZONE 'Asia/Yakutsk') AT TIME ZONE 'Asia/Yakutsk'`;
+    label = 'за текущий месяц';
+  } else if (period === '2m') {
+    filter = `${column} >= (${YKT_START} - INTERVAL '2 months')`;
+    label = 'за 2 месяца';
+  } else if (period === '3m') {
+    filter = `${column} >= (${YKT_START} - INTERVAL '3 months')`;
+    label = 'за 3 месяца';
+  } else if (period === '6m') {
+    filter = `${column} >= (${YKT_START} - INTERVAL '6 months')`;
+    label = 'за 6 месяцев';
+  } else if (period === '1y') {
+    filter = `${column} >= (${YKT_START} - INTERVAL '1 year')`;
+    label = 'за год';
+  } else if (/^\d{4}-\d{2}$/.test(period)) {
+    const startDate = new Date(`${period}-01T00:00:00+09:00`);
+    const endDate = new Date(startDate);
+    endDate.setUTCMonth(endDate.getUTCMonth() + 1);
+    filter = `${column} >= '${startDate.toISOString()}'::timestamptz AND ${column} < '${endDate.toISOString()}'::timestamptz`;
+    label = `за ${period}`;
+  }
+  return { filter, label };
+}
+
+// ─── /stats?period=today|7d|month|2m|3m|6m|1y|2026-03 ──
 adminRouter.get('/stats', async (req: Request, res: Response) => {
   try {
     const period = (req.query.period as string) || 'today';
-    // Все даты по Якутску (UTC+9)
-    // date_trunc('day', NOW() AT TIME ZONE 'Asia/Yakutsk') → начало текущих суток ЯКТ (naive)
-    // ... AT TIME ZONE 'Asia/Yakutsk' → обратно в timestamptz (= 15:00 UTC предыдущего дня)
-    const YKT_START = "date_trunc('day', NOW() AT TIME ZONE 'Asia/Yakutsk') AT TIME ZONE 'Asia/Yakutsk'";
-    let dateFilter = `created_at >= ${YKT_START}`;
-    let label = 'сегодня';
-
-    if (period === '7d') {
-      dateFilter = `created_at >= (${YKT_START} - INTERVAL '7 days')`;
-      label = 'за 7 дней';
-    } else if (period === 'month') {
-      dateFilter = `created_at >= date_trunc('month', NOW() AT TIME ZONE 'Asia/Yakutsk') AT TIME ZONE 'Asia/Yakutsk'`;
-      label = 'за текущий месяц';
-    } else if (/^\d{4}-\d{2}$/.test(period)) {
-      const startDate = new Date(`${period}-01T00:00:00+09:00`);
-      const endDate = new Date(startDate);
-      endDate.setUTCMonth(endDate.getUTCMonth() + 1);
-      dateFilter = `created_at >= '${startDate.toISOString()}'::timestamptz AND created_at < '${endDate.toISOString()}'::timestamptz`;
-      label = `за ${period}`;
-    }
+    const { filter: dateFilter, label } = buildDateFilter(period);
 
     const users = await pool.query('SELECT COUNT(*) as count FROM users');
     const banned = await pool.query('SELECT COUNT(*) as count FROM users WHERE is_banned = true');
@@ -136,6 +151,101 @@ adminRouter.get('/stats', async (req: Request, res: Response) => {
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// ─── Detail endpoints для кликабельных stat cards ───────
+
+// Генерации за период
+adminRouter.get('/generations', async (req: Request, res: Response) => {
+  try {
+    const period = (req.query.period as string) || 'today';
+    const { filter } = buildDateFilter(period, 'g.created_at');
+    const rows = await pool.query(`
+      SELECT g.id, g.user_id, u.username, u.first_name, g.type, g.prompt, g.result_url, g.cost, g.created_at
+      FROM generations g JOIN users u ON g.user_id = u.id
+      WHERE ${filter}
+      ORDER BY g.created_at DESC LIMIT 200
+    `);
+    res.json(rows.rows);
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+// Чаты за период (с кол-вом сообщений)
+adminRouter.get('/detail-chats', async (req: Request, res: Response) => {
+  try {
+    const period = (req.query.period as string) || 'today';
+    const { filter } = buildDateFilter(period, 'c.created_at');
+    const rows = await pool.query(`
+      SELECT c.id, c.user_id, u.username, u.first_name, c.title, c.created_at,
+        (SELECT COUNT(*) FROM messages m WHERE m.chat_id = c.id) as message_count
+      FROM chats c JOIN users u ON c.user_id = u.id
+      WHERE ${filter}
+      ORDER BY c.created_at DESC LIMIT 200
+    `);
+    res.json(rows.rows);
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+// Сообщения конкретного чата
+adminRouter.get('/chat/:id/messages', async (req: Request, res: Response) => {
+  try {
+    const chatId = req.params.id;
+    const chat = await pool.query(`
+      SELECT c.id, c.title, c.user_id, u.username, u.first_name
+      FROM chats c JOIN users u ON c.user_id = u.id WHERE c.id = $1
+    `, [chatId]);
+    if (!chat.rows.length) { res.status(404).json({ error: 'Chat not found' }); return; }
+    const msgs = await pool.query(`
+      SELECT id, role, content, created_at FROM messages
+      WHERE chat_id = $1 ORDER BY created_at ASC
+    `, [chatId]);
+    res.json({ chat: chat.rows[0], messages: msgs.rows });
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+// Оплаты за период
+adminRouter.get('/orders-list', async (req: Request, res: Response) => {
+  try {
+    const period = (req.query.period as string) || 'today';
+    const { filter } = buildDateFilter(period, 'o.paid_at');
+    const rows = await pool.query(`
+      SELECT o.id, o.user_id, u.username, u.first_name, o.package, o.amount_rub, o.credits, o.status, o.paid_at, o.created_at
+      FROM orders o JOIN users u ON o.user_id = u.id
+      WHERE o.status = 'paid' AND ${filter}
+      ORDER BY o.paid_at DESC LIMIT 200
+    `);
+    res.json(rows.rows);
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+// Новые юзеры за период
+adminRouter.get('/new-users', async (req: Request, res: Response) => {
+  try {
+    const period = (req.query.period as string) || 'today';
+    const { filter } = buildDateFilter(period);
+    const rows = await pool.query(`
+      SELECT id, username, first_name, campaign_code, app_opened, created_at
+      FROM users WHERE ${filter}
+      ORDER BY created_at DESC LIMIT 200
+    `);
+    res.json(rows.rows);
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+// Активные юзеры за период (DAU detail)
+adminRouter.get('/active-users', async (req: Request, res: Response) => {
+  try {
+    const period = (req.query.period as string) || 'today';
+    const { filter } = buildDateFilter(period, 't.created_at');
+    const rows = await pool.query(`
+      SELECT t.user_id, u.username, u.first_name, COUNT(*) as requests
+      FROM transactions t JOIN users u ON t.user_id = u.id
+      WHERE ${filter}
+      GROUP BY t.user_id, u.username, u.first_name
+      ORDER BY requests DESC LIMIT 200
+    `);
+    res.json(rows.rows);
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
 });
 
 // ─── /year — статистика по месяцам ──────────────────────

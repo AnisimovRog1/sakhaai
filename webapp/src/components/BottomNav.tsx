@@ -156,10 +156,10 @@ const AnimateIcon = ({ active }: { active: boolean }) => (
 
 const items: { name: 'home' | 'chatList' | 'imageGen' | 'videoGen' | 'photoAnimate' | 'friends'; labelKey: TranslationKey; Icon: typeof HomeIcon }[] = [
   { name: 'home',         labelKey: 'nav.home',    Icon: HomeIcon    },
-  { name: 'chatList',     labelKey: 'nav.chats',   Icon: ChatIcon    },
+  { name: 'photoAnimate', labelKey: 'nav.animate',  Icon: AnimateIcon },
   { name: 'imageGen',     labelKey: 'nav.images',  Icon: ImageIcon   },
   { name: 'videoGen',     labelKey: 'nav.video',   Icon: VideoIcon   },
-  { name: 'photoAnimate', labelKey: 'nav.animate',  Icon: AnimateIcon },
+  { name: 'chatList',     labelKey: 'nav.chats',   Icon: ChatIcon    },
   { name: 'friends',      labelKey: 'nav.friends', Icon: FriendsIcon },
 ];
 

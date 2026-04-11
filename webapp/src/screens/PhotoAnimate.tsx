@@ -12,6 +12,7 @@ type Props = {
 };
 
 type ActiveTab = 'animate' | 'restore';
+type AnimateModel = 'video-3.0' | 'video-2.5-turbo';
 type VideoMode = '720p' | '1080p';
 type VideoLength = '5s' | '10s';
 type VideoRatio = '16:9' | '1:1' | '9:16';
@@ -23,23 +24,23 @@ type Resolution = '1K' | '2K' | '4K';
 const ANIMATE_TEMPLATES: { title: string; prompt: string }[] = [
   {
     title: 'Приветствие в камеру',
-    prompt: 'Персонаж(и) смотрит прямо в камеру и тепло улыбается, приветственно машет рукой. Ракурс камеры остаётся неподвижным. Персонаж ничего не говорит. Ультрадетализация текстуры кожи, видимые поры, профессиональное кинематографическое освещение, малая глубина резкости, профессиональная съёмка.',
+    prompt: 'Оживи фото. Персонаж(и) смотрит прямо в камеру и тепло улыбается, приветственно машет рукой. Ракурс камеры остаётся неподвижным. Персонаж ничего не говорит. Ультрадетализация текстуры кожи, видимые поры, профессиональное кинематографическое освещение, малая глубина резкости, профессиональная съёмка.',
   },
   {
     title: 'Воздушный поцелуй',
-    prompt: 'Персонаж смотрит прямо в камеру с обаятельным выражением, затем нежно посылает воздушный поцелуй в сторону камеры. Ракурс камеры остаётся полностью неподвижным. Персонаж ничего не говорит. Ультрадетализация, профессиональное портретное освещение, естественная кожа с видимыми порами, кинематографическая цветокоррекция, профессиональная съёмка.',
+    prompt: 'Оживи фото. Персонаж смотрит прямо в камеру с обаятельным выражением, затем нежно посылает воздушный поцелуй в сторону камеры. Ракурс камеры остаётся полностью неподвижным. Персонаж ничего не говорит. Ультрадетализация, профессиональное портретное освещение, естественная кожа с видимыми порами, кинематографическая цветокоррекция, профессиональная съёмка.',
   },
   {
     title: 'Радостный смех',
-    prompt: 'Персонаж начинает с нейтрального выражения, затем постепенно разражается искренним радостным смехом с естественным движением головы и сияющими глазами. Камера медленно приближается во время смеха. Персонаж ничего не говорит. Ультрадетализация мимики, профессиональное студийное освещение, естественная текстура кожи, кинематографическая глубина резкости, профессиональная съёмка.',
+    prompt: 'Оживи фото. Персонаж начинает с нейтрального выражения, затем постепенно разражается искренним радостным смехом с естественным движением головы и сияющими глазами. Камера медленно приближается во время смеха. Персонаж ничего не говорит. Ультрадетализация мимики, профессиональное студийное освещение, естественная текстура кожи, кинематографическая глубина резкости, профессиональная съёмка.',
   },
   {
     title: 'Драматические слёзы',
-    prompt: 'Персонаж сначала неподвижен, затем выражение лица медленно меняется на глубокую эмоцию. Одинокая слеза катится по щеке, пока персонаж смотрит в камеру блестящими эмоциональными глазами. Камера остаётся неподвижной. Персонаж ничего не говорит. Ультрареалистичная прорисовка слёз, профессиональное драматическое освещение, детализированная текстура кожи, кинематографическая цветокоррекция, профессиональная съёмка.',
+    prompt: 'Оживи фото. Персонаж сначала неподвижен, затем выражение лица медленно меняется на глубокую эмоцию. Одинокая слеза катится по щеке, пока персонаж смотрит в камеру блестящими эмоциональными глазами. Камера остаётся неподвижной. Персонаж ничего не говорит. Ультрареалистичная прорисовка слёз, профессиональное драматическое освещение, детализированная текстура кожи, кинематографическая цветокоррекция, профессиональная съёмка.',
   },
   {
     title: 'Кинематографичный поворот',
-    prompt: 'Камера начинает с крупного плана сбоку от персонажа, затем медленно облетает вокруг, раскрывая лицо целиком в драматической кинематографической дуге. Персонаж сохраняет уверенное спокойное выражение с тонкими естественными микродвижениями. Персонаж ничего не говорит. Ультрадетализация 3D-параллакса, профессиональное движение камеры, объёмное освещение, малая глубина резкости, плёночное зерно, профессиональная съёмка.',
+    prompt: 'Оживи фото. Камера начинает с крупного плана сбоку от персонажа, затем медленно облетает вокруг, раскрывая лицо целиком в драматической кинематографической дуге. Персонаж сохраняет уверенное спокойное выражение с тонкими естественными микродвижениями. Персонаж ничего не говорит. Ультрадетализация 3D-параллакса, профессиональное движение камеры, объёмное освещение, малая глубина резкости, плёночное зерно, профессиональная съёмка.',
   },
 ];
 
@@ -52,14 +53,18 @@ const RESTORE_TEMPLATES: { title: string; prompt: string }[] = [
 ];
 
 // ─── Цены (копируем логику из VideoGen / ImageGen) ───
-function calcAnimateCost(durationStr: VideoLength, mode: VideoMode, audio: boolean, exMult: number): number {
+function calcAnimateCost(durationStr: VideoLength, model: AnimateModel, mode: VideoMode, audio: boolean, exMult: number): number {
   const dur = parseInt(durationStr);
   let baseRate: number;
-  // Video 3.0 only
-  if (mode === '1080p') {
-    baseRate = audio ? 0.1008 : 0.0672;
+  if (model === 'video-3.0') {
+    if (mode === '1080p') {
+      baseRate = audio ? 0.1008 : 0.0672;
+    } else {
+      baseRate = audio ? 0.0756 : 0.0504;
+    }
   } else {
-    baseRate = audio ? 0.0756 : 0.0504;
+    // video-2.5-turbo — аудио не поддерживается
+    baseRate = mode === '1080p' ? 0.042 : 0.0252;
   }
   return Math.ceil(dur * baseRate * 2.3 * 1007.75 * exMult);
 }
@@ -108,6 +113,8 @@ export function PhotoAnimate({ user, onCreditsUpdate }: Props) {
   const [expandedTemplate, setExpandedTemplate] = useState<number | null>(null);
 
   // ─── Animate (video) state ───
+  const [animateModel, setAnimateModel] = useState<AnimateModel>('video-3.0');
+  const [showAnimateModelPicker, setShowAnimateModelPicker] = useState(false);
   const [videoMode, setVideoMode] = useState<VideoMode>('1080p');
   const [videoLength, setVideoLength] = useState<VideoLength>('10s');
   const [videoRatio, setVideoRatio] = useState<VideoRatio>('9:16');
@@ -115,6 +122,11 @@ export function PhotoAnimate({ user, onCreditsUpdate }: Props) {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [pollStatus, setPollStatus] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+
+  // Сброс аудио если модель не поддерживает
+  useEffect(() => {
+    if (animateModel === 'video-2.5-turbo' && nativeAudio) setNativeAudio(false);
+  }, [animateModel]);
 
   // ─── Restore (image) state ───
   const [restoreModel, setRestoreModel] = useState<Model>('nano-banana-pro');
@@ -148,7 +160,7 @@ export function PhotoAnimate({ user, onCreditsUpdate }: Props) {
   }
 
   // ─── Costs ───
-  const animateCost = calcAnimateCost(videoLength, videoMode, nativeAudio, exMult);
+  const animateCost = calcAnimateCost(videoLength, animateModel, videoMode, nativeAudio, exMult);
   const restoreCostPerImage = Math.ceil((IMAGE_COSTS[restoreModel]?.[restoreResolution] ?? 155) * exMult);
   const restoreCost = restoreCostPerImage * restoreCount;
   const cost = activeTab === 'animate' ? animateCost : restoreCost;
@@ -213,11 +225,11 @@ export function PhotoAnimate({ user, onCreditsUpdate }: Props) {
         // Image-to-Video через существующий /video/generate
         const r = await api.generateVideo({
           prompt: prompt.trim(),
-          model: 'video-3.0',
+          model: animateModel,
           duration: parseInt(videoLength),
           mode: videoMode,
           aspectRatio: videoRatio,
-          generateAudio: nativeAudio,
+          generateAudio: animateModel === 'video-3.0' ? nativeAudio : false,
           startImageUrl: photo,
         });
         if (r.creditsLeft !== undefined) onCreditsUpdate(r.creditsLeft);
@@ -428,6 +440,52 @@ export function PhotoAnimate({ user, onCreditsUpdate }: Props) {
         </div>
       </div>
 
+      {/* ─── Model Picker: ANIMATE ─── */}
+      {activeTab === 'animate' && (
+        <div className="glass-neon rounded-2xl p-4 space-y-3">
+          <p className="text-slate-400 text-xs font-semibold">Модель</p>
+          <button
+            onClick={() => setShowAnimateModelPicker(!showAnimateModelPicker)}
+            className="w-full flex items-center justify-between bg-white/[0.06] border border-white/[0.10] rounded-xl px-4 py-3"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-white text-sm font-semibold">
+                {animateModel === 'video-3.0' ? 'VIDEO 3.0' : 'VIDEO 2.5 Turbo'}
+              </span>
+              {animateModel === 'video-3.0' && (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-500 text-white">Рекомендуем</span>
+              )}
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className={`text-slate-400 transition-transform ${showAnimateModelPicker ? 'rotate-180' : ''}`}>
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+          {showAnimateModelPicker && (
+            <div className="space-y-2">
+              {([
+                { id: 'video-3.0' as AnimateModel, name: 'VIDEO 3.0', desc: 'Улучшенное аудио, консистентность, мульти-сцены', badge: 'Рекомендуем', badgeColor: 'bg-green-500' },
+                { id: 'video-2.5-turbo' as AnimateModel, name: 'VIDEO 2.5 Turbo', desc: 'Максимум креатива с лучшим качеством', badge: 'Быстрый', badgeColor: 'bg-cyan-500' },
+              ]).map(m => (
+                <button key={m.id} onClick={() => { setAnimateModel(m.id); setShowAnimateModelPicker(false); }}
+                  className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${animateModel === m.id ? 'bg-white/[0.08] border border-violet-500/40' : 'bg-white/[0.04] border border-white/[0.08]'}`}
+                >
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-white text-sm font-semibold">{m.name}</span>
+                      {m.badge && <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${m.badgeColor} text-white`}>{m.badge}</span>}
+                    </div>
+                    <p className="text-slate-400 text-xs mt-0.5">{m.desc}</p>
+                  </div>
+                  {animateModel === m.id && (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ─── Settings: ANIMATE ─── */}
       {activeTab === 'animate' && (
         <div className="glass-neon rounded-2xl p-4 space-y-3">
@@ -479,16 +537,18 @@ export function PhotoAnimate({ user, onCreditsUpdate }: Props) {
                 </div>
               </div>
 
-              {/* Нативное аудио */}
-              <div className="flex items-center justify-between">
-                <p className="text-slate-400 text-xs font-semibold">Нативное аудио</p>
-                <button
-                  onClick={() => setNativeAudio(!nativeAudio)}
-                  className={`w-11 h-6 rounded-full transition-colors relative ${nativeAudio ? 'bg-violet-500' : 'bg-white/[0.15]'}`}
-                >
-                  <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${nativeAudio ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
-                </button>
-              </div>
+              {/* Нативное аудио (только Video 3.0) */}
+              {animateModel === 'video-3.0' && (
+                <div className="flex items-center justify-between">
+                  <p className="text-slate-400 text-xs font-semibold">Нативное аудио</p>
+                  <button
+                    onClick={() => setNativeAudio(!nativeAudio)}
+                    className={`w-11 h-6 rounded-full transition-colors relative ${nativeAudio ? 'bg-violet-500' : 'bg-white/[0.15]'}`}
+                  >
+                    <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${nativeAudio ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

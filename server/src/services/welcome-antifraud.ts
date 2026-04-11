@@ -185,28 +185,13 @@ export async function tryGrantWelcomeBonus(userId: number): Promise<number> {
   const { fraud_score, welcome_bonus_granted } = rows[0];
   if (welcome_bonus_granted) return 0; // уже начислено
 
-  let bonus: number;
-  if (fraud_score === null || fraud_score === undefined) {
-    bonus = BONUS_FULL; // старый юзер без score — даём полный бонус
-  } else if (fraud_score >= 5) {
-    bonus = BONUS_BLOCKED;
-  } else if (fraud_score >= 3) {
-    bonus = BONUS_SUSPICIOUS;
-  } else {
-    bonus = BONUS_FULL;
-  }
+  // Всем 300 кредитов при /start, без учёта fraud_score
+  const bonus = BONUS_FULL;
 
-  if (bonus > 0) {
-    await pool.query(
-      `UPDATE users SET credits = credits + $1, welcome_bonus_granted = true WHERE id = $2 AND welcome_bonus_granted = false`,
-      [bonus, userId]
-    );
-  } else {
-    await pool.query(
-      `UPDATE users SET welcome_bonus_granted = true WHERE id = $1 AND welcome_bonus_granted = false`,
-      [userId]
-    );
-  }
+  await pool.query(
+    `UPDATE users SET credits = credits + $1, welcome_bonus_granted = true WHERE id = $2 AND welcome_bonus_granted = false`,
+    [bonus, userId]
+  );
 
   return bonus;
 }

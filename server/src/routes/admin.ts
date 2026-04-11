@@ -46,19 +46,19 @@ adminRouter.get('/stats', async (req: Request, res: Response) => {
   try {
     const period = (req.query.period as string) || 'today';
     // Все даты по МСК (UTC+3) — совпадает с UnitPay и бизнес-временем
-    const MSK_TODAY = "(NOW() AT TIME ZONE 'Europe/Moscow')::date";
-    let dateFilter = `created_at >= (${MSK_TODAY} AT TIME ZONE 'Europe/Moscow')`;
+    const MSK_TODAY = "(NOW() AT TIME ZONE 'Asia/Yakutsk')::date";
+    let dateFilter = `created_at >= (${MSK_TODAY} AT TIME ZONE 'Asia/Yakutsk')`;
     let label = 'сегодня';
 
     if (period === '7d') {
-      dateFilter = `created_at >= (${MSK_TODAY} - INTERVAL '7 days') AT TIME ZONE 'Europe/Moscow'`;
+      dateFilter = `created_at >= (${MSK_TODAY} - INTERVAL '7 days') AT TIME ZONE 'Asia/Yakutsk'`;
       label = 'за 7 дней';
     } else if (period === 'month') {
-      dateFilter = `created_at >= date_trunc('month', ${MSK_TODAY}) AT TIME ZONE 'Europe/Moscow'`;
+      dateFilter = `created_at >= date_trunc('month', ${MSK_TODAY}) AT TIME ZONE 'Asia/Yakutsk'`;
       label = 'за текущий месяц';
     } else if (/^\d{4}-\d{2}$/.test(period)) {
       // Безопасно: regex гарантирует формат YYYY-MM
-      const startDate = new Date(`${period}-01T00:00:00+03:00`); // МСК
+      const startDate = new Date(`${period}-01T00:00:00+09:00`); // ЯКТ
       const endDate = new Date(startDate);
       endDate.setUTCMonth(endDate.getUTCMonth() + 1);
       const startISO = startDate.toISOString();

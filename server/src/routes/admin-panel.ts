@@ -443,7 +443,7 @@ async function loadStats(period){
   document.getElementById('topCredits').innerHTML=topList(s.topUsers,'credits','кр.');
 }
 function sc(emoji,label,value,type){return '<div class="glass'+(type==='neon'?'-neon':'-cyan')+' stat-card"><div class="text-lg mb-1 anim-bounce">'+emoji+'</div><div class="stat-value">'+value+'</div><div class="stat-label">'+label+'</div></div>'}
-function topList(arr,key,suf){if(!arr||!arr.length)return'<p class="text-slate-600 text-sm">Пусто</p>';return arr.map((u,i)=>'<div class="flex justify-between py-2.5 text-sm border-b border-white/5"><span class="text-slate-400">'+(i+1)+'. '+(u.username?'@'+u.username:u.first_name)+'</span><span class="font-bold gradient-text">'+u[key]+' '+suf+'</span></div>').join('')}
+function topList(arr,key,suf){if(!arr||!arr.length)return'<p class="text-slate-600 text-sm">Пусто</p>';return arr.map((u,i)=>'<div class="flex justify-between py-2.5 text-sm border-b border-white/5"><span class="text-slate-400">'+(i+1)+'. '+(u.username?'@'+esc(u.username):esc(u.first_name||'—'))+' <span class="text-slate-600 text-xs font-mono">'+u.id+'</span></span><span class="font-bold gradient-text">'+u[key]+' '+suf+'</span></div>').join('')}
 
 // USERS
 let allUsers=[];
@@ -451,8 +451,8 @@ async function loadUsers(){allUsers=await G('/admin/users');if(!Array.isArray(al
 function renderUsers(list){
   document.getElementById('usersTable').innerHTML=list.map(u=>
     '<tr onclick="showUser('+u.id+')"><td class="text-slate-500 text-xs font-mono">'+u.id+'</td>'+
-    '<td class="text-violet-300 font-medium">'+(u.username?'@'+u.username:'—')+'</td>'+
-    '<td>'+u.first_name+'</td>'+
+    '<td class="text-violet-300 font-medium">'+(u.username?'@'+esc(u.username):'—')+'</td>'+
+    '<td>'+esc(u.first_name||'—')+'</td>'+
     '<td class="text-center">'+(u.app_opened?'<span title="Открыл приложение" class="text-green-400">📱</span>':'<span title="Только /start" class="text-slate-600">—</span>')+'</td>'+
     '<td class="font-bold gradient-text">'+u.credits+'</td>'+
     '<td class="text-xs">'+(u.campaign_code?'<span class="text-cyan-400">'+u.campaign_code.substring(0,15)+'</span>':'<span class="text-slate-600">—</span>')+'</td>'+

@@ -310,7 +310,7 @@ export function PhotoAnimate({ user, onCreditsUpdate }: Props) {
           <p className="text-center text-slate-400 text-xs font-semibold mb-3">Пример результата</p>
           <div className="flex items-center gap-2">
             <div className="flex-1 space-y-1">
-              <img src="/animate-before.jpg" alt="До" className="w-full aspect-[3/4] object-cover rounded-xl border border-white/[0.10]" />
+              <img src="/animate-before.jpg" alt="До" loading="eager" fetchPriority="high" className="w-full aspect-[3/4] object-cover rounded-xl border border-white/[0.10]" />
               <p className="text-center text-slate-500 text-[10px] font-bold">ФОТО</p>
             </div>
             <div className="flex-shrink-0 flex flex-col items-center">
@@ -320,7 +320,7 @@ export function PhotoAnimate({ user, onCreditsUpdate }: Props) {
               </svg>
             </div>
             <div className="flex-1 space-y-1">
-              <video src="/animate-after.mp4" autoPlay loop muted playsInline className="w-full aspect-[3/4] object-cover rounded-xl border border-white/[0.10]" />
+              <video src="/animate-after.mp4" autoPlay loop muted playsInline preload="auto" className="w-full aspect-[3/4] object-cover rounded-xl border border-white/[0.10]" />
               <p className="text-center text-slate-500 text-[10px] font-bold">РЕЗУЛЬТАТ</p>
             </div>
           </div>
@@ -330,7 +330,7 @@ export function PhotoAnimate({ user, onCreditsUpdate }: Props) {
           <p className="text-center text-slate-400 text-xs font-semibold mb-3">Пример результата</p>
           <div className="flex items-center gap-2">
             <div className="flex-1 space-y-1">
-              <img src="/restore-before.jpg" alt="До" className="w-full aspect-[3/4] object-cover rounded-xl border border-white/[0.10]" />
+              <img src="/restore-before.jpg" alt="До" loading="eager" fetchPriority="high" className="w-full aspect-[3/4] object-cover rounded-xl border border-white/[0.10]" />
               <p className="text-center text-slate-500 text-[10px] font-bold">ДО</p>
             </div>
             <div className="flex-shrink-0 flex flex-col items-center">
@@ -340,7 +340,7 @@ export function PhotoAnimate({ user, onCreditsUpdate }: Props) {
               </svg>
             </div>
             <div className="flex-1 space-y-1">
-              <img src="/restore-after.jpg" alt="После" className="w-full aspect-[3/4] object-cover rounded-xl border border-white/[0.10]" />
+              <img src="/restore-after.jpg" alt="После" loading="eager" fetchPriority="high" className="w-full aspect-[3/4] object-cover rounded-xl border border-white/[0.10]" />
               <p className="text-center text-slate-500 text-[10px] font-bold">ПОСЛЕ</p>
             </div>
           </div>

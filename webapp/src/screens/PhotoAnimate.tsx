@@ -23,23 +23,23 @@ type Resolution = '1K' | '2K' | '4K';
 const ANIMATE_TEMPLATES: { title: string; prompt: string }[] = [
   {
     title: 'Приветствие в камеру',
-    prompt: 'The person(s) look directly into the camera and smile warmly, waving their hand in a friendly greeting gesture. The camera angle remains static and unchanged. The person does not speak. Ultra-detailed skin texture, visible pores, professional cinematic lighting, shallow depth of field, ultra-high definition.',
+    prompt: 'Персонаж(и) смотрит прямо в камеру и тепло улыбается, приветственно машет рукой. Ракурс камеры остаётся неподвижным. Персонаж ничего не говорит. Ультрадетализация текстуры кожи, видимые поры, профессиональное кинематографическое освещение, малая глубина резкости, профессиональная съёмка.',
   },
   {
     title: 'Воздушный поцелуй',
-    prompt: 'The person looks directly into the camera with a charming expression, then gently blows an air kiss towards the camera. The camera angle remains completely static. The person does not speak. Ultra-detailed rendering, professional portrait lighting, natural skin with visible pores, cinematic color grading, 8K quality.',
+    prompt: 'Персонаж смотрит прямо в камеру с обаятельным выражением, затем нежно посылает воздушный поцелуй в сторону камеры. Ракурс камеры остаётся полностью неподвижным. Персонаж ничего не говорит. Ультрадетализация, профессиональное портретное освещение, естественная кожа с видимыми порами, кинематографическая цветокоррекция, профессиональная съёмка.',
   },
   {
     title: 'Радостный смех',
-    prompt: 'The person starts with a neutral expression then gradually breaks into genuine, joyful laughter with natural head movement and sparkling eyes. The camera slowly zooms in slightly during the laugh. The person does not speak. Ultra-detailed facial expressions, professional studio lighting, natural skin texture, cinematic depth of field.',
+    prompt: 'Персонаж начинает с нейтрального выражения, затем постепенно разражается искренним радостным смехом с естественным движением головы и сияющими глазами. Камера медленно приближается во время смеха. Персонаж ничего не говорит. Ультрадетализация мимики, профессиональное студийное освещение, естественная текстура кожи, кинематографическая глубина резкости, профессиональная съёмка.',
   },
   {
     title: 'Драматические слёзы',
-    prompt: 'The person is still at first, then their expression slowly shifts to deep emotion. A single tear rolls down their cheek as they look into the camera with glistening, emotional eyes. The camera remains static. The person does not speak. Ultra-realistic tear rendering, professional dramatic lighting, detailed skin texture with subsurface scattering, cinematic grading.',
+    prompt: 'Персонаж сначала неподвижен, затем выражение лица медленно меняется на глубокую эмоцию. Одинокая слеза катится по щеке, пока персонаж смотрит в камеру блестящими эмоциональными глазами. Камера остаётся неподвижной. Персонаж ничего не говорит. Ультрареалистичная прорисовка слёз, профессиональное драматическое освещение, детализированная текстура кожи, кинематографическая цветокоррекция, профессиональная съёмка.',
   },
   {
     title: 'Кинематографичный поворот',
-    prompt: 'The camera starts from a close-up side angle of the person, then slowly orbits around to reveal their full face in a dramatic cinematic arc. The person maintains a confident, calm expression with subtle natural micro-movements. The person does not speak. Ultra-detailed 3D parallax, professional cinematic camera movement, volumetric lighting, shallow depth of field, film grain.',
+    prompt: 'Камера начинает с крупного плана сбоку от персонажа, затем медленно облетает вокруг, раскрывая лицо целиком в драматической кинематографической дуге. Персонаж сохраняет уверенное спокойное выражение с тонкими естественными микродвижениями. Персонаж ничего не говорит. Ультрадетализация 3D-параллакса, профессиональное движение камеры, объёмное освещение, малая глубина резкости, плёночное зерно, профессиональная съёмка.',
   },
 ];
 
@@ -292,37 +292,43 @@ export function PhotoAnimate({ user, onCreditsUpdate }: Props) {
         </button>
       </div>
 
-      {/* ─── Showcase: место для примеров (Игорь добавит медиа) ─── */}
+      {/* ─── Showcase: примеры до/после ─── */}
       {activeTab === 'animate' ? (
-        <div className="glass-neon rounded-2xl p-4 space-y-3">
-          <p className="text-center text-slate-400 text-xs font-semibold mb-1">Пример результата</p>
-          <div className="grid grid-cols-2 gap-3">
-            {/* Слот 1: фото (до) */}
-            <div className="aspect-[3/4] rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center overflow-hidden" id="animate-showcase-photo">
-              <p className="text-slate-600 text-xs text-center px-2">Фото</p>
+        <div className="glass-neon rounded-2xl p-4">
+          <p className="text-center text-slate-400 text-xs font-semibold mb-3">Пример результата</p>
+          <div className="flex items-center gap-2">
+            <div className="flex-1 space-y-1">
+              <img src="/animate-before.jpg" alt="До" className="w-full aspect-[3/4] object-cover rounded-xl border border-white/[0.10]" />
+              <p className="text-center text-slate-500 text-[10px] font-bold">ФОТО</p>
             </div>
-            {/* Слот 2: видео (после) */}
-            <div className="aspect-[3/4] rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center overflow-hidden" id="animate-showcase-video">
-              <p className="text-slate-600 text-xs text-center px-2">Видео</p>
+            <div className="flex-shrink-0 flex flex-col items-center">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                <defs><linearGradient id="gArrow" x1="0" y1="0" x2="24" y2="0"><stop offset="0%" stopColor="#8B5CF6"/><stop offset="100%" stopColor="#06B6D4"/></linearGradient></defs>
+                <path d="M5 12h14m0 0l-4-4m4 4l-4 4" stroke="url(#gArrow)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <div className="flex-1 space-y-1">
+              <video src="/animate-after.mp4" autoPlay loop muted playsInline className="w-full aspect-[3/4] object-cover rounded-xl border border-white/[0.10]" />
+              <p className="text-center text-slate-500 text-[10px] font-bold">РЕЗУЛЬТАТ</p>
             </div>
           </div>
         </div>
       ) : (
-        <div className="glass-neon rounded-2xl p-4 space-y-3">
-          <p className="text-center text-slate-400 text-xs font-semibold mb-1">Пример результата</p>
-          <div className="grid grid-cols-2 gap-3">
-            {/* Слот 1: до */}
-            <div className="space-y-1">
-              <div className="aspect-[3/4] rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center overflow-hidden" id="restore-showcase-before">
-                <p className="text-slate-600 text-xs text-center px-2">До</p>
-              </div>
+        <div className="glass-neon rounded-2xl p-4">
+          <p className="text-center text-slate-400 text-xs font-semibold mb-3">Пример результата</p>
+          <div className="flex items-center gap-2">
+            <div className="flex-1 space-y-1">
+              <img src="/restore-before.jpg" alt="До" className="w-full aspect-[3/4] object-cover rounded-xl border border-white/[0.10]" />
               <p className="text-center text-slate-500 text-[10px] font-bold">ДО</p>
             </div>
-            {/* Слот 2: после */}
-            <div className="space-y-1">
-              <div className="aspect-[3/4] rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center overflow-hidden" id="restore-showcase-after">
-                <p className="text-slate-600 text-xs text-center px-2">После</p>
-              </div>
+            <div className="flex-shrink-0 flex flex-col items-center">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                <defs><linearGradient id="gArrow2" x1="0" y1="0" x2="24" y2="0"><stop offset="0%" stopColor="#8B5CF6"/><stop offset="100%" stopColor="#06B6D4"/></linearGradient></defs>
+                <path d="M5 12h14m0 0l-4-4m4 4l-4 4" stroke="url(#gArrow2)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <div className="flex-1 space-y-1">
+              <img src="/restore-after.jpg" alt="После" className="w-full aspect-[3/4] object-cover rounded-xl border border-white/[0.10]" />
               <p className="text-center text-slate-500 text-[10px] font-bold">ПОСЛЕ</p>
             </div>
           </div>

@@ -24,6 +24,23 @@ function requireBotAuth(req: Request, res: Response, next: () => void) {
   res.status(403).json({ error: 'Доступ запрещён' });
 }
 
+// TEMP DEBUG
+adminRouter.get('/debug-tz', async (_req: Request, res: Response) => {
+  try {
+    const r = await pool.query(`
+      SELECT
+        NOW() as utc_now,
+        NOW() AT TIME ZONE 'Asia/Yakutsk' as ykt_now,
+        date_trunc('day', NOW() AT TIME ZONE 'Asia/Yakutsk') as ykt_day_start_naive,
+        date_trunc('day', NOW() AT TIME ZONE 'Asia/Yakutsk') AT TIME ZONE 'Asia/Yakutsk' as ykt_day_start_utc,
+        (SELECT COUNT(*) FROM orders WHERE status='paid' AND paid_at >= date_trunc('day', NOW() AT TIME ZONE 'Asia/Yakutsk') AT TIME ZONE 'Asia/Yakutsk') as paid_today,
+        (SELECT COALESCE(SUM(amount_rub),0) FROM orders WHERE status='paid' AND paid_at >= date_trunc('day', NOW() AT TIME ZONE 'Asia/Yakutsk') AT TIME ZONE 'Asia/Yakutsk') as revenue_today,
+        (SELECT json_agg(row_to_json(o)) FROM (SELECT id,amount_rub,status,paid_at FROM orders WHERE status='paid' ORDER BY paid_at DESC LIMIT 10) o) as recent
+    `);
+    res.json(r.rows[0]);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
 adminRouter.use(requireBotAuth);
 
 // ─── Ensure user exists (вызывается ботом при /start) ───

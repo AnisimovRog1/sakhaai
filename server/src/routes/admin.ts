@@ -24,24 +24,6 @@ function requireBotAuth(req: Request, res: Response, next: () => void) {
   res.status(403).json({ error: 'Доступ запрещён' });
 }
 
-// ─── TEMP: debug revenue (удалить после отладки) ──────────
-adminRouter.get('/debug-revenue', async (_req: Request, res: Response) => {
-  try {
-    const dbTime = await pool.query(`SELECT NOW() as now, CURRENT_DATE as today, current_setting('TIMEZONE') as tz`);
-    const allOrders = await pool.query(`SELECT id, user_id, package, amount_rub, credits, status, paid_at, created_at FROM orders ORDER BY created_at DESC LIMIT 50`);
-    const todayRevenue = await pool.query(`SELECT COALESCE(SUM(amount_rub), 0) as total, COUNT(*) as cnt FROM orders WHERE status = 'paid' AND paid_at >= CURRENT_DATE`);
-    const allTimeRevenue = await pool.query(`SELECT COALESCE(SUM(amount_rub), 0) as total, COUNT(*) as cnt FROM orders WHERE status = 'paid'`);
-    res.json({
-      dbTime: dbTime.rows[0],
-      todayRevenue: todayRevenue.rows[0],
-      allTimeRevenue: allTimeRevenue.rows[0],
-      recentOrders: allOrders.rows,
-    });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 adminRouter.use(requireBotAuth);
 
 // ─── Ensure user exists (вызывается ботом при /start) ───

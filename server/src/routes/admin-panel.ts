@@ -124,6 +124,53 @@ tr.payments-detail td{padding:0!important}
 .payments-mini{margin:8px 16px 8px 32px;font-size:11px}
 .payments-mini th{color:#64748b;font-size:10px;padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.06);text-align:left}
 .payments-mini td{padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.02)}
+
+/* ═══ SIDEBAR LAYOUT ═══ */
+.admin-layout{display:flex;min-height:100vh}
+.sidebar{width:220px;min-height:100vh;background:rgba(10,15,26,.95);backdrop-filter:blur(20px);border-right:1px solid rgba(255,255,255,.06);position:fixed;left:0;top:0;bottom:0;z-index:40;display:flex;flex-direction:column;overflow-y:auto}
+.sidebar-logo{padding:24px 20px 20px;border-bottom:1px solid rgba(255,255,255,.06)}
+.sidebar-nav{flex:1;padding:12px 0}
+.sidebar-footer{padding:12px 16px;border-top:1px solid rgba(255,255,255,.06)}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;margin:2px 8px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:500;color:#64748b;transition:all .2s;white-space:nowrap}
+.nav-item:hover{color:#94a3b8;background:rgba(255,255,255,.04)}
+.nav-item.active{color:#fff;background:linear-gradient(135deg,rgba(139,92,246,.25),rgba(6,182,212,.15));border:1px solid rgba(139,92,246,.3);box-shadow:0 0 20px rgba(139,92,246,.08)}
+.nav-item .nav-icon{width:20px;text-align:center;font-size:15px}
+.main-content{margin-left:220px;flex:1;min-height:100vh}
+.content-header{padding:20px 24px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;background:rgba(10,15,26,.5);backdrop-filter:blur(12px);position:sticky;top:0;z-index:30}
+.content-body{padding:24px;max-width:1400px}
+
+/* ═══ STAT CARDS V2 (colored left border) ═══ */
+.stat-card-v2{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:16px 20px;position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s}
+.stat-card-v2:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,0,0,.3)}
+.stat-card-v2::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px}
+.stat-card-v2.border-red::before{background:#ef4444}
+.stat-card-v2.border-yellow::before{background:#eab308}
+.stat-card-v2.border-green::before{background:#22c55e}
+.stat-card-v2.border-orange::before{background:#f97316}
+.stat-card-v2.border-violet::before{background:#8b5cf6}
+.stat-card-v2.border-cyan::before{background:#06b6d4}
+.stat-card-v2.border-pink::before{background:#ec4899}
+.stat-card-v2.border-blue::before{background:#3b82f6}
+.stat-label-v2{font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.stat-value-v2{font-size:24px;font-weight:800;color:#fff}
+.stat-sub-v2{font-size:11px;color:#475569;margin-top:2px}
+
+/* ═══ FIELDSET SECTIONS ═══ */
+.section-group{border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:20px;margin-bottom:20px;position:relative}
+.section-group-title{position:absolute;top:-10px;left:16px;background:#040810;padding:0 8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#8b5cf6}
+
+/* ═══ BORDERED TABLES ═══ */
+table.bordered{border-collapse:separate;border-spacing:0;border:1px solid rgba(255,255,255,.08);border-radius:10px;overflow:hidden}
+table.bordered th{border-bottom:1px solid rgba(255,255,255,.08);border-right:1px solid rgba(255,255,255,.04);padding:12px 14px}
+table.bordered td{border-bottom:1px solid rgba(255,255,255,.04);border-right:1px solid rgba(255,255,255,.03);padding:10px 14px}
+table.bordered th:last-child,table.bordered td:last-child{border-right:none}
+table.bordered tr:last-child td{border-bottom:none}
+
+/* ═══ CIRCULAR PROGRESS ═══ */
+.circular-progress{position:relative;display:inline-flex;align-items:center;justify-content:center}
+.circular-progress svg{transform:rotate(-90deg)}
+.circular-progress .cp-label{position:absolute;font-size:13px;font-weight:800;color:#fff}
+.circular-progress .cp-sublabel{position:absolute;font-size:9px;color:#64748b;margin-top:22px}
 </style>
 </head><body>
 
@@ -140,27 +187,37 @@ tr.payments-detail td{padding:0!important}
 </div>
 
 <!-- PANEL -->
-<div id="panelPage" class="hidden rel">
-  <div class="glass-strong mx-4 mt-4 px-6 py-3 flex items-center justify-between glow-border" style="border-radius:14px">
-    <div class="flex items-center gap-3">
-      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 to-cyan-500 flex items-center justify-center text-lg anim-bounce">💎</div>
-      <span class="font-bold gradient-text text-xl">UraanxAI</span>
+<div id="panelPage" class="hidden rel admin-layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 to-cyan-500 flex items-center justify-center text-lg anim-bounce">💎</div>
+        <div><div class="font-bold gradient-text text-lg">UraanxAI</div><div class="text-[10px] text-slate-500">Admin Panel</div></div>
+      </div>
     </div>
-    <div class="flex gap-1 bg-black/30 rounded-xl p-1">
-      <div class="tab active" onclick="showTab(this,'dashboard')"><span class="anim-pulse">📊</span> Дашборд</div>
-      <div class="tab" onclick="showTab(this,'users')"><span class="anim-bounce">👥</span> Юзеры</div>
-      <div class="tab" onclick="showTab(this,'pushes')"><span class="anim-spin">📢</span> Пуши</div>
-      <div class="tab" onclick="showTab(this,'referrals')"><span>🤝</span> Рефералы</div>
-      <div class="tab" onclick="showTab(this,'campaigns')"><span>📣</span> Кампании</div>
-      <div class="tab" onclick="showTab(this,'adstats')"><span>📈</span> Реклама</div>
+    <nav class="sidebar-nav">
+      <div class="nav-item active" onclick="showTab(this,'dashboard')"><span class="nav-icon">📊</span> Панель</div>
+      <div class="nav-item" onclick="showTab(this,'users')"><span class="nav-icon">👥</span> Пользователи</div>
+      <div class="nav-item" onclick="showTab(this,'pushes')"><span class="nav-icon">📢</span> Пуши</div>
+      <div class="nav-item" onclick="showTab(this,'referrals')"><span class="nav-icon">🤝</span> Рефералы</div>
+      <div class="nav-item" onclick="showTab(this,'campaigns')"><span class="nav-icon">📣</span> Кампании</div>
+      <div class="nav-item" onclick="showTab(this,'adstats')"><span class="nav-icon">📈</span> Реклама</div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="flex items-center gap-1.5 text-xs text-green-400 mb-3"><div class="live-dot"></div> Live</div>
+      <button class="btn btn-ghost w-full text-xs mb-2" onclick="location.reload()">🔄 Обновить</button>
+      <button class="btn btn-ghost w-full text-xs" onclick="logout()">🚪 Выйти</button>
     </div>
-    <div class="flex items-center gap-3">
-      <div class="flex items-center gap-1.5 text-xs text-green-400"><div class="live-dot"></div>Live</div>
-      <button class="btn btn-ghost text-xs" onclick="logout()">Выйти</button>
+  </aside>
+  <div class="main-content">
+    <div class="content-header">
+      <h1 class="text-xl font-bold gradient-text" id="pageTitle">Панель</h1>
+      <div class="flex items-center gap-3">
+        <div class="text-xs text-slate-500" id="lastUpdate"></div>
+        <button class="btn btn-primary text-xs" onclick="loadStats(currentPeriod)">🔄 Обновить</button>
+      </div>
     </div>
-  </div>
-
-  <div class="p-4 max-w-7xl mx-auto">
+    <div class="content-body">
 
     <!-- DASHBOARD -->
     <div id="tab-dashboard">
@@ -168,7 +225,6 @@ tr.payments-detail td{padding:0!important}
         <button class="btn btn-primary" onclick="loadStats('today')"><span class="anim-pulse">📊</span> Сегодня</button>
         <button class="btn btn-ghost" onclick="loadStats('7d')">📅 7 дней</button>
         <button class="btn btn-ghost" onclick="loadStats('month')">📆 Месяц</button>
-        <div class="ml-auto text-xs text-slate-500" id="lastUpdate"></div>
       </div>
       <!-- Курс ЦБ -->
       <div class="glass p-4 mb-5 flex flex-wrap items-center gap-4">
@@ -212,7 +268,7 @@ tr.payments-detail td{padding:0!important}
         </div>
       </div>
       <div class="glass-strong overflow-x-auto">
-        <table><thead><tr><th>ID</th><th>Username</th><th>Имя</th><th>App</th><th><span class="anim-pulse">💎</span> Кредиты</th><th>Кампания</th><th>Бонус</th><th>Статус</th><th>TZ</th><th>Дата</th><th>Действия</th></tr></thead>
+        <table class="bordered"><thead><tr><th>ID</th><th>Username</th><th>Имя</th><th>App</th><th><span class="anim-pulse">💎</span> Кредиты</th><th>Кампания</th><th>Бонус</th><th>Статус</th><th>TZ</th><th>Дата</th><th>Действия</th></tr></thead>
         <tbody id="usersTable"></tbody></table>
       </div>
     </div>
@@ -268,8 +324,8 @@ tr.payments-detail td{padding:0!important}
 
       <!-- Таблица пушей -->
       <h3 class="text-base font-bold mb-4 flex items-center gap-2"><span class="anim-pulse">📋</span> Разовые пуши</h3>
-      <div class="glass-strong overflow-x-auto mb-5">
-        <table>
+      <div class="overflow-x-auto mb-5">
+        <table class="bordered">
           <thead><tr>
             <th>Статус</th><th>Тип</th><th>Название</th><th>Медиа</th><th>Время</th><th>Текст</th><th>Действия</th>
           </tr></thead>
@@ -322,8 +378,55 @@ tr.payments-detail td{padding:0!important}
       </div>
     </div>
 
-  </div>
-</div>
+    <!-- REFERRALS -->
+    <div id="tab-referrals" class="hidden">
+      <div id="refStats" class="grid grid-cols-2 sm:grid-cols-6 gap-3 mb-5"></div>
+      <div id="refList"></div>
+    </div>
+
+    <!-- CAMPAIGNS -->
+    <div id="tab-campaigns" class="hidden">
+      <div class="section-group">
+        <div class="section-group-title">СОЗДАНИЕ КАМПАНИИ</div>
+        <div class="flex gap-3 items-end flex-wrap">
+          <div class="flex-1 min-w-[200px]"><label class="text-xs text-slate-400 mb-1 block">Название (блогер / канал)</label><input id="campName" placeholder="Маша_YouTube"></div>
+          <button class="btn btn-primary" onclick="createCampaign()">📣 Создать ссылку</button>
+        </div>
+      </div>
+      <div id="campList"></div>
+    </div>
+
+    <!-- AD STATS -->
+    <div id="tab-adstats" class="hidden">
+      <div class="section-group mb-5">
+        <div class="section-group-title">ДОБАВИТЬ РЕКЛАМУ</div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">
+          <div><label class="text-xs text-slate-400 block mb-1">Блогер/канал *</label><input id="adBlogger" placeholder="@nickname"></div>
+          <div><label class="text-xs text-slate-400 block mb-1">Платформа</label><select id="adPlatform"><option value="instagram">Instagram</option><option value="telegram">Telegram</option></select></div>
+          <div><label class="text-xs text-slate-400 block mb-1">Тип рекламы</label><select id="adType"><option value="stories">Stories</option><option value="reels">Reels</option><option value="stories+reels">Stories+Reels</option><option value="post">Post</option></select></div>
+        </div>
+        <div class="grid grid-cols-3 gap-3 mb-3">
+          <div><label class="text-xs text-slate-400 block mb-1">Дата</label><input id="adDate" type="date"></div>
+          <div><label class="text-xs text-slate-400 block mb-1">Расход (₽)</label><input id="adCost" type="number" placeholder="0"></div>
+          <div><label class="text-xs text-slate-400 block mb-1">Ссылка на креатив</label><input id="adCreative" placeholder="https://..."></div>
+        </div>
+        <button class="btn btn-primary" onclick="saveAdStat()">+ Добавить</button>
+      </div>
+      <div id="adStatsSummary" class="grid grid-cols-2 sm:grid-cols-6 gap-3 mb-5"></div>
+      <div class="section-group">
+        <div class="section-group-title">КАМПАНИИ</div>
+        <div class="overflow-x-auto"><table class="bordered text-xs"><thead><tr>
+          <th>Блогер</th><th>Платф.</th><th>Тип</th><th>Дата</th><th>Расход ₽</th><th>Просм.</th><th>Лайки</th><th>Сохр.</th><th class="text-slate-600">Открыли</th><th class="text-slate-600">Старт</th><th class="text-slate-600">Оплаты</th><th class="text-slate-600">Сумма ₽</th><th>CPR ₽</th><th>ROAS %</th><th>CR %</th><th>Ср. чек</th><th>Креатив</th><th>Заметки</th><th></th>
+        </tr></thead><tbody id="adStatsBody"></tbody>
+        <tfoot id="adStatsFoot"></tfoot>
+        </table></div>
+      </div>
+      <div id="adTotalsCircular" class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-5"></div>
+    </div>
+
+    </div><!-- content-body -->
+  </div><!-- main-content -->
+</div><!-- panelPage -->
 
 <!-- USER MODAL -->
 <div id="userModal" class="modal-bg hidden" onclick="if(event.target===this)this.classList.add('hidden')">
@@ -373,51 +476,6 @@ tr.payments-detail td{padding:0!important}
   </div>
 </div>
 
-    <!-- REFERRALS -->
-    <div id="tab-referrals" class="hidden">
-      <div id="refStats" class="grid grid-cols-2 sm:grid-cols-6 gap-3 mb-5"></div>
-      <div id="refList"></div>
-    </div>
-
-    <!-- CAMPAIGNS -->
-    <div id="tab-campaigns" class="hidden">
-      <div class="glass-neon p-4 mb-5 glow-border">
-        <div class="flex gap-3 items-end flex-wrap">
-          <div class="flex-1 min-w-[200px]"><label class="text-xs text-slate-400 mb-1 block">Название (блогер / канал)</label><input id="campName" placeholder="Маша_YouTube"></div>
-          <button class="btn btn-primary" onclick="createCampaign()">📣 Создать ссылку</button>
-        </div>
-      </div>
-      <div id="campList"></div>
-    </div>
-
-    <!-- AD STATS -->
-    <div id="tab-adstats" class="hidden">
-      <div class="glass-neon p-4 mb-5 glow-border">
-        <h3 class="text-white font-bold text-sm mb-3">Добавить рекламу</h3>
-        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">
-          <div><label class="text-xs text-slate-400 block mb-1">Блогер/канал *</label><input id="adBlogger" placeholder="@nickname"></div>
-          <div><label class="text-xs text-slate-400 block mb-1">Платформа</label><select id="adPlatform"><option value="instagram">Instagram</option><option value="telegram">Telegram</option></select></div>
-          <div><label class="text-xs text-slate-400 block mb-1">Тип рекламы</label><select id="adType"><option value="stories">Stories</option><option value="reels">Reels</option><option value="stories+reels">Stories+Reels</option><option value="post">Post</option></select></div>
-        </div>
-        <div class="grid grid-cols-3 gap-3 mb-3">
-          <div><label class="text-xs text-slate-400 block mb-1">Дата</label><input id="adDate" type="date"></div>
-          <div><label class="text-xs text-slate-400 block mb-1">Расход (₽)</label><input id="adCost" type="number" placeholder="0"></div>
-          <div><label class="text-xs text-slate-400 block mb-1">Ссылка на креатив</label><input id="adCreative" placeholder="https://..."></div>
-        </div>
-        <button class="btn btn-primary" onclick="saveAdStat()">+ Добавить</button>
-      </div>
-      <div id="adStatsSummary" class="grid grid-cols-2 sm:grid-cols-6 gap-3 mb-5"></div>
-      <div class="glass-neon p-4 glow-border">
-        <div class="overflow-x-auto"><table class="text-xs"><thead><tr>
-          <th>Блогер</th><th>Платф.</th><th>Тип</th><th>Дата</th><th>Расход ₽</th><th>Просм.</th><th>Лайки</th><th>Сохр.</th><th class="text-slate-600">Открыли</th><th class="text-slate-600">Старт</th><th class="text-slate-600">Оплаты</th><th class="text-slate-600">Сумма ₽</th><th>CPR ₽</th><th>ROAS %</th><th>CR %</th><th>Ср. чек</th><th>Креатив</th><th>Заметки</th><th></th>
-        </tr></thead><tbody id="adStatsBody"></tbody>
-        <tfoot id="adStatsFoot"></tfoot>
-        </table></div>
-      </div>
-    </div>
-
-</div>
-
 <script>
 let TOKEN=localStorage.getItem('at')||'';
 const API=location.origin;
@@ -438,7 +496,7 @@ function G(p){return apiFetch(p)}
 function P(p,d){return apiFetch(p,{method:'POST',body:JSON.stringify(d)})}
 function D(p){return apiFetch(p,{method:'DELETE'})}
 
-function showTab(el,n){document.querySelectorAll('[id^=tab-]').forEach(e=>e.classList.add('hidden'));document.getElementById('tab-'+n).classList.remove('hidden');document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));el.classList.add('active');if(n==='users')loadUsers();if(n==='pushes'){loadPushTemplates();loadPushLog();loadSeqs();loadPushStats()}if(n==='campaigns')loadCampaigns();if(n==='referrals')loadReferrals();if(n==='adstats')loadAdStats()}
+function showTab(el,n){document.querySelectorAll('[id^=tab-]').forEach(function(e){e.classList.add('hidden')});document.getElementById('tab-'+n).classList.remove('hidden');document.querySelectorAll('.nav-item').forEach(function(e){e.classList.remove('active')});el.classList.add('active');var titles={dashboard:'Панель',users:'Пользователи',pushes:'Пуши',referrals:'Рефералы',campaigns:'Кампании',adstats:'Реклама'};var pt=document.getElementById('pageTitle');if(pt)pt.textContent=titles[n]||n;if(n==='users')loadUsers();if(n==='pushes'){loadPushTemplates();loadPushLog();loadSeqs();loadPushStats()}if(n==='campaigns')loadCampaigns();if(n==='referrals')loadReferrals();if(n==='adstats')loadAdStats()}
 
 // Курс ЦБ
 async function loadExRate(){
@@ -475,15 +533,15 @@ async function loadStats(period){
       '<div class="text-center"><div class="text-2xl font-bold text-green-400">'+s.users+'</div><div class="text-xs text-slate-500">Юзеров</div></div>'+
     '</div>';
   document.getElementById('statsGrid').innerHTML=[
-    sc('💰','Выручка ('+s.label+')',s.revenue+' ₽','neon'),sc('📈','Прибыль',s.profit+' ₽','neon'),
-    sc('📊','Маржа',s.margin+'%','cyan'),sc('👥','DAU',s.dau,'cyan'),
-    sc('🆕','Новых','+'+s.newUsers,'neon'),sc('📝','Запросов',s.transactions,'cyan'),
-    sc('🎨','Генераций',s.generations,'neon'),sc('🤝','Рефералов','+'+s.referrals,'cyan'),
+    sc('💰','Выручка ('+s.label+')',s.revenue+' ₽','neon','green'),sc('📈','Прибыль',s.profit+' ₽','neon','yellow'),
+    sc('📊','Маржа',s.margin+'%','cyan','cyan'),sc('👥','DAU',s.dau,'cyan','orange'),
+    sc('🆕','Новых','+'+s.newUsers,'neon','violet'),sc('📝','Запросов',s.transactions,'cyan','blue'),
+    sc('🎨','Генераций',s.generations,'neon','pink'),sc('🤝','Рефералов','+'+s.referrals,'cyan','cyan'),
   ].join('');
   document.getElementById('topActive').innerHTML=topList(s.topActive,'requests','запр.');
   document.getElementById('topCredits').innerHTML=topList(s.topUsers,'credits','кр.');
 }
-function sc(emoji,label,value,type){return '<div class="glass'+(type==='neon'?'-neon':'-cyan')+' stat-card"><div class="text-lg mb-1 anim-bounce">'+emoji+'</div><div class="stat-value">'+value+'</div><div class="stat-label">'+label+'</div></div>'}
+function sc(emoji,label,value,type,border){var b=border||'violet';return '<div class="stat-card-v2 border-'+b+'"><div class="stat-label-v2">'+emoji+' '+label+'</div><div class="stat-value-v2">'+value+'</div></div>'}
 function topList(arr,key,suf){if(!arr||!arr.length)return'<p class="text-slate-600 text-sm">Пусто</p>';return arr.map((u,i)=>'<div class="flex justify-between py-2.5 text-sm border-b border-white/5"><span class="text-slate-400">'+(i+1)+'. '+(u.username?'@'+esc(u.username):esc(u.first_name||'—'))+' <span class="text-slate-600 text-xs font-mono">'+u.id+'</span></span><span class="font-bold gradient-text">'+u[key]+' '+suf+'</span></div>').join('')}
 
 // USERS
@@ -1326,14 +1384,40 @@ async function loadAdStats(){
     '<td>'+tCr+(typeof tCr==='number'?'%':'')+'</td>'+
     '<td>'+(typeof tAvg==='number'?tAvg.toLocaleString('ru')+'₽':'—')+'</td>'+
     '<td></td><td></td><td></td></tr>';
-  // Summary cards
+  // Summary cards (v2)
   document.getElementById('adStatsSummary').innerHTML=
-    '<div class="glass p-3 text-center"><div class="text-lg font-bold text-amber-400">'+totals.cost.toLocaleString('ru')+'₽</div><div class="text-xs text-slate-500">Расход</div></div>'+
-    '<div class="glass p-3 text-center"><div class="text-lg font-bold text-green-400">'+totals.payS.toLocaleString('ru')+'₽</div><div class="text-xs text-slate-500">Доход</div></div>'+
-    '<div class="glass p-3 text-center"><div class="text-lg font-bold '+(typeof tRoas==='number'&&tRoas>=100?'text-green-400':'text-red-400')+'">'+tRoas+(typeof tRoas==='number'?'%':'')+'</div><div class="text-xs text-slate-500">ROAS</div></div>'+
-    '<div class="glass p-3 text-center"><div class="text-lg font-bold gradient-text">'+tCpr+'</div><div class="text-xs text-slate-500">CPR (₽/рег)</div></div>'+
-    '<div class="glass p-3 text-center"><div class="text-lg font-bold text-violet-400">'+(typeof tAvg==='number'?tAvg.toLocaleString('ru')+'₽':'—')+'</div><div class="text-xs text-slate-500">Ср. чек</div></div>'+
-    '<div class="glass p-3 text-center"><div class="text-lg font-bold text-cyan-400">'+data.length+'</div><div class="text-xs text-slate-500">Кампаний</div></div>'
+    sc('💰','Расход',totals.cost.toLocaleString('ru')+'₽','','yellow')+
+    sc('💵','Доход',totals.payS.toLocaleString('ru')+'₽','','green')+
+    sc('📈','ROAS',tRoas+(typeof tRoas==='number'?'%':''),'',typeof tRoas==='number'&&tRoas>=100?'green':'red')+
+    sc('🎯','CPR (₽/рег)',tCpr,'','violet')+
+    sc('💳','Ср. чек',(typeof tAvg==='number'?tAvg.toLocaleString('ru')+'₽':'—'),'','cyan')+
+    sc('📊','Кампаний',data.length,'','blue');
+  // Circular progress
+  var el=document.getElementById('adTotalsCircular');
+  if(el){
+    var items=[
+      {label:'ROAS',value:typeof tRoas==='number'?tRoas:0,max:200,color:'#22c55e',suffix:'%'},
+      {label:'CR',value:typeof tCr==='number'?tCr:0,max:100,color:'#8b5cf6',suffix:'%'},
+      {label:'Расход',value:totals.cost,max:Math.max(totals.cost+totals.payS,1),color:'#eab308',suffix:''},
+      {label:'Доход',value:totals.payS,max:Math.max(totals.cost+totals.payS,1),color:'#06b6d4',suffix:''}
+    ];
+    el.innerHTML=items.map(function(item){
+      var pct=Math.min(Math.round(item.value/(item.max||1)*100),100);
+      var r=40;var c=Math.round(2*3.14159*r);var offset=Math.round(c-(pct/100)*c);
+      var displayVal=item.suffix?item.value+item.suffix:item.value.toLocaleString('ru')+'₽';
+      return '<div class="stat-card-v2 border-violet text-center" style="padding:20px">'+
+        '<div class="circular-progress mx-auto mb-3" style="width:100px;height:100px">'+
+          '<svg width="100" height="100">'+
+            '<circle cx="50" cy="50" r="'+r+'" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="8"></circle>'+
+            '<circle cx="50" cy="50" r="'+r+'" fill="none" stroke="'+item.color+'" stroke-width="8" stroke-dasharray="'+c+'" stroke-dashoffset="'+offset+'" stroke-linecap="round"></circle>'+
+          '</svg>'+
+          '<span class="cp-label">'+pct+'%</span>'+
+        '</div>'+
+        '<div class="text-white font-bold text-sm">'+displayVal+'</div>'+
+        '<div class="stat-label-v2 mt-1">'+item.label+'</div>'+
+      '</div>'
+    }).join('')
+  }
 }
 
 function inlineEdit(td){

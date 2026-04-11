@@ -92,6 +92,30 @@ const EMOTION_KEYS: { id: Emotion; key: 'video.emotion.neutral' | 'video.emotion
   { id: 'surprised', key: 'video.emotion.surprised' },
 ];
 
+// ─── Шаблоны промптов для видео ───
+const VIDEO_PROMPT_TEMPLATES: { title: string; prompt: string }[] = [
+  {
+    title: 'Кинематографичная сцена',
+    prompt: 'Cinematic establishing shot with dramatic camera movement. Professional film lighting, volumetric fog, shallow depth of field with beautiful bokeh. Ultra-detailed textures, 8K quality, color graded like a Hollywood production.',
+  },
+  {
+    title: 'Замедленное движение',
+    prompt: 'Extreme slow-motion capture at 240fps. Every detail is visible — particles in the air, fabric rippling, light refracting through droplets. Professional studio lighting, ultra-sharp focus, cinematic color grading, ultra-high definition.',
+  },
+  {
+    title: 'Динамичный полёт камеры',
+    prompt: 'Dynamic FPV drone-style camera flight through the scene. Smooth continuous movement with parallax depth. Professional cinematic lighting, vibrant colors, ultra-detailed environment, volumetric atmosphere, 8K resolution.',
+  },
+  {
+    title: 'Таймлапс с переходом',
+    prompt: 'Seamless time-lapse transition from day to night. The sky transforms with dramatic clouds, golden hour light fading into deep blue twilight with stars appearing. Professional photography, ultra-detailed, cinematic composition.',
+  },
+  {
+    title: 'Портретная анимация',
+    prompt: 'Professional portrait with subtle natural movements — gentle breathing, micro-expressions, eyes reflecting light naturally. Shot on Canon EOS R5 with 85mm f/1.2 lens. Soft directional lighting, natural skin texture, ultra-detailed, shallow depth of field.',
+  },
+];
+
 // Динамическая цена: baseRate (LP2) × duration × маржа ×2.3 × множитель курса × 1007.75 (80.62/0.080)
 function calcVideoCost(tab: Tab, durationStr: VideoLength, model: VideoModel, mode: VideoMode, audio: boolean, motionControl: boolean = false, exMult: number = 1, avatarText: string = ''): number {
   if (tab === 'avatar') {
@@ -254,6 +278,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
   // videoCount убран — Kling API не поддерживает batch генерацию
   const [nativeAudio, setNativeAudio] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [expandedVideoTpl, setExpandedVideoTpl] = useState<number | null>(null);
 
   // Сброс nativeAudio если модель/режим не поддерживает
   useEffect(() => {
@@ -694,6 +719,33 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
               />
               <span className="absolute bottom-3 left-4 text-white text-xs">{prompt.length}</span>
             </div>
+          </div>
+
+          {/* Prompt Templates */}
+          <div className="space-y-2">
+            <p className="text-slate-400 text-xs font-semibold">Готовые шаблоны:</p>
+            {VIDEO_PROMPT_TEMPLATES.map((tpl, i) => (
+              <div key={i} className="bg-white/[0.04] border border-white/[0.08] rounded-xl overflow-hidden">
+                <button
+                  onClick={() => setExpandedVideoTpl(expandedVideoTpl === i ? null : i)}
+                  className="w-full flex items-center justify-between px-3 py-2.5 text-left active:bg-white/[0.06] transition-colors"
+                >
+                  <span className="text-white text-xs font-semibold">{tpl.title}</span>
+                  <IconChevron open={expandedVideoTpl === i} />
+                </button>
+                {expandedVideoTpl === i && (
+                  <div className="px-3 pb-3 space-y-2">
+                    <p className="text-slate-300 text-xs leading-relaxed">{tpl.prompt}</p>
+                    <button
+                      onClick={() => { setPrompt(tpl.prompt); setExpandedVideoTpl(null); }}
+                      className="w-full py-2 rounded-lg bg-gradient-to-r from-violet-600 to-cyan-500 text-white text-xs font-bold active:scale-[0.98] transition-transform"
+                    >
+                      Использовать этот промпт
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
 
           {/* Settings toggle */}

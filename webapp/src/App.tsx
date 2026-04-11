@@ -6,6 +6,7 @@ import { ChatList } from './screens/ChatList';
 import { Chat } from './screens/Chat';
 import { ImageGen } from './screens/ImageGen';
 import { VideoGen } from './screens/VideoGen';
+import { PhotoAnimate } from './screens/PhotoAnimate';
 import { Friends } from './screens/Friends';
 import { BottomNav } from './components/BottomNav';
 import SpaceBackground from './components/SpaceBackground';
@@ -135,6 +136,9 @@ export function App() {
             </div>
             <div style={{ display: screen.name === 'videoGen' ? 'block' : 'none' }}>
               <VideoGen user={user} onCreditsUpdate={(c) => setUser({ ...user, credits: c })} />
+            </div>
+            <div style={{ display: screen.name === 'photoAnimate' ? 'block' : 'none' }}>
+              <PhotoAnimate user={user} onCreditsUpdate={(c) => setUser({ ...user, credits: c })} />
             </div>
             <div style={{ display: screen.name === 'friends' ? 'block' : 'none' }}>
               <Friends user={user} />

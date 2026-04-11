@@ -136,12 +136,31 @@ const FriendsIcon = ({ active }: { active: boolean }) => (
   </svg>
 );
 
-const items: { name: 'home' | 'chatList' | 'imageGen' | 'videoGen' | 'friends'; labelKey: TranslationKey; Icon: typeof HomeIcon }[] = [
-  { name: 'home',     labelKey: 'nav.home',    Icon: HomeIcon    },
-  { name: 'chatList', labelKey: 'nav.chats',   Icon: ChatIcon    },
-  { name: 'imageGen', labelKey: 'nav.images',  Icon: ImageIcon   },
-  { name: 'videoGen', labelKey: 'nav.video',   Icon: VideoIcon   },
-  { name: 'friends',  labelKey: 'nav.friends', Icon: FriendsIcon },
+// ─── Animate Icon (sparkle + photo) ───
+const AnimateIcon = ({ active }: { active: boolean }) => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+    {active && (
+      <defs>
+        <linearGradient id="gAni" x1="0" y1="0" x2="24" y2="24">
+          <stop offset="0%" stopColor="#8B5CF6"/>
+          <stop offset="100%" stopColor="#06B6D4"/>
+        </linearGradient>
+      </defs>
+    )}
+    <rect x="3" y="5" width="14" height="14" rx="2" stroke={active ? 'url(#gAni)' : 'currentColor'} strokeWidth="1.8"/>
+    <path d="M19 9l2-2m0 0l2 2m-2-2v4" stroke={active ? 'url(#gAni)' : 'currentColor'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    <circle cx="7.5" cy="10" r="1.5" stroke={active ? 'url(#gAni)' : 'currentColor'} strokeWidth="1.5"/>
+    <path d="M3 16l4-4 3 3 2-2 5 5" stroke={active ? 'url(#gAni)' : 'currentColor'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const items: { name: 'home' | 'chatList' | 'imageGen' | 'videoGen' | 'photoAnimate' | 'friends'; labelKey: TranslationKey; Icon: typeof HomeIcon }[] = [
+  { name: 'home',         labelKey: 'nav.home',    Icon: HomeIcon    },
+  { name: 'chatList',     labelKey: 'nav.chats',   Icon: ChatIcon    },
+  { name: 'imageGen',     labelKey: 'nav.images',  Icon: ImageIcon   },
+  { name: 'videoGen',     labelKey: 'nav.video',   Icon: VideoIcon   },
+  { name: 'photoAnimate', labelKey: 'nav.animate',  Icon: AnimateIcon },
+  { name: 'friends',      labelKey: 'nav.friends', Icon: FriendsIcon },
 ];
 
 export function BottomNav({ current, onNavigate }: Props) {
@@ -156,7 +175,7 @@ export function BottomNav({ current, onNavigate }: Props) {
             <button
               key={name}
               onClick={() => onNavigate({ name })}
-              className="flex-1 flex flex-col items-center gap-1 py-2.5 px-1 transition-all duration-300 relative"
+              className="flex-1 flex flex-col items-center gap-0.5 py-2 px-0.5 transition-all duration-300 relative"
             >
               {/* Glow за иконкой */}
               {active && (
@@ -165,7 +184,7 @@ export function BottomNav({ current, onNavigate }: Props) {
               <div className={`relative transition-all duration-300 ${active ? 'scale-110' : 'text-slate-500'}`}>
                 <Icon active={active} />
               </div>
-              <span className={`text-[11px] font-bold transition-all duration-300 ${
+              <span className={`text-[10px] font-bold transition-all duration-300 leading-tight ${
                 active
                   ? 'bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent'
                   : 'text-slate-500'

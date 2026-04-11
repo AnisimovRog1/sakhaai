@@ -50,5 +50,6 @@ export type Screen =
   | { name: 'chat'; chatId: number; chatTitle: string; initialMessage?: string }
   | { name: 'imageGen' }
   | { name: 'videoGen' }
+  | { name: 'photoAnimate' }
   | { name: 'friends' }
   | { name: 'settings' };

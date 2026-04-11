@@ -9,6 +9,7 @@ const translations = {
   'nav.chats': { ru: 'Чаты', sah: 'Чаттар' },
   'nav.images': { ru: 'Картинки', sah: 'Ойуулар' },
   'nav.video': { ru: 'Видео', sah: 'Видео' },
+  'nav.animate': { ru: 'Оживить', sah: 'Тыыннаа' },
   'nav.friends': { ru: 'Друзья', sah: 'Доҕоттор' },
 
   // ─── Home ───

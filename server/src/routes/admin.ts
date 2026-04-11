@@ -1024,6 +1024,77 @@ adminRouter.delete('/campaigns/:id', async (req: Request, res: Response) => {
   } catch (err: any) { res.status(500).json({ error: err.message }); }
 });
 
+// ═══════════════════════════════════════════════════════
+// AD CAMPAIGNS — рекламная статистика
+// ═══════════════════════════════════════════════════════
+
+adminRouter.get('/ad-stats', async (_req: Request, res: Response) => {
+  try {
+    // Автосинк: подтянуть ref_campaigns которых нет в ad_campaigns
+    const missing = await pool.query(`
+      SELECT c.id, c.name,
+        (SELECT COUNT(*) FROM users u WHERE u.campaign_code = c.code) AS total_users,
+        (SELECT COUNT(*) FROM users u WHERE u.campaign_code = c.code AND u.app_opened = true) AS opened_app,
+        (SELECT COUNT(DISTINCT o.user_id) FROM orders o JOIN users u ON u.id = o.user_id WHERE u.campaign_code = c.code AND o.status = 'paid') AS paid_users,
+        (SELECT COALESCE(SUM(o.amount_rub), 0) FROM orders o JOIN users u ON u.id = o.user_id WHERE u.campaign_code = c.code AND o.status = 'paid') AS total_revenue
+      FROM ref_campaigns c
+      WHERE NOT EXISTS (SELECT 1 FROM ad_campaigns a WHERE a.ref_campaign_id = c.id)
+    `);
+    for (const r of missing.rows) {
+      await pool.query(
+        `INSERT INTO ad_campaigns (ref_campaign_id, blogger_name, platform, ad_type, app_launches, registrations, payments_count, payments_sum, campaign_date)
+         VALUES ($1, $2, 'instagram', 'stories', $3, $4, $5, $6, CURRENT_DATE)`,
+        [r.id, r.name, +r.opened_app, +r.total_users, +r.paid_users, +r.total_revenue]
+      );
+    }
+    // Обновить автоматические поля для связанных кампаний
+    await pool.query(`
+      UPDATE ad_campaigns a SET
+        app_launches = sub.opened_app,
+        registrations = sub.total_users,
+        payments_count = sub.paid_users,
+        payments_sum = sub.total_revenue
+      FROM (
+        SELECT c.id,
+          (SELECT COUNT(*) FROM users u WHERE u.campaign_code = c.code) AS total_users,
+          (SELECT COUNT(*) FROM users u WHERE u.campaign_code = c.code AND u.app_opened = true) AS opened_app,
+          (SELECT COUNT(DISTINCT o.user_id) FROM orders o JOIN users u ON u.id = o.user_id WHERE u.campaign_code = c.code AND o.status = 'paid') AS paid_users,
+          (SELECT COALESCE(SUM(o.amount_rub), 0) FROM orders o JOIN users u ON u.id = o.user_id WHERE u.campaign_code = c.code AND o.status = 'paid') AS total_revenue
+        FROM ref_campaigns c
+      ) sub WHERE a.ref_campaign_id = sub.id
+    `);
+    const all = await pool.query(`SELECT * FROM ad_campaigns ORDER BY created_at DESC`);
+    res.json(all.rows);
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+adminRouter.post('/ad-stats', async (req: Request, res: Response) => {
+  try {
+    const { id, blogger_name, platform, ad_type, creative_url, ad_cost, views, likes, comments, clicks, app_launches, registrations, payments_count, payments_sum, notes, campaign_date } = req.body;
+    if (id) {
+      await pool.query(
+        `UPDATE ad_campaigns SET blogger_name=$1, platform=$2, ad_type=$3, creative_url=$4, ad_cost=$5, views=$6, likes=$7, comments=$8, clicks=$9, app_launches=$10, registrations=$11, payments_count=$12, payments_sum=$13, notes=$14, campaign_date=$15 WHERE id=$16`,
+        [blogger_name, platform, ad_type, creative_url||null, +ad_cost||0, +views||0, +likes||0, +comments||0, +clicks||0, +app_launches||0, +registrations||0, +payments_count||0, +payments_sum||0, notes||null, campaign_date||null, id]
+      );
+      res.json({ ok: true });
+    } else {
+      const r = await pool.query(
+        `INSERT INTO ad_campaigns (blogger_name, platform, ad_type, creative_url, ad_cost, views, likes, comments, clicks, app_launches, registrations, payments_count, payments_sum, notes, campaign_date)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
+        [blogger_name, platform||'instagram', ad_type||'stories', creative_url||null, +ad_cost||0, +views||0, +likes||0, +comments||0, +clicks||0, +app_launches||0, +registrations||0, +payments_count||0, +payments_sum||0, notes||null, campaign_date||null]
+      );
+      res.json(r.rows[0]);
+    }
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+adminRouter.delete('/ad-stats/:id', async (req: Request, res: Response) => {
+  try {
+    await pool.query(`DELETE FROM ad_campaigns WHERE id = $1`, [req.params.id]);
+    res.json({ ok: true });
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
 adminRouter.post('/exchange-rate/update', async (_req: Request, res: Response) => {
   try {
     const result = await updateExchangeRate();

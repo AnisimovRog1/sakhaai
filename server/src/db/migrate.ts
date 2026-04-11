@@ -359,6 +359,28 @@ export async function migrate() {
       created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 
+    -- Рекламная статистика
+    CREATE TABLE IF NOT EXISTS ad_campaigns (
+      id              SERIAL PRIMARY KEY,
+      ref_campaign_id INTEGER REFERENCES ref_campaigns(id) ON DELETE SET NULL,
+      blogger_name    TEXT NOT NULL,
+      platform        TEXT NOT NULL DEFAULT 'instagram',
+      ad_type         TEXT NOT NULL DEFAULT 'stories',
+      creative_url    TEXT,
+      ad_cost         INTEGER NOT NULL DEFAULT 0,
+      views           INTEGER NOT NULL DEFAULT 0,
+      likes           INTEGER NOT NULL DEFAULT 0,
+      comments        INTEGER NOT NULL DEFAULT 0,
+      clicks          INTEGER NOT NULL DEFAULT 0,
+      app_launches    INTEGER NOT NULL DEFAULT 0,
+      registrations   INTEGER NOT NULL DEFAULT 0,
+      payments_count  INTEGER NOT NULL DEFAULT 0,
+      payments_sum    INTEGER NOT NULL DEFAULT 0,
+      notes           TEXT,
+      campaign_date   DATE,
+      created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
     -- Индексы для производительности
     CREATE INDEX IF NOT EXISTS idx_chats_user_id ON chats (user_id);
     CREATE INDEX IF NOT EXISTS idx_messages_chat_id ON messages (chat_id);

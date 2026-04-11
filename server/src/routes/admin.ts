@@ -45,25 +45,24 @@ adminRouter.post('/ensure-user', async (req: Request, res: Response) => {
 adminRouter.get('/stats', async (req: Request, res: Response) => {
   try {
     const period = (req.query.period as string) || 'today';
-    // Все даты по МСК (UTC+3) — совпадает с UnitPay и бизнес-временем
-    const MSK_TODAY = "(NOW() AT TIME ZONE 'Asia/Yakutsk')::date";
-    let dateFilter = `created_at >= (${MSK_TODAY} AT TIME ZONE 'Asia/Yakutsk')`;
+    // Все даты по Якутску (UTC+9)
+    // date_trunc('day', NOW() AT TIME ZONE 'Asia/Yakutsk') → начало текущих суток ЯКТ (naive)
+    // ... AT TIME ZONE 'Asia/Yakutsk' → обратно в timestamptz (= 15:00 UTC предыдущего дня)
+    const YKT_START = "date_trunc('day', NOW() AT TIME ZONE 'Asia/Yakutsk') AT TIME ZONE 'Asia/Yakutsk'";
+    let dateFilter = `created_at >= ${YKT_START}`;
     let label = 'сегодня';
 
     if (period === '7d') {
-      dateFilter = `created_at >= (${MSK_TODAY} - INTERVAL '7 days') AT TIME ZONE 'Asia/Yakutsk'`;
+      dateFilter = `created_at >= (${YKT_START} - INTERVAL '7 days')`;
       label = 'за 7 дней';
     } else if (period === 'month') {
-      dateFilter = `created_at >= date_trunc('month', ${MSK_TODAY}) AT TIME ZONE 'Asia/Yakutsk'`;
+      dateFilter = `created_at >= date_trunc('month', NOW() AT TIME ZONE 'Asia/Yakutsk') AT TIME ZONE 'Asia/Yakutsk'`;
       label = 'за текущий месяц';
     } else if (/^\d{4}-\d{2}$/.test(period)) {
-      // Безопасно: regex гарантирует формат YYYY-MM
-      const startDate = new Date(`${period}-01T00:00:00+09:00`); // ЯКТ
+      const startDate = new Date(`${period}-01T00:00:00+09:00`);
       const endDate = new Date(startDate);
       endDate.setUTCMonth(endDate.getUTCMonth() + 1);
-      const startISO = startDate.toISOString();
-      const endISO = endDate.toISOString();
-      dateFilter = `created_at >= '${startISO}'::timestamptz AND created_at < '${endISO}'::timestamptz`;
+      dateFilter = `created_at >= '${startDate.toISOString()}'::timestamptz AND created_at < '${endDate.toISOString()}'::timestamptz`;
       label = `за ${period}`;
     }
 

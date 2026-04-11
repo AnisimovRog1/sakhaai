@@ -1288,15 +1288,16 @@ async function loadAdStats(){
     var pBadge=r.platform==='telegram'?'<span class="text-blue-400">TG</span>':'<span class="text-pink-400">IG</span>';
     var dateVal=r.campaign_date?r.campaign_date.substring(0,10):'';
     var dateFmt=dateVal?new Date(r.campaign_date).toLocaleDateString('ru'):'—';
+    var ed=function(cls,field,type,val,display){return '<td class="editable '+cls+'" data-id="'+r.id+'" data-field="'+field+'" data-type="'+type+'" data-value="'+esc(String(val))+'" onclick="inlineEdit(this)">'+display+'</td>'};
     return '<tr id="ad-row-'+r.id+'">'+
-      '<td class="editable text-violet-300 font-medium" data-value="'+esc(r.blogger_name)+'" onclick="inlineEdit(this,'+r.id+',\'blogger_name\',\'text\')">'+esc(r.blogger_name)+(r.ref_campaign_id?' <span class="text-[10px] text-cyan-500">авто</span>':'')+'</td>'+
-      '<td class="editable" data-value="'+esc(r.platform)+'" onclick="inlineEdit(this,'+r.id+',\'platform\',\'select:instagram,telegram\')">'+pBadge+'</td>'+
-      '<td class="editable text-slate-400" data-value="'+esc(r.ad_type)+'" onclick="inlineEdit(this,'+r.id+',\'ad_type\',\'select:stories,reels,stories+reels,post\')">'+esc(r.ad_type)+'</td>'+
-      '<td class="editable text-slate-500" data-value="'+dateVal+'" onclick="inlineEdit(this,'+r.id+',\'campaign_date\',\'date\')">'+dateFmt+'</td>'+
-      '<td class="editable text-amber-400 font-bold" data-value="'+(r.ad_cost||0)+'" onclick="inlineEdit(this,'+r.id+',\'ad_cost\',\'number\')">'+(r.ad_cost||0).toLocaleString('ru')+'</td>'+
-      '<td class="editable" data-value="'+(r.views||0)+'" onclick="inlineEdit(this,'+r.id+',\'views\',\'number\')">'+(r.views||0).toLocaleString('ru')+'</td>'+
-      '<td class="editable" data-value="'+(r.likes||0)+'" onclick="inlineEdit(this,'+r.id+',\'likes\',\'number\')">'+(r.likes||0).toLocaleString('ru')+'</td>'+
-      '<td class="editable" data-value="'+(r.saves||0)+'" onclick="inlineEdit(this,'+r.id+',\'saves\',\'number\')">'+(r.saves||0).toLocaleString('ru')+'</td>'+
+      ed('text-violet-300 font-medium','blogger_name','text',r.blogger_name,esc(r.blogger_name)+(r.ref_campaign_id?' <span class="text-[10px] text-cyan-500">авто</span>':''))+
+      ed('','platform','select:instagram,telegram',r.platform,pBadge)+
+      ed('text-slate-400','ad_type','select:stories,reels,stories+reels,post',r.ad_type,esc(r.ad_type))+
+      ed('text-slate-500','campaign_date','date',dateVal,dateFmt)+
+      ed('text-amber-400 font-bold','ad_cost','number',r.ad_cost||0,(r.ad_cost||0).toLocaleString('ru'))+
+      ed('','views','number',r.views||0,(r.views||0).toLocaleString('ru'))+
+      ed('','likes','number',r.likes||0,(r.likes||0).toLocaleString('ru'))+
+      ed('','saves','number',r.saves||0,(r.saves||0).toLocaleString('ru'))+
       '<td class="auto text-green-400">'+(r.app_launches||0).toLocaleString('ru')+'</td>'+
       '<td class="auto text-cyan-400">'+(r.registrations||0).toLocaleString('ru')+'</td>'+
       '<td class="auto text-green-400 font-bold">'+(r.payments_count||0)+'</td>'+
@@ -1305,8 +1306,8 @@ async function loadAdStats(){
       '<td class="'+(typeof roas==='number'&&roas>=100?'text-green-400 font-bold':'text-red-400')+'">'+roas+(typeof roas==='number'?'%':'')+'</td>'+
       '<td>'+cr+(typeof cr==='number'?'%':'')+'</td>'+
       '<td>'+(typeof avgChk==='number'?avgChk.toLocaleString('ru')+'₽':'—')+'</td>'+
-      '<td>'+(r.creative_url?'<a href="'+esc(r.creative_url)+'" target="_blank" class="text-violet-400 hover:underline">Ссылка</a>':'<span class="editable text-slate-600" data-value="" onclick="inlineEdit(this,'+r.id+',\'creative_url\',\'text\')">—</span>')+'</td>'+
-      '<td class="editable text-slate-500" data-value="'+esc(r.notes||'')+'" onclick="inlineEdit(this,'+r.id+',\'notes\',\'text\')">'+(r.notes?esc(r.notes):'—')+'</td>'+
+      '<td>'+(r.creative_url?'<a href="'+esc(r.creative_url)+'" target="_blank" class="text-violet-400 hover:underline">Ссылка</a>':ed('text-slate-600','creative_url','text','','—'))+'</td>'+
+      ed('text-slate-500','notes','text',r.notes||'',r.notes?esc(r.notes):'—')+
       '<td><button class="btn btn-danger text-xs" style="padding:3px 8px" onclick="deleteAdStat('+r.id+')">✕</button></td>'+
     '</tr>'
   }).join(''):'<tr><td colspan="19" class="text-center text-slate-500 py-8">Нет записей. Добавьте рекламную кампанию.</td></tr>';
@@ -1335,8 +1336,11 @@ async function loadAdStats(){
     '<div class="glass p-3 text-center"><div class="text-lg font-bold text-cyan-400">'+data.length+'</div><div class="text-xs text-slate-500">Кампаний</div></div>'
 }
 
-function inlineEdit(td,id,field,type){
+function inlineEdit(td){
   if(td.classList.contains('editing'))return;
+  var id=td.getAttribute('data-id');
+  var field=td.getAttribute('data-field');
+  var type=td.getAttribute('data-type');
   var currentValue=td.getAttribute('data-value')||'';
   td.classList.add('editing');
   var input;

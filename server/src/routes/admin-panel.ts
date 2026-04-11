@@ -110,6 +110,20 @@ input:focus,textarea:focus{border-color:rgba(139,92,246,.5);box-shadow:0 0 20px 
 /* Live indicator */
 @keyframes livePulse{0%,100%{opacity:1}50%{opacity:.3}}
 .live-dot{width:8px;height:8px;border-radius:50%;background:#4ade80;animation:livePulse 2s infinite}
+
+/* Inline edit */
+td.editable{cursor:text;position:relative;transition:background .15s}
+td.editable:hover{background:rgba(139,92,246,.08);border-radius:4px}
+td.editing input,td.editing select{background:rgba(0,0,0,.3);border:1px solid rgba(139,92,246,.4);border-radius:6px;padding:4px 8px;color:#fff;font-size:12px;width:100%;outline:none;min-width:60px}
+td.editing input:focus,td.editing select:focus{border-color:rgba(139,92,246,.7);box-shadow:0 0 0 2px rgba(139,92,246,.15)}
+td.auto{color:#475569;cursor:default}
+td.sum-clickable{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px}
+td.sum-clickable:hover{color:#22d3ee}
+tr.payments-detail{background:rgba(6,182,212,.04)}
+tr.payments-detail td{padding:0!important}
+.payments-mini{margin:8px 16px 8px 32px;font-size:11px}
+.payments-mini th{color:#64748b;font-size:10px;padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.06);text-align:left}
+.payments-mini td{padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.02)}
 </style>
 </head><body>
 
@@ -380,34 +394,22 @@ input:focus,textarea:focus{border-color:rgba(139,92,246,.5);box-shadow:0 0 20px 
     <div id="tab-adstats" class="hidden">
       <div class="glass-neon p-4 mb-5 glow-border">
         <h3 class="text-white font-bold text-sm mb-3">Добавить рекламу</h3>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">
           <div><label class="text-xs text-slate-400 block mb-1">Блогер/канал *</label><input id="adBlogger" placeholder="@nickname"></div>
           <div><label class="text-xs text-slate-400 block mb-1">Платформа</label><select id="adPlatform"><option value="instagram">Instagram</option><option value="telegram">Telegram</option></select></div>
           <div><label class="text-xs text-slate-400 block mb-1">Тип рекламы</label><select id="adType"><option value="stories">Stories</option><option value="reels">Reels</option><option value="stories+reels">Stories+Reels</option><option value="post">Post</option></select></div>
+        </div>
+        <div class="grid grid-cols-3 gap-3 mb-3">
           <div><label class="text-xs text-slate-400 block mb-1">Дата</label><input id="adDate" type="date"></div>
-        </div>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
           <div><label class="text-xs text-slate-400 block mb-1">Расход (₽)</label><input id="adCost" type="number" placeholder="0"></div>
-          <div><label class="text-xs text-slate-400 block mb-1">Просмотры</label><input id="adViews" type="number" placeholder="0"></div>
-          <div><label class="text-xs text-slate-400 block mb-1">Лайки</label><input id="adLikes" type="number" placeholder="0"></div>
-          <div><label class="text-xs text-slate-400 block mb-1">Клики</label><input id="adClicks" type="number" placeholder="0"></div>
-        </div>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
-          <div><label class="text-xs text-slate-400 block mb-1">Запуски приложения</label><input id="adLaunches" type="number" placeholder="0"></div>
-          <div><label class="text-xs text-slate-400 block mb-1">Регистрации</label><input id="adRegs" type="number" placeholder="0"></div>
-          <div><label class="text-xs text-slate-400 block mb-1">Оплаты (кол-во)</label><input id="adPayCount" type="number" placeholder="0"></div>
-          <div><label class="text-xs text-slate-400 block mb-1">Сумма оплат (₽)</label><input id="adPaySum" type="number" placeholder="0"></div>
-        </div>
-        <div class="grid grid-cols-2 gap-3 mb-3">
           <div><label class="text-xs text-slate-400 block mb-1">Ссылка на креатив</label><input id="adCreative" placeholder="https://..."></div>
-          <div><label class="text-xs text-slate-400 block mb-1">Заметки</label><input id="adNotes" placeholder="Комментарий..."></div>
         </div>
-        <button class="btn btn-primary" onclick="saveAdStat()">📈 Добавить</button>
+        <button class="btn btn-primary" onclick="saveAdStat()">+ Добавить</button>
       </div>
-      <div id="adStatsSummary" class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-5"></div>
+      <div id="adStatsSummary" class="grid grid-cols-2 sm:grid-cols-6 gap-3 mb-5"></div>
       <div class="glass-neon p-4 glow-border">
         <div class="overflow-x-auto"><table class="text-xs"><thead><tr>
-          <th>Блогер</th><th>Платформа</th><th>Тип</th><th>Дата</th><th>Расход ₽</th><th>Просм.</th><th>Лайки</th><th>Клики</th><th>Запуски</th><th>Рег.</th><th>Оплаты</th><th>Сумма ₽</th><th>CPR ₽</th><th>ROAS %</th><th>CR %</th><th>Креатив</th><th></th>
+          <th>Блогер</th><th>Платф.</th><th>Тип</th><th>Дата</th><th>Расход ₽</th><th>Просм.</th><th>Лайки</th><th>Сохр.</th><th class="text-slate-600">Открыли</th><th class="text-slate-600">Старт</th><th class="text-slate-600">Оплаты</th><th class="text-slate-600">Сумма ₽</th><th>CPR ₽</th><th>ROAS %</th><th>CR %</th><th>Ср. чек</th><th>Креатив</th><th>Заметки</th><th></th>
         </tr></thead><tbody id="adStatsBody"></tbody>
         <tfoot id="adStatsFoot"></tfoot>
         </table></div>
@@ -1274,55 +1276,129 @@ function renderCampPage(code){
 // ═══ AD STATS ═══
 async function loadAdStats(){
   var data=await G('/admin/ad-stats');if(!Array.isArray(data))data=[];
-  var totals={cost:0,views:0,likes:0,clicks:0,launches:0,regs:0,payC:0,payS:0};
+  var totals={cost:0,views:0,likes:0,saves:0,launches:0,regs:0,payC:0,payS:0};
   var tbody=document.getElementById('adStatsBody');
   tbody.innerHTML=data.length?data.map(function(r){
-    totals.cost+=r.ad_cost||0;totals.views+=r.views||0;totals.likes+=r.likes||0;totals.clicks+=r.clicks||0;
+    totals.cost+=r.ad_cost||0;totals.views+=r.views||0;totals.likes+=r.likes||0;totals.saves+=r.saves||0;
     totals.launches+=r.app_launches||0;totals.regs+=r.registrations||0;totals.payC+=r.payments_count||0;totals.payS+=r.payments_sum||0;
     var cpr=r.registrations>0?Math.round(r.ad_cost/r.registrations):'—';
     var roas=r.ad_cost>0?Math.round(r.payments_sum/r.ad_cost*100):'—';
     var cr=r.app_launches>0?Math.round(r.payments_count/r.app_launches*100):'—';
+    var avgChk=r.payments_count>0?Math.round(r.payments_sum/r.payments_count):'—';
     var pBadge=r.platform==='telegram'?'<span class="text-blue-400">TG</span>':'<span class="text-pink-400">IG</span>';
-    return '<tr>'+
-      '<td class="text-violet-300 font-medium">'+esc(r.blogger_name)+(r.ref_campaign_id?' <span class="text-[10px] text-cyan-500">авто</span>':'')+'</td>'+
-      '<td>'+pBadge+'</td>'+
-      '<td class="text-slate-400">'+esc(r.ad_type)+'</td>'+
-      '<td class="text-slate-500">'+(r.campaign_date?new Date(r.campaign_date).toLocaleDateString('ru'):'—')+'</td>'+
-      '<td class="text-amber-400 font-bold">'+(r.ad_cost||0).toLocaleString('ru')+'</td>'+
-      '<td>'+(r.views||0).toLocaleString('ru')+'</td>'+
-      '<td>'+(r.likes||0).toLocaleString('ru')+'</td>'+
-      '<td>'+(r.clicks||0).toLocaleString('ru')+'</td>'+
-      '<td class="text-green-400">'+(r.app_launches||0).toLocaleString('ru')+'</td>'+
-      '<td class="text-cyan-400">'+(r.registrations||0).toLocaleString('ru')+'</td>'+
-      '<td class="text-green-400 font-bold">'+(r.payments_count||0)+'</td>'+
-      '<td class="text-green-400 font-bold">'+(r.payments_sum||0).toLocaleString('ru')+'</td>'+
+    var dateVal=r.campaign_date?r.campaign_date.substring(0,10):'';
+    var dateFmt=dateVal?new Date(r.campaign_date).toLocaleDateString('ru'):'—';
+    return '<tr id="ad-row-'+r.id+'">'+
+      '<td class="editable text-violet-300 font-medium" data-value="'+esc(r.blogger_name)+'" onclick="inlineEdit(this,'+r.id+',\'blogger_name\',\'text\')">'+esc(r.blogger_name)+(r.ref_campaign_id?' <span class="text-[10px] text-cyan-500">авто</span>':'')+'</td>'+
+      '<td class="editable" data-value="'+esc(r.platform)+'" onclick="inlineEdit(this,'+r.id+',\'platform\',\'select:instagram,telegram\')">'+pBadge+'</td>'+
+      '<td class="editable text-slate-400" data-value="'+esc(r.ad_type)+'" onclick="inlineEdit(this,'+r.id+',\'ad_type\',\'select:stories,reels,stories+reels,post\')">'+esc(r.ad_type)+'</td>'+
+      '<td class="editable text-slate-500" data-value="'+dateVal+'" onclick="inlineEdit(this,'+r.id+',\'campaign_date\',\'date\')">'+dateFmt+'</td>'+
+      '<td class="editable text-amber-400 font-bold" data-value="'+(r.ad_cost||0)+'" onclick="inlineEdit(this,'+r.id+',\'ad_cost\',\'number\')">'+(r.ad_cost||0).toLocaleString('ru')+'</td>'+
+      '<td class="editable" data-value="'+(r.views||0)+'" onclick="inlineEdit(this,'+r.id+',\'views\',\'number\')">'+(r.views||0).toLocaleString('ru')+'</td>'+
+      '<td class="editable" data-value="'+(r.likes||0)+'" onclick="inlineEdit(this,'+r.id+',\'likes\',\'number\')">'+(r.likes||0).toLocaleString('ru')+'</td>'+
+      '<td class="editable" data-value="'+(r.saves||0)+'" onclick="inlineEdit(this,'+r.id+',\'saves\',\'number\')">'+(r.saves||0).toLocaleString('ru')+'</td>'+
+      '<td class="auto text-green-400">'+(r.app_launches||0).toLocaleString('ru')+'</td>'+
+      '<td class="auto text-cyan-400">'+(r.registrations||0).toLocaleString('ru')+'</td>'+
+      '<td class="auto text-green-400 font-bold">'+(r.payments_count||0)+'</td>'+
+      '<td class="auto sum-clickable text-green-400 font-bold" onclick="togglePayments('+r.id+')">'+(r.payments_sum||0).toLocaleString('ru')+'</td>'+
       '<td class="'+(typeof cpr==='number'&&cpr<50?'text-green-400':'text-slate-300')+'">'+cpr+'</td>'+
       '<td class="'+(typeof roas==='number'&&roas>=100?'text-green-400 font-bold':'text-red-400')+'">'+roas+(typeof roas==='number'?'%':'')+'</td>'+
       '<td>'+cr+(typeof cr==='number'?'%':'')+'</td>'+
-      '<td>'+(r.creative_url?'<a href="'+esc(r.creative_url)+'" target="_blank" class="text-violet-400 hover:underline">Ссылка</a>':'—')+'</td>'+
+      '<td>'+(typeof avgChk==='number'?avgChk.toLocaleString('ru')+'₽':'—')+'</td>'+
+      '<td>'+(r.creative_url?'<a href="'+esc(r.creative_url)+'" target="_blank" class="text-violet-400 hover:underline">Ссылка</a>':'<span class="editable text-slate-600" data-value="" onclick="inlineEdit(this,'+r.id+',\'creative_url\',\'text\')">—</span>')+'</td>'+
+      '<td class="editable text-slate-500" data-value="'+esc(r.notes||'')+'" onclick="inlineEdit(this,'+r.id+',\'notes\',\'text\')">'+(r.notes?esc(r.notes):'—')+'</td>'+
       '<td><button class="btn btn-danger text-xs" style="padding:3px 8px" onclick="deleteAdStat('+r.id+')">✕</button></td>'+
     '</tr>'
-  }).join(''):'<tr><td colspan="17" class="text-center text-slate-500 py-8">Нет записей. Добавьте рекламную кампанию.</td></tr>';
+  }).join(''):'<tr><td colspan="19" class="text-center text-slate-500 py-8">Нет записей. Добавьте рекламную кампанию.</td></tr>';
   // Footer totals
   var tCpr=totals.regs>0?Math.round(totals.cost/totals.regs):'—';
   var tRoas=totals.cost>0?Math.round(totals.payS/totals.cost*100):'—';
   var tCr=totals.launches>0?Math.round(totals.payC/totals.launches*100):'—';
+  var tAvg=totals.payC>0?Math.round(totals.payS/totals.payC):'—';
   document.getElementById('adStatsFoot').innerHTML='<tr class="font-bold text-white border-t border-white/10">'+
     '<td>ИТОГО</td><td></td><td></td><td></td>'+
     '<td class="text-amber-400">'+totals.cost.toLocaleString('ru')+'</td>'+
-    '<td>'+totals.views.toLocaleString('ru')+'</td><td>'+totals.likes.toLocaleString('ru')+'</td><td>'+totals.clicks.toLocaleString('ru')+'</td>'+
+    '<td>'+totals.views.toLocaleString('ru')+'</td><td>'+totals.likes.toLocaleString('ru')+'</td><td>'+totals.saves.toLocaleString('ru')+'</td>'+
     '<td class="text-green-400">'+totals.launches.toLocaleString('ru')+'</td><td class="text-cyan-400">'+totals.regs.toLocaleString('ru')+'</td>'+
     '<td class="text-green-400">'+totals.payC+'</td><td class="text-green-400">'+totals.payS.toLocaleString('ru')+'</td>'+
     '<td>'+tCpr+'</td><td class="'+(typeof tRoas==='number'&&tRoas>=100?'text-green-400':'text-red-400')+'">'+tRoas+(typeof tRoas==='number'?'%':'')+'</td>'+
-    '<td>'+tCr+(typeof tCr==='number'?'%':'')+'</td><td></td><td></td></tr>';
+    '<td>'+tCr+(typeof tCr==='number'?'%':'')+'</td>'+
+    '<td>'+(typeof tAvg==='number'?tAvg.toLocaleString('ru')+'₽':'—')+'</td>'+
+    '<td></td><td></td><td></td></tr>';
   // Summary cards
   document.getElementById('adStatsSummary').innerHTML=
     '<div class="glass p-3 text-center"><div class="text-lg font-bold text-amber-400">'+totals.cost.toLocaleString('ru')+'₽</div><div class="text-xs text-slate-500">Расход</div></div>'+
     '<div class="glass p-3 text-center"><div class="text-lg font-bold text-green-400">'+totals.payS.toLocaleString('ru')+'₽</div><div class="text-xs text-slate-500">Доход</div></div>'+
     '<div class="glass p-3 text-center"><div class="text-lg font-bold '+(typeof tRoas==='number'&&tRoas>=100?'text-green-400':'text-red-400')+'">'+tRoas+(typeof tRoas==='number'?'%':'')+'</div><div class="text-xs text-slate-500">ROAS</div></div>'+
     '<div class="glass p-3 text-center"><div class="text-lg font-bold gradient-text">'+tCpr+'</div><div class="text-xs text-slate-500">CPR (₽/рег)</div></div>'+
+    '<div class="glass p-3 text-center"><div class="text-lg font-bold text-violet-400">'+(typeof tAvg==='number'?tAvg.toLocaleString('ru')+'₽':'—')+'</div><div class="text-xs text-slate-500">Ср. чек</div></div>'+
     '<div class="glass p-3 text-center"><div class="text-lg font-bold text-cyan-400">'+data.length+'</div><div class="text-xs text-slate-500">Кампаний</div></div>'
 }
+
+function inlineEdit(td,id,field,type){
+  if(td.classList.contains('editing'))return;
+  var currentValue=td.getAttribute('data-value')||'';
+  td.classList.add('editing');
+  var input;
+  if(type.indexOf('select:')===0){
+    var options=type.split(':')[1].split(',');
+    input=document.createElement('select');
+    options.forEach(function(o){
+      var opt=document.createElement('option');
+      opt.value=o;opt.textContent=o;
+      if(o===currentValue)opt.selected=true;
+      input.appendChild(opt);
+    });
+  }else{
+    input=document.createElement('input');
+    input.type=type==='date'?'date':type==='number'?'number':'text';
+    input.value=currentValue==='—'?'':currentValue;
+    if(type==='number')input.style.width='80px';
+  }
+  td.textContent='';
+  td.appendChild(input);
+  input.focus();
+  var saving=false;
+  function save(){
+    if(saving)return;saving=true;
+    var val=input.value;
+    td.classList.remove('editing');
+    var payload={id:id};
+    payload[field]=val;
+    P('/admin/ad-stats',payload).then(function(){loadAdStats()});
+  }
+  input.addEventListener('blur',save);
+  input.addEventListener('keydown',function(e){
+    if(e.key==='Enter'){e.preventDefault();save()}
+    if(e.key==='Escape'){td.classList.remove('editing');loadAdStats()}
+  });
+}
+
+async function togglePayments(id){
+  var existingRow=document.getElementById('payments-detail-'+id);
+  if(existingRow){existingRow.remove();return}
+  var row=document.getElementById('ad-row-'+id);
+  if(!row)return;
+  var data=await G('/admin/ad-stats/'+id+'/payments');
+  if(!Array.isArray(data)||data.length===0){
+    var emptyRow=document.createElement('tr');
+    emptyRow.id='payments-detail-'+id;emptyRow.className='payments-detail';
+    emptyRow.innerHTML='<td colspan="19"><div class="payments-mini text-slate-500 py-2">Нет чеков</div></td>';
+    row.after(emptyRow);return;
+  }
+  var detailRow=document.createElement('tr');
+  detailRow.id='payments-detail-'+id;detailRow.className='payments-detail';
+  detailRow.innerHTML='<td colspan="19"><div class="payments-mini"><table width="100%">'+
+    '<thead><tr><th>Пользователь</th><th>Пакет</th><th>Сумма ₽</th><th>Дата оплаты</th></tr></thead>'+
+    '<tbody>'+data.map(function(p){
+      return '<tr><td class="text-violet-300">@'+esc(p.username||p.first_name||'—')+'</td>'+
+        '<td>'+esc(p.package)+'</td>'+
+        '<td class="text-green-400">'+(p.amount_rub||0).toLocaleString('ru')+' ₽</td>'+
+        '<td class="text-slate-500">'+(p.paid_at?new Date(p.paid_at).toLocaleString('ru'):'—')+'</td></tr>';
+    }).join('')+'</tbody></table></div></td>';
+  row.after(detailRow);
+}
+
 async function saveAdStat(){
   var b=document.getElementById('adBlogger').value.trim();
   if(!b){alert('Введите имя блогера/канала');return}
@@ -1332,22 +1408,10 @@ async function saveAdStat(){
     ad_type:document.getElementById('adType').value,
     campaign_date:document.getElementById('adDate').value||null,
     ad_cost:document.getElementById('adCost').value||0,
-    views:document.getElementById('adViews').value||0,
-    likes:document.getElementById('adLikes').value||0,
-    clicks:document.getElementById('adClicks').value||0,
-    app_launches:document.getElementById('adLaunches').value||0,
-    registrations:document.getElementById('adRegs').value||0,
-    payments_count:document.getElementById('adPayCount').value||0,
-    payments_sum:document.getElementById('adPaySum').value||0,
-    creative_url:document.getElementById('adCreative').value||null,
-    notes:document.getElementById('adNotes').value||null
+    creative_url:document.getElementById('adCreative').value||null
   });
   document.getElementById('adBlogger').value='';document.getElementById('adCost').value='';
-  document.getElementById('adViews').value='';document.getElementById('adLikes').value='';
-  document.getElementById('adClicks').value='';document.getElementById('adLaunches').value='';
-  document.getElementById('adRegs').value='';document.getElementById('adPayCount').value='';
-  document.getElementById('adPaySum').value='';document.getElementById('adCreative').value='';
-  document.getElementById('adNotes').value='';
+  document.getElementById('adCreative').value='';
   loadAdStats()
 }
 async function deleteAdStat(id){if(!confirm('Удалить запись?'))return;await D('/admin/ad-stats/'+id);loadAdStats()}

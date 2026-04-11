@@ -387,6 +387,12 @@ export async function migrate() {
     CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON transactions (user_id);
     CREATE INDEX IF NOT EXISTS idx_generations_user_id ON generations (user_id);
     CREATE INDEX IF NOT EXISTS idx_push_sent_user_id ON push_sent (user_id);
+
+    -- Колонка сохранений для рекламной статистики
+    DO $$ BEGIN
+      ALTER TABLE ad_campaigns ADD COLUMN saves INTEGER NOT NULL DEFAULT 0;
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$;
   `);
 
   console.log('✅ Миграции применены');

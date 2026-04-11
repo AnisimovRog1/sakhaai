@@ -1070,18 +1070,30 @@ adminRouter.get('/ad-stats', async (_req: Request, res: Response) => {
 
 adminRouter.post('/ad-stats', async (req: Request, res: Response) => {
   try {
-    const { id, blogger_name, platform, ad_type, creative_url, ad_cost, views, likes, comments, clicks, app_launches, registrations, payments_count, payments_sum, notes, campaign_date } = req.body;
+    const { id, blogger_name, platform, ad_type, creative_url, ad_cost, campaign_date } = req.body;
     if (id) {
-      await pool.query(
-        `UPDATE ad_campaigns SET blogger_name=$1, platform=$2, ad_type=$3, creative_url=$4, ad_cost=$5, views=$6, likes=$7, comments=$8, clicks=$9, app_launches=$10, registrations=$11, payments_count=$12, payments_sum=$13, notes=$14, campaign_date=$15 WHERE id=$16`,
-        [blogger_name, platform, ad_type, creative_url||null, +ad_cost||0, +views||0, +likes||0, +comments||0, +clicks||0, +app_launches||0, +registrations||0, +payments_count||0, +payments_sum||0, notes||null, campaign_date||null, id]
-      );
+      // Partial update — только ручные поля (whitelist)
+      const allowedFields = ['blogger_name','platform','ad_type','creative_url','ad_cost','views','likes','saves','notes','campaign_date'];
+      const numericFields = ['ad_cost','views','likes','saves'];
+      const sets: string[] = [];
+      const vals: any[] = [];
+      let idx = 1;
+      for (const f of allowedFields) {
+        if (req.body[f] !== undefined) {
+          sets.push(`${f} = $${idx}`);
+          vals.push(numericFields.includes(f) ? (+req.body[f] || 0) : (req.body[f] || null));
+          idx++;
+        }
+      }
+      if (sets.length === 0) { res.json({ ok: true }); return; }
+      vals.push(id);
+      await pool.query(`UPDATE ad_campaigns SET ${sets.join(', ')} WHERE id = $${idx}`, vals);
       res.json({ ok: true });
     } else {
       const r = await pool.query(
-        `INSERT INTO ad_campaigns (blogger_name, platform, ad_type, creative_url, ad_cost, views, likes, comments, clicks, app_launches, registrations, payments_count, payments_sum, notes, campaign_date)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
-        [blogger_name, platform||'instagram', ad_type||'stories', creative_url||null, +ad_cost||0, +views||0, +likes||0, +comments||0, +clicks||0, +app_launches||0, +registrations||0, +payments_count||0, +payments_sum||0, notes||null, campaign_date||null]
+        `INSERT INTO ad_campaigns (blogger_name, platform, ad_type, creative_url, ad_cost, campaign_date)
+         VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+        [blogger_name, platform||'instagram', ad_type||'stories', creative_url||null, +ad_cost||0, campaign_date||null]
       );
       res.json(r.rows[0]);
     }
@@ -1092,6 +1104,29 @@ adminRouter.delete('/ad-stats/:id', async (req: Request, res: Response) => {
   try {
     await pool.query(`DELETE FROM ad_campaigns WHERE id = $1`, [req.params.id]);
     res.json({ ok: true });
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+// Индивидуальные чеки по рекламной кампании
+adminRouter.get('/ad-stats/:id/payments', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const campResult = await pool.query(`
+      SELECT rc.code
+      FROM ad_campaigns ac
+      JOIN ref_campaigns rc ON rc.id = ac.ref_campaign_id
+      WHERE ac.id = $1
+    `, [id]);
+    if (!campResult.rows.length) { res.json([]); return; }
+    const code = campResult.rows[0].code;
+    const payments = await pool.query(`
+      SELECT u.username, u.first_name, o.package, o.amount_rub, o.paid_at
+      FROM orders o
+      JOIN users u ON u.id = o.user_id
+      WHERE u.campaign_code = $1 AND o.status = 'paid'
+      ORDER BY o.paid_at DESC
+    `, [code]);
+    res.json(payments.rows);
   } catch (err: any) { res.status(500).json({ error: err.message }); }
 });
 

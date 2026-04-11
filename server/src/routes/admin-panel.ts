@@ -29,7 +29,7 @@ const HTML = `<!DOCTYPE html>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
 *{box-sizing:border-box;margin:0}
-body{min-height:100vh;background:#040810;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;overflow-x:hidden}
+body{min-height:100vh;background:#040810;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;overflow-x:hidden;overscroll-behavior-x:none}
 
 /* Animated background */
 body::before{content:'';position:fixed;inset:0;z-index:0;
@@ -135,7 +135,7 @@ tr.payments-detail td{padding:0!important}
 .nav-item:hover{color:#94a3b8;background:rgba(255,255,255,.04)}
 .nav-item.active{color:#fff;background:linear-gradient(135deg,rgba(139,92,246,.25),rgba(6,182,212,.15));border:1px solid rgba(139,92,246,.3);box-shadow:0 0 20px rgba(139,92,246,.08)}
 .nav-item .nav-icon{width:20px;text-align:center;font-size:15px}
-.main-content{margin-left:220px;flex:1;min-height:100vh}
+.main-content{margin-left:220px;flex:1;min-height:100vh;overflow-x:hidden}
 .content-header{padding:20px 24px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;background:rgba(10,15,26,.5);backdrop-filter:blur(12px);position:sticky;top:0;z-index:30}
 .content-body{padding:24px;max-width:1400px}
 
@@ -160,6 +160,7 @@ tr.payments-detail td{padding:0!important}
 .section-group-title{position:absolute;top:-10px;left:16px;background:#040810;padding:0 8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#8b5cf6}
 
 /* ═══ BORDERED TABLES ═══ */
+.scroll-container{overflow-x:auto;overflow-y:visible;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
 table.bordered{border-collapse:separate;border-spacing:0;border:1px solid rgba(255,255,255,.08);border-radius:10px;overflow:hidden}
 table.bordered th{border-bottom:1px solid rgba(255,255,255,.08);border-right:1px solid rgba(255,255,255,.04);padding:12px 14px}
 table.bordered td{border-bottom:1px solid rgba(255,255,255,.04);border-right:1px solid rgba(255,255,255,.03);padding:10px 14px}
@@ -267,7 +268,7 @@ table.bordered tr:last-child td{border-bottom:none}
           <button class="btn btn-danger" onclick="removeCredits()" style="padding:10px 16px;font-size:13px">➖ Списать</button>
         </div>
       </div>
-      <div class="glass-strong overflow-x-auto">
+      <div class="glass-strong scroll-container">
         <table class="bordered"><thead><tr><th>ID</th><th>Username</th><th>Имя</th><th>App</th><th><span class="anim-pulse">💎</span> Кредиты</th><th>Кампания</th><th>Бонус</th><th>Статус</th><th>TZ</th><th>Дата</th><th>Действия</th></tr></thead>
         <tbody id="usersTable"></tbody></table>
       </div>
@@ -324,7 +325,7 @@ table.bordered tr:last-child td{border-bottom:none}
 
       <!-- Таблица пушей -->
       <h3 class="text-base font-bold mb-4 flex items-center gap-2"><span class="anim-pulse">📋</span> Разовые пуши</h3>
-      <div class="overflow-x-auto mb-5">
+      <div class="scroll-container mb-5">
         <table class="bordered">
           <thead><tr>
             <th>Статус</th><th>Тип</th><th>Название</th><th>Медиа</th><th>Время</th><th>Текст</th><th>Действия</th>
@@ -415,7 +416,7 @@ table.bordered tr:last-child td{border-bottom:none}
       <div id="adStatsSummary" class="grid grid-cols-2 sm:grid-cols-6 gap-3 mb-5"></div>
       <div class="section-group">
         <div class="section-group-title">КАМПАНИИ</div>
-        <div class="overflow-x-auto"><table class="bordered text-xs"><thead><tr>
+        <div class="scroll-container"><table class="bordered text-xs"><thead><tr>
           <th>Блогер</th><th>Платф.</th><th>Тип</th><th>Дата</th><th>Расход ₽</th><th>Просм.</th><th>Лайки</th><th>Сохр.</th><th class="text-slate-600">Открыли</th><th class="text-slate-600">Старт</th><th class="text-slate-600">Оплаты</th><th class="text-slate-600">Сумма ₽</th><th>CPR ₽</th><th>ROAS %</th><th>CR %</th><th>Ср. чек</th><th>Креатив</th><th>Заметки</th><th></th>
         </tr></thead><tbody id="adStatsBody"></tbody>
         <tfoot id="adStatsFoot"></tfoot>
@@ -1212,7 +1213,7 @@ async function loadReferrals(){
         '</div>'+
       '</div>'+
       '<div id="ref-users-'+key+'" class="hidden mt-4">'+
-        '<div class="overflow-x-auto"><table class="text-xs"><thead><tr>'+
+        '<div class="scroll-container"><table class="text-xs"><thead><tr>'+
           '<th>Приглашённый</th><th>Статус</th><th>Пакет</th><th>Награда</th><th>AI запрос</th><th>Приглашён</th><th>Оплата</th>'+
         '</tr></thead><tbody>'+
         g.refs.map(function(r){
@@ -1273,7 +1274,7 @@ async function loadCampaigns(){
     '</div>'+
     '<div id="camp-users-'+c.code+'" class="hidden mt-4">'+
     '<div class="flex gap-2 mb-3 items-center"><input id="camp-search-'+c.code+'" placeholder="Поиск по имени или @username" class="flex-1 text-xs" data-code="'+c.code+'" oninput="filterCampUsers(this.dataset.code)"><span id="camp-count-'+c.code+'" class="text-xs text-slate-500"></span></div>'+
-    '<div class="overflow-x-auto"><table class="text-xs"><thead><tr><th>ID</th><th>Username</th><th>Имя</th><th>App</th><th>Кредиты</th><th>Покупки</th><th>Чаты</th><th>Пригласил</th><th>Бонус</th><th>Регистрация</th><th>Последний визит</th></tr></thead>'+
+    '<div class="scroll-container"><table class="text-xs"><thead><tr><th>ID</th><th>Username</th><th>Имя</th><th>App</th><th>Кредиты</th><th>Покупки</th><th>Чаты</th><th>Пригласил</th><th>Бонус</th><th>Регистрация</th><th>Последний визит</th></tr></thead>'+
     '<tbody id="camp-tbody-'+c.code+'"></tbody></table></div>'+
     '<div id="camp-pager-'+c.code+'" class="flex justify-center gap-2 mt-3"></div>'+
     '</div></div>'

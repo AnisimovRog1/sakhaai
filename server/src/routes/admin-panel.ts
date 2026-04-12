@@ -436,6 +436,18 @@ table.bordered tr:last-child td{border-bottom:none}
       <div id="adTotalsCircular" class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-5"></div>
     </div>
 
+    <!-- Notes Modal -->
+    <div id="notesModal" class="hidden" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;align-items:center;justify-content:center;background:rgba(0,0,0,.7)">
+      <div class="glass-neon p-6 w-full max-w-lg mx-4" style="border-radius:16px">
+        <h3 class="text-sm font-bold gradient-text uppercase tracking-wider mb-3">Заметка</h3>
+        <textarea id="notesText" rows="6" class="w-full" placeholder="Введите заметку..."></textarea>
+        <div class="flex gap-2 mt-3">
+          <button class="btn btn-primary flex-1" data-action="saveNote">Сохранить</button>
+          <button class="btn btn-ghost" data-action="closeNote">Отмена</button>
+        </div>
+      </div>
+    </div>
+
     </div><!-- content-body -->
   </div><!-- main-content -->
 </div><!-- panelPage -->
@@ -1447,7 +1459,7 @@ async function loadAdStats(){
       '<td>'+cr+(typeof cr==='number'?'%':'')+'</td>'+
       '<td>'+(typeof avgChk==='number'?avgChk.toLocaleString('ru')+'₽':'—')+'</td>'+
       '<td>'+(r.creative_url?'<a href="'+esc(r.creative_url)+'" target="_blank" class="text-violet-400 hover:underline">Ссылка</a>':ed('text-slate-600','creative_url','text','','—'))+'</td>'+
-      ed('text-slate-500','notes','text',r.notes||'',r.notes?esc(r.notes):'—')+
+      '<td class="text-slate-500 cursor-pointer hover:text-violet-300" data-note-id="'+r.id+'" data-note-text="'+esc(r.notes||'')+'">'+(r.notes?'<span title="'+esc(r.notes)+'">📝</span>':'<span class="text-slate-600">—</span>')+'</td>'+
       '<td><button class="btn btn-danger text-xs" style="padding:3px 8px" onclick="deleteAdStat('+r.id+')">✕</button></td>'+
     '</tr>'
   }).join(''):'<tr><td colspan="19" class="text-center text-slate-500 py-8">Нет записей. Добавьте рекламную кампанию.</td></tr>';
@@ -1535,7 +1547,11 @@ function inlineEdit(td){
     td.classList.remove('editing');
     var payload={id:id};
     payload[field]=val;
-    P('/admin/ad-stats',payload).then(function(){loadAdStats()});
+    console.log('[inlineEdit] SAVE',JSON.stringify(payload));
+    P('/admin/ad-stats',payload).then(function(resp){
+      console.log('[inlineEdit] OK',JSON.stringify(resp));
+      loadAdStats();
+    }).catch(function(err){console.error('[inlineEdit] FAIL',err)});
   }
   input.addEventListener('blur',save);
   input.addEventListener('keydown',function(e){
@@ -1543,6 +1559,28 @@ function inlineEdit(td){
     if(e.key==='Escape'){td.classList.remove('editing');loadAdStats()}
   });
 }
+
+// Notes modal
+var currentNoteId=null;
+document.addEventListener('click',function(e){
+  var cell=e.target.closest('[data-note-id]');if(!cell)return;
+  currentNoteId=cell.getAttribute('data-note-id');
+  document.getElementById('notesText').value=cell.getAttribute('data-note-text')||'';
+  var modal=document.getElementById('notesModal');modal.classList.remove('hidden');modal.style.display='flex';
+  document.getElementById('notesText').focus();
+});
+document.addEventListener('click',function(e){
+  if(e.target.closest('[data-action="saveNote"]')){
+    var text=document.getElementById('notesText').value;
+    P('/admin/ad-stats',{id:currentNoteId,notes:text}).then(function(){
+      var modal=document.getElementById('notesModal');modal.classList.add('hidden');modal.style.display='';
+      loadAdStats();
+    });
+  }
+  if(e.target.closest('[data-action="closeNote"]')){
+    var modal=document.getElementById('notesModal');modal.classList.add('hidden');modal.style.display='';
+  }
+});
 
 async function togglePayments(id){
   var existingRow=document.getElementById('payments-detail-'+id);

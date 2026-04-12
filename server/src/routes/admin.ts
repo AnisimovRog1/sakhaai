@@ -1183,8 +1183,8 @@ adminRouter.post('/ad-stats', async (req: Request, res: Response) => {
     const { id, blogger_name, platform, ad_type, creative_url, ad_cost, campaign_date } = req.body;
     if (id) {
       // Partial update — только ручные поля (whitelist)
-      const allowedFields = ['blogger_name','platform','ad_type','creative_url','ad_cost','views','likes','saves','notes','campaign_date'];
-      const numericFields = ['ad_cost','views','likes','saves'];
+      const allowedFields = ['blogger_name','platform','ad_type','creative_url','ad_cost','views','likes','saves','comments','clicks','notes','campaign_date'];
+      const numericFields = ['ad_cost','views','likes','saves','comments','clicks'];
       const sets: string[] = [];
       const vals: any[] = [];
       let idx = 1;

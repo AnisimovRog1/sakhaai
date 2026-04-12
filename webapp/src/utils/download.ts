@@ -2,9 +2,9 @@
  * Скачивание медиа в галерею — работает на iOS, Android, Desktop.
  *
  * Стратегия:
- * - data: URL (base64 от Gemini) → серверный proxy /download (работает везде)
- * - https URL (Kling CDN) → tg.downloadFile() → share → proxy fallback
- * - Desktop → a.download / proxy
+ * - data: URL (base64 от Gemini) → blob → share/a.download
+ * - https URL (Kling CDN) → tg.downloadFile() → fetch blob → share/a.download → proxy
+ * - Старый Android без share → скрытый iframe на proxy
  */
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -13,67 +13,89 @@ export async function downloadMedia(url: string, fileName: string): Promise<'ok'
   const tg = (window as any).Telegram?.WebApp;
   const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
-  // === data: URL (base64 изображения из Gemini) ===
-  // Telegram API НЕ поддерживает data: URL → всегда через proxy
-  if (url.startsWith('data:')) {
-    return downloadViaProxy(url, fileName);
-  }
-
-  // === Внешний https URL (Kling CDN видео/аватары) ===
-
-  // Layer 1: Telegram Mini App downloadFile (https URLs only)
-  if (tg?.downloadFile) {
+  // === Layer 1: Telegram Mini App downloadFile (только https URL) ===
+  if (tg?.downloadFile && url.startsWith('http')) {
     try {
       tg.downloadFile({ url, file_name: fileName });
       return 'ok';
     } catch { /* fallthrough */ }
   }
 
-  // Layer 2: fetch blob → share (мобильный) или a.download (десктоп)
+  // === Layer 2: Получить blob (из data: URL или fetch) ===
   let blob: Blob | null = null;
-  try {
-    const resp = await fetch(url);
-    if (resp.ok) blob = await resp.blob();
-  } catch { /* CORS блокирует — пойдём на proxy */ }
 
-  if (blob) {
-    // Мобильный: navigator.share
-    if (isMobile && navigator.share && navigator.canShare) {
-      try {
-        const file = new File([blob], fileName, { type: blob.type });
-        if (navigator.canShare({ files: [file] })) {
-          await navigator.share({ files: [file], title: fileName });
-          return 'share';
-        }
-      } catch (e: any) {
-        if (e?.name === 'AbortError') return 'share';
-        // fallthrough
-      }
-    }
+  if (url.startsWith('data:')) {
+    // data: URL → декодировать base64 в blob локально (без сервера)
+    try {
+      const resp = await fetch(url);
+      blob = await resp.blob();
+    } catch { /* fallthrough */ }
+  } else {
+    // Внешний URL → попробовать fetch напрямую
+    try {
+      const resp = await fetch(url);
+      if (resp.ok) blob = await resp.blob();
+    } catch { /* CORS — попробуем через proxy */ }
 
-    // Десктоп: a.download
-    if (!isMobile) {
+    // Если CORS заблокировал → fetch через серверный proxy
+    if (!blob) {
       try {
-        const blobUrl = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-        return 'ok';
+        const proxyUrl = `${API_BASE}/download?url=${encodeURIComponent(url)}&name=${encodeURIComponent(fileName)}`;
+        const resp = await fetch(proxyUrl);
+        if (resp.ok) blob = await resp.blob();
       } catch { /* fallthrough */ }
     }
   }
 
-  // Layer 3: серверный proxy — последний fallback (работает ВСЕГДА)
-  return downloadViaProxy(url, fileName);
-}
+  if (!blob) {
+    // Совсем крайний случай — открыть URL напрямую
+    window.open(url, '_blank');
+    return 'fallback';
+  }
 
-/** Скачивание через серверный proxy /download — обходит CORS, поддерживает data: URL */
-function downloadViaProxy(url: string, fileName: string): 'ok' {
-  const proxyUrl = `${API_BASE}/download?url=${encodeURIComponent(url)}&name=${encodeURIComponent(fileName)}`;
-  window.location.href = proxyUrl;
-  return 'ok';
+  // === Layer 3: Сохранить blob ===
+
+  // 3a: navigator.share — мобильные (iOS + Android)
+  if (isMobile && navigator.share && navigator.canShare) {
+    try {
+      const file = new File([blob], fileName, { type: blob.type });
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: fileName });
+        return 'share';
+      }
+    } catch (e: any) {
+      if (e?.name === 'AbortError') return 'share';
+      // fallthrough
+    }
+  }
+
+  // 3b: a.download — работает на десктопе и Android Chrome
+  try {
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = fileName;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+    return 'ok';
+  } catch { /* fallthrough */ }
+
+  // 3c: Последний fallback — скрытый iframe для download
+  if (!url.startsWith('data:')) {
+    try {
+      const proxyUrl = `${API_BASE}/download?url=${encodeURIComponent(url)}&name=${encodeURIComponent(fileName)}`;
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = proxyUrl;
+      document.body.appendChild(iframe);
+      setTimeout(() => document.body.removeChild(iframe), 10000);
+      return 'ok';
+    } catch { /* fallthrough */ }
+  }
+
+  window.open(url, '_blank');
+  return 'fallback';
 }

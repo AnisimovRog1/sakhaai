@@ -428,7 +428,7 @@ table.bordered tr:last-child td{border-bottom:none}
       <div class="section-group">
         <div class="section-group-title">КАМПАНИИ</div>
         <div class="scroll-container"><table class="bordered text-xs"><thead><tr>
-          <th>Блогер</th><th>Платф.</th><th>Тип</th><th>Дата</th><th>Расход ₽</th><th>Просм.</th><th>Лайки</th><th>Сохр.</th><th class="text-slate-600">Открыли</th><th class="text-slate-600">Старт</th><th class="text-slate-600">Оплаты</th><th class="text-slate-600">Сумма ₽</th><th>CPR ₽</th><th>ROAS %</th><th>CR %</th><th>Ср. чек</th><th>Креатив</th><th>Заметки</th><th></th>
+          <th>Блогер</th><th>Платф.</th><th>Тип</th><th>Дата</th><th>Расход ₽</th><th>Просм.</th><th>Лайки</th><th>Сохр.</th><th class="text-slate-600">Открыли</th><th class="text-slate-600">Старт</th><th class="text-slate-600">Оплаты</th><th class="text-slate-600">Сумма ₽</th><th>₽/рег</th><th>Окуп. %</th><th>Конв. %</th><th>Ср. чек</th><th>Креатив</th><th>Заметки</th><th></th>
         </tr></thead><tbody id="adStatsBody"></tbody>
         <tfoot id="adStatsFoot"></tfoot>
         </table></div>
@@ -1502,16 +1502,16 @@ async function loadAdStats(){
     sc('💰','Расход',totals.cost.toLocaleString('ru')+'₽','','yellow')+
     sc('💵','Доход',totals.payS.toLocaleString('ru')+'₽','','green')+
     sc('💎','Выручка',revenueAllTime.toLocaleString('ru')+'₽','','cyan')+
-    sc('📈','ROAS',tRoas+(typeof tRoas==='number'?'%':''),'',typeof tRoas==='number'&&tRoas>=100?'green':'red')+
-    sc('🎯','CPR (₽/рег)',tCpr,'','violet')+
+    sc('📈','Окупаемость',tRoas+(typeof tRoas==='number'?'%':''),'',typeof tRoas==='number'&&tRoas>=100?'green':'red')+
+    sc('🎯','₽/регистр.',tCpr,'','violet')+
     sc('💳','Ср. чек',(typeof tAvg==='number'?tAvg.toLocaleString('ru')+'₽':'—'),'','cyan')+
     sc('📊','Кампаний',data.length,'','blue');
   // Circular progress
   var el=document.getElementById('adTotalsCircular');
   if(el){
     var items=[
-      {label:'ROAS',value:typeof tRoas==='number'?tRoas:0,max:200,color:'#22c55e',suffix:'%'},
-      {label:'CR',value:typeof tCr==='number'?tCr:0,max:100,color:'#8b5cf6',suffix:'%'},
+      {label:'Окуп.',value:typeof tRoas==='number'?tRoas:0,max:200,color:'#22c55e',suffix:'%'},
+      {label:'Конв.',value:typeof tCr==='number'?tCr:0,max:100,color:'#8b5cf6',suffix:'%'},
       {label:'Расход',value:totals.cost,max:Math.max(totals.cost+totals.payS,1),color:'#eab308',suffix:''},
       {label:'Доход',value:totals.payS,max:Math.max(totals.cost+totals.payS,1),color:'#06b6d4',suffix:''}
     ];

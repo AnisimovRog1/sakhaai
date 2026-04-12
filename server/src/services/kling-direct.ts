@@ -3,6 +3,8 @@
 
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
 
 const BASE_URL = 'https://api-singapore.klingai.com';
 
@@ -20,33 +22,48 @@ function resolveMode(mode?: string): 'pro' | 'std' {
   return mode === '1080p' ? 'pro' : 'std';
 }
 
-// ─── Временное хранилище файлов ────────────────────────────
-// Kling скачивает файлы по HTTP URL → храним временно на нашем сервере
-const MAX_TEMP_FILES = 200;
-const tempFiles = new Map<string, { buffer: Buffer; mime: string; createdAt: number }>();
+// ─── Временное хранилище файлов (на диске — shared между cluster workers) ──
+const TEMP_DIR = '/tmp/sakhaai-uploads';
+try { fs.mkdirSync(TEMP_DIR, { recursive: true }); } catch {}
 
+// Cleanup: удалять файлы старше 1 часа, каждые 60 секунд
 setInterval(() => {
-  const now = Date.now();
-  for (const [id, file] of tempFiles) {
-    if (now - file.createdAt > 60 * 60 * 1000) tempFiles.delete(id);
-  }
-  // Если превышен лимит — удаляем самые старые
-  if (tempFiles.size > MAX_TEMP_FILES) {
-    const sorted = [...tempFiles.entries()].sort((a, b) => a[1].createdAt - b[1].createdAt);
-    const toDelete = sorted.slice(0, tempFiles.size - MAX_TEMP_FILES);
-    for (const [id] of toDelete) tempFiles.delete(id);
-  }
+  try {
+    const now = Date.now();
+    for (const file of fs.readdirSync(TEMP_DIR)) {
+      const filePath = path.join(TEMP_DIR, file);
+      try {
+        const stat = fs.statSync(filePath);
+        if (now - stat.mtimeMs > 60 * 60 * 1000) fs.unlinkSync(filePath);
+      } catch {}
+    }
+  } catch {}
 }, 60_000);
 
+const MIME_MAP: Record<string, string> = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', mp4: 'video/mp4', webp: 'image/webp', bin: 'application/octet-stream' };
+
 export function serveTempFile(id: string): { buffer: Buffer; mime: string } | null {
-  return tempFiles.get(id) || null;
+  // id может быть uuid или uuid.ext
+  const cleanId = id.replace(/\.[^.]+$/, '');
+  const ext = id.includes('.') ? id.split('.').pop()! : '';
+  // Ищем файл с любым расширением
+  try {
+    const files = fs.readdirSync(TEMP_DIR).filter(f => f.startsWith(cleanId));
+    if (!files.length) return null;
+    const filePath = path.join(TEMP_DIR, files[0]);
+    const buffer = fs.readFileSync(filePath);
+    const fileExt = files[0].split('.').pop() || ext || 'bin';
+    const mime = MIME_MAP[fileExt] || 'application/octet-stream';
+    return { buffer, mime };
+  } catch { return null; }
 }
 
-/** Сохранить буфер во временное хранилище, вернуть HTTPS URL */
+/** Сохранить буфер во временное хранилище (на диск), вернуть HTTPS URL */
 export function saveTempBuffer(buffer: Buffer, mime: string): string {
   const ext = mime.split('/')[1]?.replace('jpeg', 'jpg') || 'bin';
   const id = crypto.randomUUID();
-  tempFiles.set(id, { buffer, mime, createdAt: Date.now() });
+  const filePath = path.join(TEMP_DIR, `${id}.${ext}`);
+  fs.writeFileSync(filePath, buffer);
   const serverUrl = process.env.RAILWAY_PUBLIC_DOMAIN
     ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
     : 'https://sakhaai-production.up.railway.app';
@@ -62,16 +79,7 @@ function dataUrlToHttpUrl(url: string): string {
 
   const [, mimeType, base64Data] = match;
   const buffer = Buffer.from(base64Data, 'base64');
-  const ext = mimeType.split('/')[1] || 'bin';
-  const id = crypto.randomUUID();
-
-  tempFiles.set(id, { buffer, mime: mimeType, createdAt: Date.now() });
-
-  const serverUrl = process.env.RAILWAY_PUBLIC_DOMAIN
-    ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
-    : 'https://sakhaai-production.up.railway.app';
-
-  const httpUrl = `${serverUrl}/tmp-upload/${id}.${ext}`;
+  const httpUrl = saveTempBuffer(buffer, mimeType);
   console.log(`[kling-direct] temp file hosted: ${httpUrl} (${(buffer.length / 1024).toFixed(0)} KB)`);
   return httpUrl;
 }

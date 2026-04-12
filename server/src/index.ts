@@ -126,14 +126,15 @@ function startWorker() {
     res.json(getRateInfo());
   });
 
-  // Временные файлы для Kling API и скачивания (data URL → HTTP URL)
+  // Временные файлы для Kling API и скачивания (shared disk storage)
   app.get('/tmp-upload/:id', (req, res) => {
-    const fileId = req.params.id.replace(/\.[^.]+$/, '');
-    const file = serveTempFile(fileId);
+    const file = serveTempFile(req.params.id);
     if (!file) { res.status(404).send('Not found'); return; }
+    const name = (req.query.name as string) || 'uraanxai-file';
     res.setHeader('Content-Type', file.mime);
     res.setHeader('Content-Length', file.buffer.length);
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Content-Disposition', `attachment; filename="${name}"`);
+    res.setHeader('Access-Control-Allow-Origin', 'https://web.telegram.org');
     res.setHeader('Cache-Control', 'public, max-age=3600');
     res.send(file.buffer);
   });

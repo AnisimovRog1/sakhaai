@@ -994,6 +994,7 @@ function renderSeqs(){
 }
 
 function esc(s){var d=document.createElement('div');d.textContent=s||'';return d.innerHTML}
+function parseNum(s){if(!s)return 0;s=String(s).trim().toLowerCase();var mult=1;if(s.indexOf('млн')>-1||s.indexOf('m')>-1){mult=1000000;s=s.replace(/млн|m/g,'')}else if(s.indexOf('тыс')>-1||s.indexOf('к')>-1||s.indexOf('k')>-1){mult=1000;s=s.replace(/тыс|к|k/g,'')}s=s.replace(/\s/g,'').replace(/,/g,'.');s=s.replace(/[^0-9.\-]/g,'');var n=parseFloat(s);return isNaN(n)?0:Math.round(n*mult)}
 
 function toggleGreetFixed(id,val){var f=document.getElementById('seqgreetfixed-'+id);if(f)f.classList.toggle('hidden',val!=='fixed')}
 function markSeqDirty(id){var b=document.getElementById('seqsave-'+id);if(b)b.classList.remove('hidden');startDraftTimer(id)}
@@ -1552,9 +1553,9 @@ function inlineEdit(td){
     });
   }else{
     input=document.createElement('input');
-    input.type=type==='date'?'date':type==='number'?'number':'text';
+    input.type=type==='date'?'date':'text';
     input.value=currentValue==='—'?'':currentValue;
-    if(type==='number')input.style.width='80px';
+    if(type==='number'){input.style.width='100px';input.inputMode='numeric'}
   }
   td.textContent='';
   td.appendChild(input);
@@ -1563,14 +1564,11 @@ function inlineEdit(td){
   function save(){
     if(saving)return;saving=true;
     var val=input.value;
+    if(type==='number')val=String(parseNum(val));
     td.classList.remove('editing');
     var payload={id:id};
     payload[field]=val;
-    console.log('[inlineEdit] SAVE',JSON.stringify(payload));
-    P('/admin/ad-stats',payload).then(function(resp){
-      console.log('[inlineEdit] OK',JSON.stringify(resp));
-      loadAdStats();
-    }).catch(function(err){console.error('[inlineEdit] FAIL',err)});
+    P('/admin/ad-stats',payload).then(function(){loadAdStats()});
   }
   input.addEventListener('blur',save);
   input.addEventListener('keydown',function(e){

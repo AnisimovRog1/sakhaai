@@ -47,7 +47,10 @@ function buildDateFilter(period: string, column = 'created_at'): { filter: strin
   let filter = `${column} >= ${YKT_START}`;
   let label = 'сегодня';
 
-  if (period === '7d') {
+  if (period === 'yesterday') {
+    filter = `${column} >= (${YKT_START} - INTERVAL '1 day') AND ${column} < ${YKT_START}`;
+    label = 'вчера';
+  } else if (period === '7d') {
     filter = `${column} >= (${YKT_START} - INTERVAL '7 days')`;
     label = 'за 7 дней';
   } else if (period === 'month') {
@@ -101,6 +104,10 @@ adminRouter.get('/stats', async (req: Request, res: Response) => {
     // Выручка all-time
     const revenueAllTime = await pool.query(`SELECT COALESCE(SUM(amount_rub), 0) as total FROM orders WHERE status = 'paid'`);
 
+    // Выручка за вчера
+    const { filter: yesterdayFilter } = buildDateFilter('yesterday', 'paid_at');
+    const revenueYesterday = await pool.query(`SELECT COALESCE(SUM(amount_rub), 0) as total FROM orders WHERE status = 'paid' AND ${yesterdayFilter}`);
+
     // Оплаченных заказов all-time
     const ordersAllTime = await pool.query(`SELECT COUNT(*) as count FROM orders WHERE status = 'paid'`);
 
@@ -141,6 +148,7 @@ adminRouter.get('/stats', async (req: Request, res: Response) => {
       referrals: +refs.rows[0].count,
       revenue: revenueRub,
       revenueAllTime: +revenueAllTime.rows[0].total,
+      revenueYesterday: +revenueYesterday.rows[0].total,
       ordersAllTime: +ordersAllTime.rows[0].count,
       costEstimate: Math.round(costEstimate),
       profit: Math.round(profit),

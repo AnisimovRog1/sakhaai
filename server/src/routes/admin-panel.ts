@@ -569,6 +569,7 @@ async function loadStats(period){
     '</div>'+
     '<div class="flex gap-6">'+
       '<div class="text-center"><div class="text-2xl font-bold text-cyan-400">'+s.ordersAllTime+'</div><div class="text-xs text-slate-500">Оплат</div></div>'+
+      '<div class="text-center"><div class="text-2xl font-bold text-amber-400">'+(s.revenueYesterday||0).toLocaleString('ru')+' ₽</div><div class="text-xs text-slate-500">Вчера</div></div>'+
       '<div class="text-center"><div class="text-2xl font-bold text-violet-400">'+s.revenue+' ₽</div><div class="text-xs text-slate-500">'+s.label+'</div></div>'+
       '<div class="text-center"><div class="text-2xl font-bold text-green-400">'+s.users+'</div><div class="text-xs text-slate-500">Юзеров</div></div>'+
     '</div>';

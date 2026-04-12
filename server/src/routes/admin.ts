@@ -1218,6 +1218,22 @@ adminRouter.delete('/ad-stats/:id', async (req: Request, res: Response) => {
   } catch (err: any) { res.status(500).json({ error: err.message }); }
 });
 
+// Регистрации за временной диапазон (для анализа рилсов)
+adminRouter.get('/registrations-range', async (req: Request, res: Response) => {
+  try {
+    const from = req.query.from as string;
+    const to = req.query.to as string;
+    if (!from || !to) { res.status(400).json({ error: 'from and to required' }); return; }
+    const rows = await pool.query(
+      `SELECT id, username, first_name, campaign_code, app_opened, created_at
+       FROM users WHERE created_at >= $1::timestamptz AND created_at <= $2::timestamptz
+       ORDER BY created_at DESC LIMIT 500`,
+      [from, to]
+    );
+    res.json(rows.rows);
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
 // Индивидуальные чеки по рекламной кампании
 adminRouter.get('/ad-stats/:id/payments', async (req: Request, res: Response) => {
   try {

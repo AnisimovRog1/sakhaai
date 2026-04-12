@@ -448,6 +448,22 @@ table.bordered tr:last-child td{border-bottom:none}
       </div>
     </div>
 
+    <!-- Reg Analysis Modal -->
+    <div id="regAnalysisModal" class="hidden" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;align-items:center;justify-content:center;background:rgba(0,0,0,.7)">
+      <div class="glass-neon p-6 w-full max-w-2xl mx-4" style="border-radius:16px;max-height:80vh;overflow-y:auto">
+        <h3 class="text-sm font-bold gradient-text uppercase tracking-wider mb-4">📊 Анализ регистраций за период</h3>
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <div><label class="text-xs text-slate-400 block mb-1">От</label><input id="regFrom" type="datetime-local" class="w-full"></div>
+          <div><label class="text-xs text-slate-400 block mb-1">До</label><input id="regTo" type="datetime-local" class="w-full"></div>
+        </div>
+        <div class="flex gap-2 mb-4">
+          <button class="btn btn-primary flex-1" data-action="loadRegAnalysis">Показать</button>
+          <button class="btn btn-ghost" data-action="closeRegAnalysis">Закрыть</button>
+        </div>
+        <div id="regAnalysisResult"></div>
+      </div>
+    </div>
+
     </div><!-- content-body -->
   </div><!-- main-content -->
 </div><!-- panelPage -->
@@ -1462,7 +1478,7 @@ async function loadAdStats(){
       '<td>'+(typeof avgChk==='number'?avgChk.toLocaleString('ru')+'₽':'—')+'</td>'+
       '<td>'+(r.creative_url?'<a href="'+esc(r.creative_url)+'" target="_blank" class="text-violet-400 hover:underline">Ссылка</a>':ed('text-slate-600','creative_url','text','','—'))+'</td>'+
       '<td class="text-slate-500 cursor-pointer hover:text-violet-300" data-note-id="'+r.id+'" data-note-text="'+esc(r.notes||'')+'">'+(r.notes?'<span title="'+esc(r.notes)+'">📝</span>':'<span class="text-slate-600">—</span>')+'</td>'+
-      '<td><button class="btn btn-danger text-xs" style="padding:3px 8px" onclick="deleteAdStat('+r.id+')">✕</button></td>'+
+      '<td class="flex gap-1"><button class="btn btn-ghost text-xs" style="padding:3px 8px" data-analyze-date="'+(r.campaign_date||'')+'" data-action="openRegAnalysis">📊</button><button class="btn btn-danger text-xs" style="padding:3px 8px" onclick="deleteAdStat('+r.id+')">✕</button></td>'+
     '</tr>'
   }).join(''):'<tr><td colspan="19" class="text-center text-slate-500 py-8">Нет записей. Добавьте рекламную кампанию.</td></tr>';
   // Footer totals
@@ -1582,6 +1598,52 @@ document.addEventListener('click',function(e){
   }
   if(e.target.closest('[data-action="closeNote"]')){
     var modal=document.getElementById('notesModal');modal.classList.add('hidden');modal.style.display='';
+  }
+});
+
+// Reg Analysis modal
+document.addEventListener('click',function(e){
+  if(e.target.closest('[data-action="openRegAnalysis"]')){
+    var btn=e.target.closest('[data-action="openRegAnalysis"]');
+    var dateStr=btn.getAttribute('data-analyze-date')||'';
+    var fromDate,toDate;
+    if(dateStr){
+      fromDate=dateStr.substring(0,10)+'T00:00';
+      var d=new Date(dateStr);d.setDate(d.getDate()+2);
+      toDate=d.toISOString().substring(0,10)+'T23:59';
+    }else{
+      var now=new Date();
+      fromDate=now.toISOString().substring(0,10)+'T00:00';
+      toDate=now.toISOString().substring(0,10)+'T23:59';
+    }
+    document.getElementById('regFrom').value=fromDate;
+    document.getElementById('regTo').value=toDate;
+    document.getElementById('regAnalysisResult').innerHTML='';
+    var modal=document.getElementById('regAnalysisModal');modal.classList.remove('hidden');modal.style.display='flex';
+  }
+  if(e.target.closest('[data-action="loadRegAnalysis"]')){
+    var from=document.getElementById('regFrom').value;
+    var to=document.getElementById('regTo').value;
+    if(!from||!to){alert('Выберите диапазон');return}
+    var result=document.getElementById('regAnalysisResult');
+    result.innerHTML='<p class="text-slate-400 text-sm">Загрузка...</p>';
+    G('/admin/registrations-range?from='+encodeURIComponent(from)+':00+09:00&to='+encodeURIComponent(to)+':00+09:00').then(function(data){
+      if(!Array.isArray(data)||data.length===0){result.innerHTML='<p class="text-slate-500 text-sm">Нет регистраций за этот период</p>';return}
+      var withCamp=data.filter(function(u){return u.campaign_code});
+      var withApp=data.filter(function(u){return u.app_opened});
+      result.innerHTML='<div class="flex gap-3 mb-3">'+
+        '<div class="glass p-3 text-center flex-1"><div class="text-xl font-bold gradient-text">'+data.length+'</div><div class="text-xs text-slate-500">Всего</div></div>'+
+        '<div class="glass p-3 text-center flex-1"><div class="text-xl font-bold text-green-400">'+withApp.length+'</div><div class="text-xs text-slate-500">Открыли</div></div>'+
+        '<div class="glass p-3 text-center flex-1"><div class="text-xl font-bold text-cyan-400">'+withCamp.length+'</div><div class="text-xs text-slate-500">С кампанией</div></div>'+
+        '<div class="glass p-3 text-center flex-1"><div class="text-xl font-bold text-violet-400">'+(data.length-withCamp.length)+'</div><div class="text-xs text-slate-500">Без кампании</div></div>'+
+      '</div>'+
+      '<div class="scroll-container" style="max-height:300px"><table class="bordered text-xs"><thead><tr><th>#</th><th>Username</th><th>TG ID</th><th>Имя</th><th>Кампания</th><th>App</th><th>Дата</th></tr></thead><tbody>'+
+      data.map(function(u,i){return '<tr><td class="text-slate-500">'+(i+1)+'</td><td class="text-violet-300">'+(u.username?'@'+esc(u.username):'—')+'</td><td class="text-slate-500 font-mono">'+u.id+'</td><td>'+esc(u.first_name||'—')+'</td><td>'+(u.campaign_code?'<span class="text-cyan-400">'+esc(u.campaign_code)+'</span>':'<span class="text-slate-600">—</span>')+'</td><td class="text-center">'+(u.app_opened?'<span class="text-green-400">📱</span>':'—')+'</td><td class="text-slate-500">'+new Date(u.created_at).toLocaleString('ru',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</td></tr>'}).join('')+
+      '</tbody></table></div>';
+    });
+  }
+  if(e.target.closest('[data-action="closeRegAnalysis"]')){
+    var modal=document.getElementById('regAnalysisModal');modal.classList.add('hidden');modal.style.display='';
   }
 });
 

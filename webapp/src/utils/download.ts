@@ -43,10 +43,14 @@ export async function downloadMedia(url: string, fileName: string): Promise<'ok'
       }
 
       if (httpsUrl && httpsUrl.startsWith('https')) {
-        tg.downloadFile({ url: httpsUrl, file_name: fileName }, function() {});
+        console.log('[download] tg.downloadFile:', httpsUrl, fileName);
+        tg.downloadFile({ url: httpsUrl, file_name: fileName }, function(accepted: boolean) {
+          console.log('[download] downloadFile result:', accepted ? 'accepted' : 'cancelled');
+        });
         return 'ok';
       }
-    } catch {
+    } catch (e) {
+      console.error('[download] downloadFile error:', e);
       // fallthrough к другим методам
     }
   }

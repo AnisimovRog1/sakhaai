@@ -17,7 +17,7 @@ import { paymentRouter } from './routes/payment';
 import { generationsRouter } from './routes/generations';
 import { adminRouter } from './routes/admin';
 import { adminPanelRouter } from './routes/admin-panel';
-import { serveTempFile } from './services/kling-direct';
+import { serveTempFile, saveTempBuffer } from './services/kling-direct';
 // processHeldReferrals убран — бонус реферу начисляется сразу при оплате
 import { startTaskWorker } from './services/task-worker';
 import { seedPushSequences } from './services/push-seed';
@@ -131,9 +131,25 @@ function startWorker() {
     const fileId = req.params.id.replace(/\.[^.]+$/, '');
     const file = serveTempFile(fileId);
     if (!file) { res.status(404).send('Not found'); return; }
+    const name = req.query.name as string || 'uraanxai-file';
     res.setHeader('Content-Type', file.mime);
     res.setHeader('Content-Length', file.buffer.length);
+    res.setHeader('Content-Disposition', `attachment; filename="${name}"`);
+    res.setHeader('Access-Control-Allow-Origin', '*');
     res.send(file.buffer);
+  });
+
+  // Сохранить data: URL как временный файл → вернуть HTTPS URL (для Telegram downloadFile)
+  app.post('/api/tmp-save', express.json({ limit: '20mb' }), (req, res) => {
+    try {
+      const { dataUrl, fileName } = req.body;
+      if (!dataUrl) { res.status(400).json({ error: 'dataUrl required' }); return; }
+      const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/s);
+      if (!match) { res.status(400).json({ error: 'Invalid data URL' }); return; }
+      const buffer = Buffer.from(match[2], 'base64');
+      const httpsUrl = saveTempBuffer(buffer, match[1]);
+      res.json({ url: httpsUrl });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
 
   // Proxy-скачивание файлов (обход CORS для Telegram Desktop)

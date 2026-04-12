@@ -42,6 +42,17 @@ export function serveTempFile(id: string): { buffer: Buffer; mime: string } | nu
   return tempFiles.get(id) || null;
 }
 
+/** Сохранить буфер во временное хранилище, вернуть HTTPS URL */
+export function saveTempBuffer(buffer: Buffer, mime: string): string {
+  const ext = mime.split('/')[1]?.replace('jpeg', 'jpg') || 'bin';
+  const id = crypto.randomUUID();
+  tempFiles.set(id, { buffer, mime, createdAt: Date.now() });
+  const serverUrl = process.env.RAILWAY_PUBLIC_DOMAIN
+    ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+    : 'https://sakhaai-production.up.railway.app';
+  return `${serverUrl}/tmp-upload/${id}.${ext}`;
+}
+
 // data: URL → HTTP URL на нашем сервере
 function dataUrlToHttpUrl(url: string): string {
   if (!url.startsWith('data:')) return url;

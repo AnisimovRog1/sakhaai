@@ -183,7 +183,7 @@ body{
   <div class="brand"><span>UraanxAI</span></div>
   <p class="subtitle">AI-генерация фото, видео и аватаров<br>прямо в Telegram за секунды</p>
 
-  <a href="https://t.me/UraanxAI_bot?start=c_nashainsta_mnpsbfrc" class="btn btn-primary" target="_blank">
+  <a href="https://t.me/UraanxAI_bot?start=c_vladimirovna_mnvo7nx7" class="btn btn-primary" target="_blank">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
     Открыть UraanxAI
   </a>
@@ -194,7 +194,7 @@ body{
   </a>
 
   <div class="badges">
-    <div class="badge free"><strong>300 бесплатных кредитов</strong> ждут тебя в мини-аппе</div>
+    <div class="badge free"><strong>300 бесплатных кредитов</strong> ждут тебя в приложении</div>
   </div>
   <p class="hint">Создавай <strong>трендовый контент</strong> для Reels и TikTok<br>и начни <strong>зарабатывать</strong> на AI-генерации</p>
 </div>

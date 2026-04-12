@@ -1,13 +1,27 @@
 /**
  * Скачивание медиа в галерею — работает на iOS, Android, Desktop.
- * 3-слойный fallback:
- * 1. Telegram.WebApp.downloadFile() — прямое скачивание в галерею
- * 2. navigator.share({files}) — iOS/Android share sheet → "Сохранить в фото"
- * 3. Blob download / data URL — desktop fallback
+ *
+ * Стратегия:
+ * - data: URL (base64 от Gemini) → серверный proxy /download (работает везде)
+ * - https URL (Kling CDN) → tg.downloadFile() → share → proxy fallback
+ * - Desktop → a.download / proxy
  */
+
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
 export async function downloadMedia(url: string, fileName: string): Promise<'ok' | 'share' | 'fallback'> {
-  // Layer 1: Telegram Mini App API (Android + iOS 8.0+)
   const tg = (window as any).Telegram?.WebApp;
+  const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+  // === data: URL (base64 изображения из Gemini) ===
+  // Telegram API НЕ поддерживает data: URL → всегда через proxy
+  if (url.startsWith('data:')) {
+    return downloadViaProxy(url, fileName);
+  }
+
+  // === Внешний https URL (Kling CDN видео/аватары) ===
+
+  // Layer 1: Telegram Mini App downloadFile (https URLs only)
   if (tg?.downloadFile) {
     try {
       tg.downloadFile({ url, file_name: fileName });
@@ -15,57 +29,51 @@ export async function downloadMedia(url: string, fileName: string): Promise<'ok'
     } catch { /* fallthrough */ }
   }
 
-  // Fetch blob для Layer 2 и 3
-  let blob: Blob;
+  // Layer 2: fetch blob → share (мобильный) или a.download (десктоп)
+  let blob: Blob | null = null;
   try {
     const resp = await fetch(url);
-    blob = await resp.blob();
-  } catch {
-    // Если fetch не работает (CORS) — попробуем через share URL напрямую
-    window.open(url, '_blank');
-    return 'fallback';
-  }
+    if (resp.ok) blob = await resp.blob();
+  } catch { /* CORS блокирует — пойдём на proxy */ }
 
-  // Layer 2: navigator.share с файлом — ТОЛЬКО мобильные (iOS Safari, Android Chrome)
-  // На десктопе (macOS) share sheet бесполезен — сразу Layer 3
-  const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-  if (isMobile && navigator.share && navigator.canShare) {
-    try {
-      const file = new File([blob], fileName, { type: blob.type });
-      if (navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: fileName,
-        });
-        return 'share';
+  if (blob) {
+    // Мобильный: navigator.share
+    if (isMobile && navigator.share && navigator.canShare) {
+      try {
+        const file = new File([blob], fileName, { type: blob.type });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: fileName });
+          return 'share';
+        }
+      } catch (e: any) {
+        if (e?.name === 'AbortError') return 'share';
+        // fallthrough
       }
-    } catch (e: any) {
-      // AbortError = юзер закрыл share sheet, это нормально
-      if (e?.name === 'AbortError') return 'share';
-      // Другие ошибки — fallthrough к Layer 3
+    }
+
+    // Десктоп: a.download
+    if (!isMobile) {
+      try {
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+        return 'ok';
+      } catch { /* fallthrough */ }
     }
   }
 
-  // Layer 3: Download
-  try {
-    if (url.startsWith('data:') || url.startsWith('blob:')) {
-      // Data/blob URL → локальный blob download (same-origin, без proxy)
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-    } else {
-      // Внешний CDN URL → серверный proxy (обход CORS)
-      const proxyUrl = `/download?url=${encodeURIComponent(url)}&name=${encodeURIComponent(fileName)}`;
-      window.open(proxyUrl, '_self');
-    }
-    return 'ok';
-  } catch {
-    window.open(url, '_blank');
-    return 'fallback';
-  }
+  // Layer 3: серверный proxy — последний fallback (работает ВСЕГДА)
+  return downloadViaProxy(url, fileName);
+}
+
+/** Скачивание через серверный proxy /download — обходит CORS, поддерживает data: URL */
+function downloadViaProxy(url: string, fileName: string): 'ok' {
+  const proxyUrl = `${API_BASE}/download?url=${encodeURIComponent(url)}&name=${encodeURIComponent(fileName)}`;
+  window.location.href = proxyUrl;
+  return 'ok';
 }

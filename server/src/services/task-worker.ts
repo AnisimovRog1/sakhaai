@@ -75,18 +75,30 @@ async function processTask(task: any) {
 }
 
 async function handleSuccess(task: any, resultUrl: string) {
-  // Сохранить генерацию + push
-  const genType = task.type === 'motion-control' ? 'motion' : task.type;
-  if (task.type !== 'tts') {
-    await saveGeneration(task.user_id, genType, task.prompt, resultUrl, task.cost).catch(e =>
-      console.error('[task-worker] saveGeneration error:', e.message)
+  // Сохранить генерацию + обновить статус в ОДНОЙ транзакции
+  // Без транзакции: если saveGeneration упадёт, task помечается succeed но генерация потеряна
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const genType = task.type === 'motion-control' ? 'motion' : task.type;
+    if (task.type !== 'tts') {
+      await client.query(
+        `INSERT INTO generations (user_id, type, prompt, result_url, cost) VALUES ($1, $2, $3, $4, $5)`,
+        [task.user_id, genType, task.prompt, resultUrl, task.cost]
+      );
+    }
+    await client.query(
+      `UPDATE pending_tasks SET status = 'succeed', result_url = $1, updated_at = NOW() WHERE id = $2`,
+      [resultUrl, task.id]
     );
+    await client.query('COMMIT');
+  } catch (e: any) {
+    await client.query('ROLLBACK');
+    console.error('[task-worker] handleSuccess TRANSACTION FAILED:', e.message, 'task:', task.id);
+    return; // Не помечаем succeed — worker повторит на следующем цикле
+  } finally {
+    client.release();
   }
-
-  await pool.query(
-    `UPDATE pending_tasks SET status = 'succeed', result_url = $1, updated_at = NOW() WHERE id = $2`,
-    [resultUrl, task.id]
-  );
 
   await sendTelegramPush(task.user_id, task.type, 'succeed', resultUrl, task.prompt).catch(e =>
     console.error('[task-worker] push error:', e.message)

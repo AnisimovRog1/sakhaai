@@ -1613,14 +1613,17 @@ async function togglePayments(id){
 async function saveAdStat(){
   var b=document.getElementById('adBlogger').value.trim();
   if(!b){alert('Введите имя блогера/канала');return}
-  await P('/admin/ad-stats',{
+  var payload={
     blogger_name:b,
     platform:document.getElementById('adPlatform').value,
     ad_type:document.getElementById('adType').value,
     campaign_date:document.getElementById('adDate').value||null,
     ad_cost:document.getElementById('adCost').value||0,
     creative_url:document.getElementById('adCreative').value||null
-  });
+  };
+  console.log('[saveAdStat] payload',JSON.stringify(payload));
+  var resp=await P('/admin/ad-stats',payload);
+  console.log('[saveAdStat] resp',JSON.stringify(resp));
   document.getElementById('adBlogger').value='';document.getElementById('adCost').value='';
   document.getElementById('adCreative').value='';
   loadAdStats()

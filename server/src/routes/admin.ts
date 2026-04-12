@@ -1174,7 +1174,8 @@ adminRouter.get('/ad-stats', async (_req: Request, res: Response) => {
       ) sub WHERE a.ref_campaign_id = sub.id
     `);
     const all = await pool.query(`SELECT * FROM ad_campaigns ORDER BY created_at DESC`);
-    res.json(all.rows);
+    const rev = await pool.query(`SELECT COALESCE(SUM(amount_rub), 0) as total FROM orders WHERE status = 'paid'`);
+    res.json({ campaigns: all.rows, revenueAllTime: +rev.rows[0].total });
   } catch (err: any) { res.status(500).json({ error: err.message }); }
 });
 

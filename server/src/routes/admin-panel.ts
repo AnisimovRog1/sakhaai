@@ -424,7 +424,7 @@ table.bordered tr:last-child td{border-bottom:none}
         </div>
         <button class="btn btn-primary" onclick="saveAdStat()">+ Добавить</button>
       </div>
-      <div id="adStatsSummary" class="grid grid-cols-2 sm:grid-cols-6 gap-3 mb-5"></div>
+      <div id="adStatsSummary" class="grid grid-cols-2 sm:grid-cols-7 gap-3 mb-5"></div>
       <div class="section-group">
         <div class="section-group-title">КАМПАНИИ</div>
         <div class="scroll-container"><table class="bordered text-xs"><thead><tr>
@@ -1427,7 +1427,9 @@ function renderCampPage(code){
 
 // ═══ AD STATS ═══
 async function loadAdStats(){
-  var data=await G('/admin/ad-stats');if(!Array.isArray(data))data=[];
+  var resp=await G('/admin/ad-stats');
+  var data=Array.isArray(resp)?resp:(resp&&resp.campaigns?resp.campaigns:[]);
+  var revenueAllTime=resp&&resp.revenueAllTime?resp.revenueAllTime:0;
   var totals={cost:0,views:0,likes:0,saves:0,launches:0,regs:0,payC:0,payS:0};
   var tbody=document.getElementById('adStatsBody');
   tbody.innerHTML=data.length?data.map(function(r){
@@ -1482,6 +1484,7 @@ async function loadAdStats(){
   document.getElementById('adStatsSummary').innerHTML=
     sc('💰','Расход',totals.cost.toLocaleString('ru')+'₽','','yellow')+
     sc('💵','Доход',totals.payS.toLocaleString('ru')+'₽','','green')+
+    sc('💎','Выручка',revenueAllTime.toLocaleString('ru')+'₽','','cyan')+
     sc('📈','ROAS',tRoas+(typeof tRoas==='number'?'%':''),'',typeof tRoas==='number'&&tRoas>=100?'green':'red')+
     sc('🎯','CPR (₽/рег)',tCpr,'','violet')+
     sc('💳','Ср. чек',(typeof tAvg==='number'?tAvg.toLocaleString('ru')+'₽':'—'),'','cyan')+

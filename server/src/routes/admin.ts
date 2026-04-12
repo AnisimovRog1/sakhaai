@@ -1218,19 +1218,27 @@ adminRouter.delete('/ad-stats/:id', async (req: Request, res: Response) => {
   } catch (err: any) { res.status(500).json({ error: err.message }); }
 });
 
-// Регистрации за временной диапазон (для анализа рилсов)
+// Анализ за временной диапазон (для рилсов): юзеры + оплаты
 adminRouter.get('/registrations-range', async (req: Request, res: Response) => {
   try {
     const from = req.query.from as string;
     const to = req.query.to as string;
     if (!from || !to) { res.status(400).json({ error: 'from and to required' }); return; }
+    // Юзеры за период с оплатами
     const rows = await pool.query(
-      `SELECT id, username, first_name, campaign_code, app_opened, created_at
-       FROM users WHERE created_at >= $1::timestamptz AND created_at <= $2::timestamptz
-       ORDER BY created_at DESC LIMIT 500`,
+      `SELECT u.id, u.username, u.first_name, u.campaign_code, u.app_opened, u.created_at,
+        (SELECT COALESCE(SUM(o.amount_rub), 0) FROM orders o WHERE o.user_id = u.id AND o.status = 'paid') as paid_sum,
+        (SELECT COUNT(*) FROM orders o WHERE o.user_id = u.id AND o.status = 'paid') as paid_count
+       FROM users u WHERE u.created_at >= $1::timestamptz AND u.created_at <= $2::timestamptz
+       ORDER BY u.created_at DESC LIMIT 500`,
       [from, to]
     );
-    res.json(rows.rows);
+    const users = rows.rows;
+    const totalUsers = users.length;
+    const appOpened = users.filter((u: any) => u.app_opened).length;
+    const paidUsers = users.filter((u: any) => +u.paid_count > 0).length;
+    const paidSum = users.reduce((s: number, u: any) => s + (+u.paid_sum || 0), 0);
+    res.json({ users, stats: { totalUsers, appOpened, paidUsers, paidSum } });
   } catch (err: any) { res.status(500).json({ error: err.message }); }
 });
 

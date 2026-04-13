@@ -868,11 +868,21 @@ async function loadPushTemplates(){
       '<td>'+time+'</td>'+
       '<td class="text-slate-400 text-xs max-w-[200px] truncate">'+(p.text||'').slice(0,60)+'</td>'+
       '<td><div class="flex gap-1">'+
+        '<button class="btn btn-success" style="padding:4px 8px;font-size:11px" onclick="sendPushNow('+p.id+')">📨</button>'+
         '<button class="btn btn-ghost" style="padding:4px 8px;font-size:11px" onclick="togglePush('+p.id+')">'+(p.is_active?'⏸':'▶️')+'</button>'+
         '<button class="btn btn-danger" style="padding:4px 8px;font-size:11px" onclick="delPush('+p.id+')">🗑</button>'+
       '</div></td></tr>'
   }).join('')}
 
+async function sendPushNow(id){
+  if(!confirm('Отправить этот пуш ВСЕМ пользователям прямо сейчас?'))return;
+  try{
+    var r=await P('/admin/push/send/'+id,{recipients:'all'});
+    if(r.error){alert('Ошибка: '+r.error);return}
+    alert('Отправка запущена: '+r.total+' юзерам! Прогресс в логе пушей.');
+    loadPushLog();
+  }catch(e){alert('Ошибка: '+e)}
+}
 async function delPush(id){if(!confirm('Удалить пуш?'))return;await D('/admin/push/templates/'+id);loadPushTemplates()}
 async function togglePush(id){await apiFetch('/admin/push/templates/'+id+'/toggle',{method:'PUT'});loadPushTemplates()}
 

@@ -481,14 +481,21 @@ export async function seedPushData() {
   return seeds.length;
 }
 
-// Seed маркетинговый план
+// Seed маркетинговый план (v2 — обновлённый)
+const PLAN_VERSION = 2;
 export async function seedMarketingPlan() {
+  // Проверяем версию — если старая, пересоздаём
   const { rows } = await pool.query(`SELECT COUNT(*) as cnt FROM marketing_plans`);
-  if (parseInt(rows[0].cnt) > 0) { console.log('⏭ marketing_plans: уже есть данные'); return; }
-  console.log('📥 Заполняем маркетинговый план...');
+  const cnt = parseInt(rows[0].cnt);
+  if (cnt > 0 && cnt >= 30) { console.log('⏭ marketing_plans: v2 уже есть'); return; }
+  if (cnt > 0) {
+    console.log('🔄 Обновляем marketing_plans до v2...');
+    await pool.query(`DELETE FROM marketing_plans`);
+  }
+  console.log('📥 Заполняем маркетинговый план v2...');
 
   const tasks: [string, string, number][] = [
-    // category, title, sort_order
+    // ФИЧИ
     ['features', 'Водяной знак + outro на генерациях без пакета. Плашка "Без водяного знака при покупке"', 1],
     ['features', 'Кнопка "Поделиться" + share-to-earn (+50 кр, лимит 3/день)', 2],
     ['features', 'Промокод-система (админка Кампании + поле при покупке + deep link)', 3],
@@ -496,29 +503,41 @@ export async function seedMarketingPlan() {
     ['features', 'Счетчик генераций на главном экране (14 101 / 8 451)', 5],
     ['features', 'Трекер цели в админке', 6],
 
-    ['content', '5 демо-анимаций (лучшее качество)', 1],
-    ['content', '5 видео для рассылки блогерам', 2],
-    ['content', 'Аккаунт Instagram @uraanxai', 3],
-    ['content', 'Утренняя рутина VIRALMAXING (Pipiads + Explore + TikTok)', 4],
-    ['content', '1-3 Reels/день из VIRALMAXING', 5],
+    // VIRALMAXING
+    ['content', 'Утренняя рутина VIRALMAXING: Reels + TikTok + Pipiads (20-30 мин)', 1],
+    ['content', '1-3 Reels/день: хук + содержание + CTA', 2],
+    ['content', '5 демо-анимаций (лучшее качество)', 3],
+    ['content', '5 видео для рассылки блогерам', 4],
 
-    ['bloggers', 'Собрать таблицу блогеров: Instagram #якутск #якутия — все от 1,000 подписчиков', 1],
+    // БЛОГЕРЫ
+    ['bloggers', 'Instagram: #якутск #якутия #yakutsk — собрать всех от 1,000 подписчиков', 1],
     ['bloggers', 'LabelUp/Getblogger — фильтр Якутия', 2],
     ['bloggers', 'tgstat.ru — 10-15 ТГ-каналов Якутии', 3],
-    ['bloggers', 'Создать промокоды в /panel для первых 20', 4],
-    ['bloggers', 'Написать ВСЕМ из таблицы — ДМ в Instagram + ТГ', 5],
-    ['bloggers', 'Обработка ответов: кредиты, промокоды, сценарии', 6],
-    ['bloggers', 'Комментарии неответившим (через 2-3 дня)', 7],
-    ['bloggers', 'Анализ промокодов: кто дает результат', 8],
+    ['bloggers', 'Паблики Якутска в Instagram — найти админов', 4],
+    ['bloggers', 'Создать промокоды в /panel для первых 20', 5],
+    ['bloggers', 'Написать ВСЕМ из таблицы — ДМ в Instagram + ТГ', 6],
+    ['bloggers', 'Кто не ответил в ДМ — комментарий под последний Reels', 7],
+    ['bloggers', 'Обработка ответов: кредиты, промокоды, согласовать сценарий', 8],
+    ['bloggers', 'Формат: блогер ЛИЧНО оживляет фото + реакция', 9],
+    ['bloggers', 'Паблики/каналы: Stories с лицом блогера + ссылка', 10],
+    ['bloggers', 'Анализ промокодов: кто дает результат', 11],
+    ['bloggers', 'Каждый день вечером: 15-25 новых блогеров в таблицу + написать', 12],
 
+    // ГРАФИК
+    ['schedule', '13 апреля: фичи в прилу + таблица блогеров + написать ВСЕМ', 1],
+    ['schedule', '14 апреля: согласовать рекламы + запустить в тот же день + VIRALMAXING рилсы + вечером новым блогерам', 2],
+    ['schedule', 'Каждый день: утро VIRALMAXING (2-3 идеи) -> 1-3 Reels -> блогеры (согласование + новые)', 3],
+    ['schedule', 'Каждый вечер: 15-25 новых блогеров найти + написать', 4],
+
+    // ПРОГРЕВ 9 МАЯ
     ['may9', 'Ролики с ч/б фото (прогрев)', 1],
     ['may9', 'Ролик "Выберем подписчиков — бесплатно оживим фото ветеранов"', 2],
     ['may9', 'Публикация результатов для выбранных', 3],
     ['may9', 'Блогерам предложить контент к 9 мая', 4],
 
+    // МАСШТАБИРОВАНИЕ
     ['scale', 'Анализ конверсии Якутии (цель > 3%)', 1],
-    ['scale', 'Собрать блогеров Бурятии', 2],
-    ['scale', 'Тот же плейбук на Бурятию', 3],
+    ['scale', 'Собрать блогеров Бурятии — тот же плейбук', 2],
   ];
 
   for (const [cat, title, order] of tasks) {
@@ -528,11 +547,14 @@ export async function seedMarketingPlan() {
     );
   }
 
-  // Создать цель по умолчанию
-  await pool.query(
-    `INSERT INTO marketing_goals (name, target_rub, deadline) VALUES ($1, $2, $3)`,
-    ['Выручка за первую неделю', 200000, '2026-04-20']
-  );
+  // Цель (не пересоздаём если уже есть)
+  const { rows: goalRows } = await pool.query(`SELECT COUNT(*) as cnt FROM marketing_goals`);
+  if (parseInt(goalRows[0].cnt) === 0) {
+    await pool.query(
+      `INSERT INTO marketing_goals (name, target_rub, deadline) VALUES ($1, $2, $3)`,
+      ['Выручка за первую неделю', 200000, '2026-04-20']
+    );
+  }
 
-  console.log(`✅ Заполнено ${tasks.length} задач маркетингового плана`);
+  console.log(`✅ Заполнено ${tasks.length} задач маркетингового плана v2`);
 }

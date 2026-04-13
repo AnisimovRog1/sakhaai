@@ -1366,15 +1366,24 @@ adminRouter.post('/goals', async (req: Request, res: Response) => {
 adminRouter.get('/goals/progress', async (_req: Request, res: Response) => {
   try {
     const goal = await pool.query(`SELECT * FROM marketing_goals ORDER BY created_at DESC LIMIT 1`);
-    const revenue = await pool.query(`SELECT COALESCE(SUM(amount_rub),0)::int as total FROM orders WHERE status='paid'`);
-    const byPackage = await pool.query(`
+    // Только сегодняшняя выручка
+    const todayRevenue = await pool.query(`SELECT COALESCE(SUM(amount_rub),0)::int as total FROM orders WHERE status='paid' AND DATE(paid_at) = CURRENT_DATE`);
+    const todayByPackage = await pool.query(`
+      SELECT package, COUNT(*)::int as cnt, COALESCE(SUM(amount_rub),0)::int as sum
+      FROM orders WHERE status='paid' AND DATE(paid_at) = CURRENT_DATE GROUP BY package
+    `);
+    // Всего за всё время (для общего прогресса)
+    const allRevenue = await pool.query(`SELECT COALESCE(SUM(amount_rub),0)::int as total FROM orders WHERE status='paid'`);
+    const allByPackage = await pool.query(`
       SELECT package, COUNT(*)::int as cnt, COALESCE(SUM(amount_rub),0)::int as sum
       FROM orders WHERE status='paid' GROUP BY package
     `);
     res.json({
       goal: goal.rows[0] || null,
-      total_revenue: revenue.rows[0].total,
-      by_package: byPackage.rows
+      today_revenue: todayRevenue.rows[0].total,
+      today_by_package: todayByPackage.rows,
+      total_revenue: allRevenue.rows[0].total,
+      by_package: allByPackage.rows
     });
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });

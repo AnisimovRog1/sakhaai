@@ -19,6 +19,8 @@ adminPanelRouter.post('/login', (req: Request, res: Response) => {
 });
 
 adminPanelRouter.get('/', (_req: Request, res: Response) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.set('Pragma', 'no-cache');
   res.type('text/html').send(HTML);
 });
 
@@ -778,48 +780,56 @@ function clearMedia(){
 }
 
 async function createPush(send){
-  try{
-  const name=document.getElementById('pushName').value,text=document.getElementById('pushText').value;
-  const timing=document.querySelector('input[name="pushTiming"]:checked')?.value||'now';
-  const scheduleAt=timing==='scheduled'?document.getElementById('pushScheduleAt').value:null;
-  var mediaType=uploadedMedia.type||null;
+  var name='',text='';
+  try{ name=document.getElementById('pushName').value||''; }catch(e){}
+  try{ text=document.getElementById('pushText').value||''; }catch(e){}
+  if(!name||!text){alert('Заполните название и текст пуша');return}
+  var timing='now';
+  try{ timing=document.querySelector('input[name="pushTiming"]:checked')?.value||'now'; }catch(e){}
+  var scheduleAt=null;
+  if(timing==='scheduled'){
+    scheduleAt=document.getElementById('pushScheduleAt')?.value||null;
+    if(!scheduleAt){alert('Укажите время отправки');return}
+  }
+  var mediaType=uploadedMedia?.type||null;
   var mediaFileId=null;
-  if(!name||!text){alert('Заполните название и текст');return}
-  if(timing==='scheduled'&&!scheduleAt){alert('Укажите время отправки');return}
-  // Загрузить медиа через upload-photo → получить Telegram file_id
-  if(uploadedMedia.data&&uploadedMedia.type){
+  if(uploadedMedia?.data&&uploadedMedia?.type){
     try{
-      var blob=await fetch(uploadedMedia.data).then(r=>r.blob());
-      var ext=uploadedMedia.type==='video'?'mp4':'jpg';
-      var fd=new FormData();fd.append('photo',blob,uploadedMedia.name||('file.'+ext));
+      var blob=await fetch(uploadedMedia.data).then(function(r){return r.blob()});
+      var fd=new FormData();fd.append('photo',blob,uploadedMedia.name||'file.jpg');
       var ur=await fetch(API+'/admin/upload-photo',{method:'POST',headers:{'Authorization':'Bearer '+TOKEN},body:fd});
       var ud=await ur.json();
-      if(ud.file_id){mediaFileId=ud.file_id}else{alert('Ошибка загрузки медиа: '+(ud.error||''));return}
-    }catch(e){alert('Ошибка загрузки: '+e);return}
+      if(ud.file_id){mediaFileId=ud.file_id}else{alert('Ошибка загрузки: '+(ud.error||''));return}
+    }catch(e){alert('Ошибка загрузки медиа: '+e);return}
   }
-  var btnText=document.getElementById('pushBtnText').value||null;
-  var btnUrl=document.getElementById('pushBtnUrl').value||null;
-  const r=await P('/admin/push/templates',{name,text,scheduleType:timing==='scheduled'?'scheduled':'manual',sendTime:scheduleAt,mediaType:mediaType,mediaFileId:mediaFileId,buttonText:btnText,buttonUrl:btnUrl});
-  console.log('createPush: template result=',JSON.stringify(r),'send=',send,'timing=',timing);
-  if(r.id){
-    if(send&&timing==='now'){
-      var recipients=(document.querySelector('input[name="pushRecipients"]:checked')||{}).value||'all';
-      var creditsFilter=parseInt(document.getElementById('pushCreditsFilter')?.value)||500;
-      console.log('Sending push id='+r.id+' recipients='+recipients);
-      var sr=await P('/admin/push/send/'+r.id,{recipients:recipients,creditsFilter:creditsFilter});
-      console.log('Send result:',JSON.stringify(sr));
-      if(sr.error){alert('❌ Ошибка отправки: '+sr.error);return}
-      alert('📨 Отправка запущена: '+sr.total+' пользователям. Прогресс в логе.');
-    } else if(timing==='scheduled'){
-      alert('📅 Пуш запланирован на '+new Date(scheduleAt).toLocaleString('ru'));
-    } else {
-      alert('✅ Шаблон сохранён!');
-    }
-    document.getElementById('pushName').value='';document.getElementById('pushText').value='';
-    document.getElementById('pushBtnText').value='';document.getElementById('pushBtnUrl').value='';
-    clearMedia();loadPushTemplates()
-  } else alert('❌ '+(r.error||'Ошибка'))
-  }catch(e){alert('❌ Исключение: '+e)}}
+  var btnText='',btnUrl='';
+  try{ btnText=document.getElementById('pushBtnText')?.value||''; }catch(e){}
+  try{ btnUrl=document.getElementById('pushBtnUrl')?.value||''; }catch(e){}
+  var body={name:name,text:text,scheduleType:timing==='scheduled'?'scheduled':'manual',sendTime:scheduleAt,mediaType:mediaType,mediaFileId:mediaFileId,buttonText:btnText||null,buttonUrl:btnUrl||null};
+  console.log('[createPush] saving template...',body);
+  var r;
+  try{ r=await P('/admin/push/templates',body); }catch(e){alert('Ошибка сохранения: '+e);return}
+  console.log('[createPush] template=',r);
+  if(!r||!r.id){alert('Ошибка: '+(r?.error||'шаблон не создан'));return}
+  if(send&&timing==='now'){
+    var recipients='all';
+    try{ recipients=document.querySelector('input[name="pushRecipients"]:checked')?.value||'all'; }catch(e){}
+    var creditsFilter=500;
+    try{ creditsFilter=parseInt(document.getElementById('pushCreditsFilter')?.value)||500; }catch(e){}
+    console.log('[createPush] sending to',recipients,'...');
+    var sr;
+    try{ sr=await P('/admin/push/send/'+r.id,{recipients:recipients,creditsFilter:creditsFilter}); }catch(e){alert('Ошибка отправки: '+e);return}
+    console.log('[createPush] send result=',sr);
+    if(sr?.error){alert('Ошибка: '+sr.error);return}
+    alert('Отправка запущена: '+sr.total+' юзерам');
+  }else if(timing==='scheduled'){
+    alert('Пуш запланирован');
+  }else{
+    alert('Шаблон сохранён');
+  }
+  try{document.getElementById('pushName').value='';document.getElementById('pushText').value='';document.getElementById('pushBtnText').value='';document.getElementById('pushBtnUrl').value='';clearMedia()}catch(e){}
+  loadPushTemplates();
+}
 
 async function loadPushStats(){
   var s=await G('/admin/push/stats');if(s.error)return;

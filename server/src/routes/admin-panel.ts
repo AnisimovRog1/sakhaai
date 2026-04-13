@@ -1807,7 +1807,7 @@ function renderPlans(){
     var items=plansData.filter(function(p){return p.category===cat});
     var done=items.filter(function(p){return p.is_done}).length;
     html+='<div class="section-group mb-4"><div class="section-group-title">'+CAT_NAMES[cat]+' <span class="text-slate-500 font-normal">('+done+'/'+items.length+')</span></div>';
-    if(CAT_INFO[cat]) html+='<div class="glass p-3 mb-3 text-xs text-slate-300 leading-relaxed">'+CAT_INFO[cat]+'</div>';
+    if(CAT_INFO[cat]){var saved=localStorage.getItem('plan_info_'+cat);html+='<div class="glass p-3 mb-3 text-xs text-slate-300 leading-relaxed" contenteditable="true" data-cat="'+cat+'" onblur="localStorage.setItem(&#39;plan_info_&#39;+this.dataset.cat,this.innerHTML)" style="outline:none;cursor:text">'+(saved||CAT_INFO[cat])+'</div>';}
     items.forEach(function(p){
       var checked=p.is_done?'checked':'';
       var strike=p.is_done?'line-through text-slate-600':'text-white';

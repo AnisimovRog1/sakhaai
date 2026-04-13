@@ -1366,11 +1366,11 @@ adminRouter.post('/goals', async (req: Request, res: Response) => {
 adminRouter.get('/goals/progress', async (_req: Request, res: Response) => {
   try {
     const goal = await pool.query(`SELECT * FROM marketing_goals ORDER BY created_at DESC LIMIT 1`);
-    // Только сегодняшняя выручка
-    const todayRevenue = await pool.query(`SELECT COALESCE(SUM(amount_rub),0)::int as total FROM orders WHERE status='paid' AND DATE(paid_at) = CURRENT_DATE`);
+    // Сегодняшняя выручка (по якутскому времени UTC+9)
+    const todayRevenue = await pool.query(`SELECT COALESCE(SUM(amount_rub),0)::int as total FROM orders WHERE status='paid' AND DATE(paid_at AT TIME ZONE 'Asia/Yakutsk') = (NOW() AT TIME ZONE 'Asia/Yakutsk')::date`);
     const todayByPackage = await pool.query(`
       SELECT package, COUNT(*)::int as cnt, COALESCE(SUM(amount_rub),0)::int as sum
-      FROM orders WHERE status='paid' AND DATE(paid_at) = CURRENT_DATE GROUP BY package
+      FROM orders WHERE status='paid' AND DATE(paid_at AT TIME ZONE 'Asia/Yakutsk') = (NOW() AT TIME ZONE 'Asia/Yakutsk')::date GROUP BY package
     `);
     // Всего за всё время (для общего прогресса)
     const allRevenue = await pool.query(`SELECT COALESCE(SUM(amount_rub),0)::int as total FROM orders WHERE status='paid'`);

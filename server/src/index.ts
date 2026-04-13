@@ -18,6 +18,7 @@ import { paymentRouter } from './routes/payment';
 import { generationsRouter } from './routes/generations';
 import { adminRouter } from './routes/admin';
 import { adminPanelRouter } from './routes/admin-panel';
+import { shareRouter } from './routes/share';
 import { serveTempFile, saveTempBuffer } from './services/kling-direct';
 // processHeldReferrals убран — бонус реферу начисляется сразу при оплате
 import { startTaskWorker } from './services/task-worker';
@@ -121,6 +122,7 @@ function startWorker() {
   app.use('/generations', generationsRouter);
   app.use('/admin', adminRouter);
   app.use('/panel', adminPanelRouter);
+  app.use('/share', shareRouter);
 
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok', service: 'sakhaai-server', worker: process.pid });

@@ -809,7 +809,7 @@ async function createPush(send){
       var sr=await P('/admin/push/send/'+r.id,{recipients:recipients,creditsFilter:creditsFilter});
       console.log('Send result:',JSON.stringify(sr));
       if(sr.error){alert('❌ Ошибка отправки: '+sr.error);return}
-      alert('📨 Отправлено: '+sr.sent+' из '+sr.total+' пользователям'+(sr.failed?' (ошибок: '+sr.failed+')':''));
+      alert('📨 Отправка запущена: '+sr.total+' пользователям. Прогресс в логе.');
     } else if(timing==='scheduled'){
       alert('📅 Пуш запланирован на '+new Date(scheduleAt).toLocaleString('ru'));
     } else {

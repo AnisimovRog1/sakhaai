@@ -564,7 +564,7 @@ adminRouter.post('/push/send/:id', async (req: Request, res: Response) => {
     else if (filter === 'not_purchased') { userQuery += ' AND NOT EXISTS (SELECT 1 FROM orders o WHERE o.user_id = users.id AND o.status = \'paid\')'; }
     else if (filter === 'low_credits') { params.push(creditsFilter); userQuery += ' AND credits < $' + params.length; }
     const users = await pool.query(userQuery, params);
-    console.log(`[push/send] template=${t.id}, filter=${filter}, users=${users.rowCount}, button=${t.button_url || 'none'}`);
+    console.log(`[push/send] template=${t.id}, filter=${filter}, users=${users.rowCount}, button=${t.button_url || 'none'}, text=${(t.text||'').substring(0,30)}`);
 
     // Отправка через бот (BOT_TOKEN)
     const BOT_TOKEN = process.env.BOT_TOKEN;
@@ -589,60 +589,66 @@ adminRouter.post('/push/send/:id', async (req: Request, res: Response) => {
       inline_keyboard: [[{ text: t.button_text || 'Открыть', url: t.button_url }]]
     } : undefined;
 
-    // Создаём лог заранее чтобы привязать message_id
+    // Создаём лог заранее
     const logResult = await pool.query(
       'INSERT INTO push_log (template_id, sent_count, failed_count) VALUES ($1, 0, 0) RETURNING id',
       [t.id]
     );
     const logId = logResult.rows[0].id;
-    const sentMsgIds: { chat_id: number; message_id: number }[] = [];
 
-    for (const u of users.rows) {
-      try {
-        const media = t.media_file_id;
-        const caption = formatText(t.text);
-        const base: any = { chat_id: u.id, parse_mode: 'HTML' };
-        if (reply_markup) base.reply_markup = reply_markup;
-        let resp;
-        if (t.media_type === 'video' && media) {
-          resp = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendVideo`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...base, video: media, caption, supports_streaming: true, width: t.media_width || undefined, height: t.media_height || undefined })
-          });
-        } else if (t.media_type === 'photo' && media) {
-          resp = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...base, photo: media, caption })
-          });
-        } else {
-          resp = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...base, text: caption })
-          });
-        }
-        const result = await resp.json() as any;
-        if (result.ok) {
-          sent++;
-          if (result.result?.message_id) {
-            sentMsgIds.push({ chat_id: Number(u.id), message_id: result.result.message_id });
+    // Отвечаем СРАЗУ — отправка в фоне (чтобы fetch не тимаутил)
+    res.json({ sent: 0, total: users.rows.length, logId, status: 'sending' });
+
+    // Фоновая отправка
+    (async () => {
+      let sent = 0, failed = 0;
+      const sentMsgIds: { chat_id: number; message_id: number }[] = [];
+
+      for (const u of users.rows) {
+        try {
+          const media = t.media_file_id;
+          const caption = formatText(t.text);
+          const base: any = { chat_id: u.id, parse_mode: 'HTML' };
+          if (reply_markup) base.reply_markup = reply_markup;
+          let resp;
+          if (t.media_type === 'video' && media) {
+            resp = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendVideo`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ...base, video: media, caption, supports_streaming: true, width: t.media_width || undefined, height: t.media_height || undefined })
+            });
+          } else if (t.media_type === 'photo' && media) {
+            resp = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ...base, photo: media, caption })
+            });
+          } else {
+            resp = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ...base, text: caption })
+            });
           }
-        } else { failed++; console.error('[push] send error:', u.id, result.description); }
-        if (sent % 25 === 0) await new Promise(r => setTimeout(r, 1000)); // rate limit
-      } catch { failed++; }
-    }
+          const result = await resp.json() as any;
+          if (result.ok) {
+            sent++;
+            if (result.result?.message_id) {
+              sentMsgIds.push({ chat_id: Number(u.id), message_id: result.result.message_id });
+            }
+          } else { failed++; console.error('[push] send error:', u.id, result.description); }
+          if (sent % 25 === 0) await new Promise(r => setTimeout(r, 1000));
+        } catch { failed++; }
+      }
 
-    // Сохраняем message_id для возможного удаления
-    if (sentMsgIds.length > 0) {
-      const vals = sentMsgIds.map((m, i) => `($1, $${i*2+2}, $${i*2+3})`).join(',');
-      const params: any[] = [logId];
-      sentMsgIds.forEach(m => { params.push(m.chat_id, m.message_id); });
-      await pool.query(`INSERT INTO push_sent_messages (log_id, chat_id, message_id) VALUES ${vals}`, params).catch(console.error);
-    }
+      // Сохраняем message_id
+      if (sentMsgIds.length > 0) {
+        const vals = sentMsgIds.map((m, i) => `($1, $${i*2+2}, $${i*2+3})`).join(',');
+        const p: any[] = [logId];
+        sentMsgIds.forEach(m => { p.push(m.chat_id, m.message_id); });
+        await pool.query(`INSERT INTO push_sent_messages (log_id, chat_id, message_id) VALUES ${vals}`, p).catch(console.error);
+      }
 
-    // Обновляем лог
-    await pool.query('UPDATE push_log SET sent_count = $1, failed_count = $2, finished_at = NOW() WHERE id = $3', [sent, failed, logId]);
-
-    res.json({ sent, failed, total: users.rows.length, logId });
+      await pool.query('UPDATE push_log SET sent_count = $1, failed_count = $2, finished_at = NOW() WHERE id = $3', [sent, failed, logId]);
+      console.log(`📨 Push #${logId} done: sent=${sent}, failed=${failed}, total=${users.rowCount}`);
+    })().catch(err => console.error('[push/send bg] error:', err));
   } catch (err: any) { res.status(500).json({ error: err.message }); }
 });
 

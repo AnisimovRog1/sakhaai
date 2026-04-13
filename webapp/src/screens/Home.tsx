@@ -95,6 +95,12 @@ export function Home({ user, onCreditsUpdate }: Props) {
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, []);
+  // Счётчик генераций платформы
+  const [genCount, setGenCount] = useState(0);
+  useEffect(() => {
+    api.getPublicStats().then(d => setGenCount(d.totalGenerations)).catch(() => {});
+  }, []);
+
   const { levelKey, next } = getLevel(user.credits);
   const progress = Math.max(0, Math.min((user.credits / next) * 100, 100));
 
@@ -199,6 +205,18 @@ export function Home({ user, onCreditsUpdate }: Props) {
             </div>
           </div>
         </div>
+
+        {/* Счётчик генераций */}
+        {genCount > 0 && (
+          <div className="flex items-center justify-center gap-2 py-2" style={{ marginTop: '1.5vh' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+            <p className="text-slate-400 text-sm font-medium">
+              <span className="text-white font-bold">{genCount.toLocaleString('ru')}</span> генераций создано
+            </p>
+          </div>
+        )}
 
         {/* Packages */}
         <div className="space-y-3 home-packages" style={{ marginTop: '1vh' }}>

@@ -96,6 +96,9 @@ export const api = {
   getBalance: () =>
     request<{ credits: number }>('/balance'),
 
+  getPublicStats: () =>
+    fetch(`${API_URL}/stats/public`).then(r => r.json()) as Promise<{ totalGenerations: number }>,
+
   getTransactions: (limit = 20) =>
     request<Array<{ id: number; type: string; amount: number; description: string; created_at: string; icon: string; label: string; isDebit: boolean }>>(`/balance/transactions?limit=${limit}`),
 

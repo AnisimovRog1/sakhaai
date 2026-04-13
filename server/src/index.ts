@@ -7,6 +7,7 @@ import cors from 'cors';
 import * as dotenv from 'dotenv';
 import path from 'path';
 import { migrate } from './db/migrate';
+import { pool } from './db/pool';
 import { authRouter } from './routes/auth';
 import { chatRouter } from './routes/chat';
 import { imageRouter } from './routes/image';
@@ -123,6 +124,23 @@ function startWorker() {
 
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok', service: 'sakhaai-server', worker: process.pid });
+  });
+
+  // Публичный endpoint: общее число генераций (кэш 5 мин)
+  app.get('/stats/public', async (_req, res) => {
+    try {
+      const cached = (app as any).__statsCache;
+      if (cached && Date.now() - cached.ts < 300000) {
+        res.json(cached.data);
+        return;
+      }
+      const r = await pool.query('SELECT COUNT(*)::int AS total FROM generations');
+      const data = { totalGenerations: r.rows[0].total };
+      (app as any).__statsCache = { data, ts: Date.now() };
+      res.json(data);
+    } catch {
+      res.json({ totalGenerations: 0 });
+    }
   });
 
   // Публичный endpoint: текущий курс и множитель (для фронта)

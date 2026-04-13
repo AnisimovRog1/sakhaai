@@ -395,6 +395,30 @@ export async function migrate() {
     END $$;
 
     -- ═══════════════════════════════════════════════════
+    -- Скидка -30% (24ч, одноразовая)
+    -- discount_type: 'pro' (новые юзеры) | 'max' (старые юзеры)
+    -- ═══════════════════════════════════════════════════
+    DO $$ BEGIN
+      ALTER TABLE users ADD COLUMN discount_type TEXT;
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$;
+
+    DO $$ BEGIN
+      ALTER TABLE users ADD COLUMN discount_expires_at TIMESTAMPTZ;
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$;
+
+    DO $$ BEGIN
+      ALTER TABLE users ADD COLUMN discount_used BOOLEAN DEFAULT false;
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$;
+
+    DO $$ BEGIN
+      ALTER TABLE orders ADD COLUMN discount_percent INTEGER DEFAULT 0;
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$;
+
+    -- ═══════════════════════════════════════════════════
     -- Маркетинговый план (задачи + цели)
     -- ═══════════════════════════════════════════════════
 

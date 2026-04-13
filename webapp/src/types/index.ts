@@ -5,6 +5,9 @@ export type User = {
   credits: number;
   languageCode: 'ru' | 'sah';
   photoUrl: string | null;
+  discountType?: 'pro' | 'max' | null;
+  discountExpiresAt?: string | null;
+  discountUsed?: boolean;
 };
 
 export type Chat = {

@@ -34,10 +34,42 @@ paymentRouter.post('/create', requireAuth, async (req: Request, res: Response) =
     const pack = PACKAGES[pkg];
     if (!pack) { res.status(400).json({ error: 'Неизвестный пакет' }); return; }
 
+    // Проверяем скидку -30% (одноразовая, 24ч)
+    let finalAmount = pack.amountRub;
+    let discountPercent = 0;
+    try {
+      const discRow = await pool.query(
+        `SELECT discount_type, discount_expires_at, discount_used FROM users WHERE id = $1`,
+        [req.userId]
+      );
+      const disc = discRow.rows[0];
+      if (disc && !disc.discount_used && disc.discount_expires_at && new Date(disc.discount_expires_at) > new Date()) {
+        if (disc.discount_type === 'pro' && pkg === 'pro') {
+          finalAmount = Math.round(pack.amountRub * 0.7); // 559₽
+          discountPercent = 30;
+        } else if (disc.discount_type === 'max' && pkg === 'max') {
+          finalAmount = Math.round(pack.amountRub * 0.7); // 1393₽
+          discountPercent = 30;
+        }
+      }
+    } catch (err) {
+      console.error('Discount check error:', err);
+      // При ошибке — обычная цена, не ломаем оплату
+    }
+
+    // Если скидка применена — помечаем как использованную (до оплаты, чтобы не создать 2 заказа)
+    if (discountPercent > 0) {
+      await pool.query(
+        `UPDATE users SET discount_used = true WHERE id = $1 AND discount_used = false`,
+        [req.userId]
+      );
+      console.log(`💰 Скидка -${discountPercent}%: user=${req.userId}, pkg=${pkg}, ${pack.amountRub}₽ → ${finalAmount}₽`);
+    }
+
     const orderId = crypto.randomUUID();
     await pool.query(
-      `INSERT INTO orders (id, user_id, package, amount_rub, credits) VALUES ($1, $2, $3, $4, $5)`,
-      [orderId, req.userId, pkg, pack.amountRub, pack.credits],
+      `INSERT INTO orders (id, user_id, package, amount_rub, credits, discount_percent) VALUES ($1, $2, $3, $4, $5, $6)`,
+      [orderId, req.userId, pkg, finalAmount, pack.credits, discountPercent],
     );
 
     // Вызываем UnitPay API — initPayment
@@ -45,7 +77,7 @@ paymentRouter.post('/create', requireAuth, async (req: Request, res: Response) =
       method: 'initPayment',
       'params[projectId]': UNITPAY_PROJECT_ID,
       'params[secretKey]': UNITPAY_SECRET,
-      'params[sum]': String(pack.amountRub),
+      'params[sum]': String(finalAmount),
       'params[account]': orderId,
       'params[desc]': `UraanxAI — пакет "${pack.label}"`,
       'params[currency]': 'RUB',

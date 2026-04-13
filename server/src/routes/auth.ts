@@ -116,6 +116,29 @@ authRouter.post('/', async (req: Request, res: Response) => {
     }
   }
 
+  // 3.7. Скидка -30%: новым юзерам на Pro, старым на Max (24ч, одноразово)
+  let discountType: string | null = null;
+  let discountExpiresAt: string | null = null;
+  let discountUsed = false;
+  try {
+    const dtype = user.is_new ? 'pro' : 'max';
+    const discRow = await pool.query(
+      `UPDATE users
+       SET discount_type = CASE WHEN discount_type IS NULL THEN $1 ELSE discount_type END,
+           discount_expires_at = CASE WHEN discount_expires_at IS NULL THEN NOW() + INTERVAL '24 hours' ELSE discount_expires_at END
+       WHERE id = $2
+       RETURNING discount_type, discount_expires_at, discount_used`,
+      [dtype, tgUser.id]
+    );
+    if (discRow.rows[0]) {
+      discountType = discRow.rows[0].discount_type;
+      discountExpiresAt = discRow.rows[0].discount_expires_at;
+      discountUsed = discRow.rows[0].discount_used ?? false;
+    }
+  } catch (err) {
+    console.error('Discount init error:', err);
+  }
+
   // 3.6. Сохраняем часовой пояс (если передан)
   if (typeof timezoneOffset === 'number') {
     pool.query('UPDATE users SET timezone_offset = $1 WHERE id = $2', [timezoneOffset, tgUser.id]).catch(console.error);
@@ -184,6 +207,9 @@ authRouter.post('/', async (req: Request, res: Response) => {
       credits: user.credits,
       languageCode: user.language_code,
       photoUrl,
+      discountType,
+      discountExpiresAt,
+      discountUsed,
     },
   });
   } catch (err: any) {

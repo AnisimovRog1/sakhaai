@@ -36,11 +36,51 @@ function getLevel(credits: number) {
   return                      { levelKey: 'home.max' as const,    next: 28000 };
 }
 
+// Скидка -30%: определяем активна ли и на какой пакет
+function getDiscount(user: User) {
+  if (!user.discountType || !user.discountExpiresAt || user.discountUsed) return null;
+  const expiresAt = new Date(user.discountExpiresAt).getTime();
+  const timeLeft = expiresAt - Date.now();
+  if (timeLeft <= 0) return null;
+  return {
+    type: user.discountType as 'pro' | 'max',
+    expiresAt,
+    timeLeft,
+    // Скидочные цены
+    prices: {
+      pro: { original: '799₽', discounted: '559₽', originalNum: 799, discountedNum: 559 },
+      max: { original: '1990₽', discounted: '1393₽', originalNum: 1990, discountedNum: 1393 },
+    },
+  };
+}
+
+function formatCountdown(ms: number) {
+  if (ms <= 0) return '00:00:00';
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  const s = Math.floor((ms % 60000) / 1000);
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
 export function Home({ user, onCreditsUpdate }: Props) {
   const [selectedPkg, setSelectedPkg] = useState<typeof PACKAGES[0] | null>(null);
   const [showPayment, setShowPayment] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('sbp');
   const { t } = useLang();
+
+  // Таймер скидки
+  const discount = getDiscount(user);
+  const [timeLeft, setTimeLeft] = useState(discount?.timeLeft ?? 0);
+  useEffect(() => {
+    if (!discount) { setTimeLeft(0); return; }
+    const tick = () => {
+      const left = Math.max(0, discount.expiresAt - Date.now());
+      setTimeLeft(left);
+    };
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [user.discountExpiresAt, user.discountUsed]);
 
   // Обновляем баланс при входе на главный экран + при возврате из оплаты
   useEffect(() => {
@@ -113,6 +153,20 @@ export function Home({ user, onCreditsUpdate }: Props) {
           )}
         </div>
 
+        {/* Баннер скидки -30% */}
+        {discount && timeLeft > 0 && (
+          <div className="relative rounded-2xl p-4 overflow-hidden" style={{ marginTop: '2vh' }}>
+            <div className="absolute inset-0 bg-gradient-to-r from-violet-600/30 to-cyan-500/30 border border-violet-500/40 rounded-2xl" />
+            <div className="relative text-center space-y-1">
+              <p className="text-white font-extrabold text-lg tracking-wide">
+                СКИДКА -30% {discount.type === 'pro' ? 'НА PRO' : 'НА MAX'}
+              </p>
+              <p className="text-violet-200/90 text-sm font-medium">Только для вас, действует 24 часа</p>
+              <p className="text-cyan-300 font-mono font-bold text-2xl tracking-wider mt-1">{formatCountdown(timeLeft)}</p>
+            </div>
+          </div>
+        )}
+
         {/* Balance Card — флаг Якутии */}
         <div className="relative rounded-2xl p-6 overflow-hidden shadow-xl glow-animate home-balance" style={{ marginTop: '4vh' }}>
           <div className="absolute inset-0 bg-gradient-to-b from-[#1a6bc4] via-[#155da8] to-[#0e4a8a]" />
@@ -162,15 +216,26 @@ export function Home({ user, onCreditsUpdate }: Props) {
                       : 'glass-neon'
                   }`}
                 >
-                  {pkg.popular && (
+                  {/* Badge: Popular или -30% */}
+                  {discount && timeLeft > 0 && discount.type === pkg.key ? (
+                    <span className="absolute -top-2.5 left-3 bg-gradient-to-r from-violet-600 to-cyan-500 text-white text-[9px] font-bold px-2.5 py-0.5 rounded-full animate-pulse">-30%</span>
+                  ) : pkg.popular ? (
                     <span className="absolute -top-2.5 left-3 bg-gradient-to-r from-red-500 to-red-400 text-white text-[9px] font-bold px-2.5 py-0.5 rounded-full">{t('home.popular')}</span>
-                  )}
+                  ) : null}
                   {sel && (
                     <div className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
                     </div>
                   )}
-                  <p className="text-2xl font-extrabold text-white">{pkg.price}</p>
+                  {/* Цена: зачёркнутая + скидочная если применимо */}
+                  {discount && timeLeft > 0 && discount.type === pkg.key ? (
+                    <div>
+                      <span className="text-sm text-slate-500 line-through mr-1">{discount.prices[discount.type].original}</span>
+                      <span className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-cyan-400">{discount.prices[discount.type].discounted}</span>
+                    </div>
+                  ) : (
+                    <p className="text-2xl font-extrabold text-white">{pkg.price}</p>
+                  )}
                   <p className="text-slate-200 text-sm font-semibold mt-1">{t(pkg.labelKey)}</p>
                   <p className="text-blue-300/80 text-xs mt-0.5 font-medium">{pkg.credits.toLocaleString('ru')} кр.</p>
                 </button>
@@ -191,7 +256,9 @@ export function Home({ user, onCreditsUpdate }: Props) {
               : 'glass-neon text-slate-500 cursor-not-allowed'
           }`}
         >
-          {selectedPkg ? `${t('home.pay')} ${selectedPkg.price}` : t('home.selectPackage')}
+          {selectedPkg
+          ? `${t('home.pay')} ${discount && timeLeft > 0 && discount.type === selectedPkg.key ? discount.prices[discount.type].discounted : selectedPkg.price}`
+          : t('home.selectPackage')}
         </button>
       </div>
 

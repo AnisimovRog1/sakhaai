@@ -487,7 +487,8 @@ export async function seedMarketingPlan() {
   // Проверяем версию — если старая, пересоздаём
   const { rows } = await pool.query(`SELECT COUNT(*) as cnt FROM marketing_plans`);
   const cnt = parseInt(rows[0].cnt);
-  if (cnt > 0 && cnt >= 30) { console.log('⏭ marketing_plans: v2 уже есть'); return; }
+  if (cnt >= 32) { console.log('⏭ marketing_plans: v2 уже есть'); return; }
+  // Удаляем старые и пересоздаём
   if (cnt > 0) {
     console.log('🔄 Обновляем marketing_plans до v2...');
     await pool.query(`DELETE FROM marketing_plans`);

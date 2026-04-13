@@ -804,7 +804,8 @@ async function createPush(send){
       var recipients=(document.querySelector('input[name="pushRecipients"]:checked')||{}).value||'all';
       var creditsFilter=parseInt(document.getElementById('pushCreditsFilter')?.value)||500;
       var sr=await P('/admin/push/send/'+r.id,{recipients:recipients,creditsFilter:creditsFilter});
-      alert('📨 Отправлено: '+(sr.sent||0)+' пользователям');
+      if(sr.error){alert('❌ Ошибка отправки: '+sr.error);return}
+      alert('📨 Отправлено: '+sr.sent+' из '+sr.total+' пользователям'+(sr.failed?' (ошибок: '+sr.failed+')':''));
     } else if(timing==='scheduled'){
       alert('📅 Пуш запланирован на '+new Date(scheduleAt).toLocaleString('ru'));
     } else {

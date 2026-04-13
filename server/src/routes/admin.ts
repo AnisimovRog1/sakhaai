@@ -564,6 +564,7 @@ adminRouter.post('/push/send/:id', async (req: Request, res: Response) => {
     else if (filter === 'not_purchased') { userQuery += ' AND NOT EXISTS (SELECT 1 FROM orders o WHERE o.user_id = users.id AND o.status = \'paid\')'; }
     else if (filter === 'low_credits') { params.push(creditsFilter); userQuery += ' AND credits < $' + params.length; }
     const users = await pool.query(userQuery, params);
+    console.log(`[push/send] template=${t.id}, filter=${filter}, users=${users.rowCount}, button=${t.button_url || 'none'}`);
 
     // Отправка через бот (BOT_TOKEN)
     const BOT_TOKEN = process.env.BOT_TOKEN;

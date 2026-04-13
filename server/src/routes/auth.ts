@@ -135,6 +135,7 @@ authRouter.post('/', async (req: Request, res: Response) => {
       discountExpiresAt = discRow.rows[0].discount_expires_at;
       discountUsed = discRow.rows[0].discount_used ?? false;
     }
+    console.log(`Discount: user=${tgUser.id}, type=${discountType}, expires=${discountExpiresAt}, used=${discountUsed}, is_new=${user.is_new}`);
   } catch (err) {
     console.error('Discount init error:', err);
   }

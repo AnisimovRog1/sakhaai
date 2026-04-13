@@ -57,12 +57,7 @@ paymentRouter.post('/create', requireAuth, async (req: Request, res: Response) =
       // При ошибке — обычная цена, не ломаем оплату
     }
 
-    // Если скидка применена — помечаем как использованную (до оплаты, чтобы не создать 2 заказа)
     if (discountPercent > 0) {
-      await pool.query(
-        `UPDATE users SET discount_used = true WHERE id = $1 AND discount_used = false`,
-        [req.userId]
-      );
       console.log(`💰 Скидка -${discountPercent}%: user=${req.userId}, pkg=${pkg}, ${pack.amountRub}₽ → ${finalAmount}₽`);
     }
 
@@ -200,6 +195,14 @@ paymentRouter.get('/unitpay', async (req: Request, res: Response) => {
           `UPDATE users SET credits = credits + $1, updated_at = NOW() WHERE id = $2`,
           [order.credits, order.user_id]
         );
+
+        // Помечаем скидку как использованную (только при реальной оплате)
+        if (order.discount_percent > 0) {
+          await client.query(
+            `UPDATE users SET discount_used = true WHERE id = $1`,
+            [order.user_id]
+          );
+        }
         await client.query(
           `INSERT INTO transactions (user_id, type, amount, description) VALUES ($1, 'topup', $2, $3)`,
           [order.user_id, order.credits, `Пакет "${PACKAGES[order.package]?.label}" — ${order.amount_rub}₽`]

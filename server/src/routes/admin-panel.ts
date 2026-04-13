@@ -778,6 +778,7 @@ function clearMedia(){
 }
 
 async function createPush(send){
+  try{
   const name=document.getElementById('pushName').value,text=document.getElementById('pushText').value;
   const timing=document.querySelector('input[name="pushTiming"]:checked')?.value||'now';
   const scheduleAt=timing==='scheduled'?document.getElementById('pushScheduleAt').value:null;
@@ -799,11 +800,14 @@ async function createPush(send){
   var btnText=document.getElementById('pushBtnText').value||null;
   var btnUrl=document.getElementById('pushBtnUrl').value||null;
   const r=await P('/admin/push/templates',{name,text,scheduleType:timing==='scheduled'?'scheduled':'manual',sendTime:scheduleAt,mediaType:mediaType,mediaFileId:mediaFileId,buttonText:btnText,buttonUrl:btnUrl});
+  console.log('createPush: template result=',JSON.stringify(r),'send=',send,'timing=',timing);
   if(r.id){
     if(send&&timing==='now'){
       var recipients=(document.querySelector('input[name="pushRecipients"]:checked')||{}).value||'all';
       var creditsFilter=parseInt(document.getElementById('pushCreditsFilter')?.value)||500;
+      console.log('Sending push id='+r.id+' recipients='+recipients);
       var sr=await P('/admin/push/send/'+r.id,{recipients:recipients,creditsFilter:creditsFilter});
+      console.log('Send result:',JSON.stringify(sr));
       if(sr.error){alert('❌ Ошибка отправки: '+sr.error);return}
       alert('📨 Отправлено: '+sr.sent+' из '+sr.total+' пользователям'+(sr.failed?' (ошибок: '+sr.failed+')':''));
     } else if(timing==='scheduled'){
@@ -814,7 +818,8 @@ async function createPush(send){
     document.getElementById('pushName').value='';document.getElementById('pushText').value='';
     document.getElementById('pushBtnText').value='';document.getElementById('pushBtnUrl').value='';
     clearMedia();loadPushTemplates()
-  } else alert('❌ '+(r.error||'Ошибка'))}
+  } else alert('❌ '+(r.error||'Ошибка'))
+  }catch(e){alert('❌ Исключение: '+e)}}
 
 async function loadPushStats(){
   var s=await G('/admin/push/stats');if(s.error)return;

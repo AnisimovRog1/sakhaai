@@ -218,6 +218,44 @@ function startWorker() {
     res.type('text/html').send(LINK_PAGE_HTML);
   });
 
+  // ─── Share page с OG-превью для Telegram ───
+  app.get('/s/:sharerId/:genId', async (req, res) => {
+    try {
+      const { sharerId, genId } = req.params;
+      const { rows } = await pool.query(
+        'SELECT type, result_url, prompt FROM generations WHERE id = $1',
+        [genId]
+      );
+      const gen = rows[0];
+      const botUsername = 'UraanxAI_bot';
+      const deepLink = `https://t.me/${botUsername}?start=share_${sharerId}_${genId}`;
+
+      const isVideo = gen && ['video', 'motion', 'avatar'].includes(gen.type);
+      const mediaUrl = gen?.result_url || '';
+      const title = 'Создано с помощью UraanxAI';
+      const desc = gen?.prompt ? gen.prompt.substring(0, 150) : 'Фото и видео за секунды с помощью нейросети';
+
+      res.type('text/html').send(`<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<meta property="og:title" content="${title}">
+<meta property="og:description" content="${desc}">
+${isVideo
+  ? `<meta property="og:type" content="video.other"><meta property="og:video" content="${mediaUrl}"><meta property="og:video:type" content="video/mp4">`
+  : `<meta property="og:type" content="article"><meta property="og:image" content="${mediaUrl}">`}
+<meta property="og:url" content="${deepLink}">
+<meta name="twitter:card" content="summary_large_image">
+<meta http-equiv="refresh" content="0;url=${deepLink}">
+<title>${title}</title>
+</head><body style="background:#070b14;color:#fff;font-family:sans-serif;text-align:center;padding:40px">
+<p>Перенаправляю в UraanxAI...</p>
+<a href="${deepLink}" style="color:#8b5cf6">Открыть</a>
+</body></html>`);
+    } catch (e) {
+      res.redirect('https://t.me/UraanxAI_bot');
+    }
+  });
+
   // ─── /app → SPA для Telegram Mini App ───
   app.get('/app', (_req, res) => {
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');

@@ -994,6 +994,14 @@ function renderSeqs(){
     html+='<textarea class="w-full bg-black/20 border border-amber-500/20 rounded-lg p-2.5 text-xs text-slate-300 resize-y leading-relaxed font-mono" rows="3" id="seqabtext-'+s.id+'" onfocus="this.dataset.prev=this.value" oninput="markSeqDirty('+s.id+')" onblur="trackUndo('+s.id+',\\x27seqabtext-'+s.id+'\\x27)" onkeydown="seqHotkey(event,'+s.id+')">'+esc(abText)+'</textarea>';
     html+='</div>';
 
+    // ═══ Кнопка со ссылкой ═══
+    var btnText=s.button_text||'';
+    var btnUrl=s.button_url||'';
+    html+='<div class="mt-2 grid grid-cols-2 gap-2">';
+    html+='<input class="bg-black/20 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-slate-300" id="seqbtn-'+s.id+'" placeholder="Текст кнопки" value="'+esc(btnText)+'" oninput="markSeqDirty('+s.id+')" onblur="saveSeq('+s.id+')">';
+    html+='<input class="bg-black/20 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-slate-300" id="seqbtnurl-'+s.id+'" placeholder="URL кнопки (https://...)" value="'+esc(btnUrl)+'" oninput="markSeqDirty('+s.id+')" onblur="saveSeq('+s.id+')">';
+    html+='</div>';
+
     // ═══ Кнопки сохранения/удаления ═══
     html+='<div class="flex gap-2 mt-2 items-center">';
     html+='<button class="btn btn-primary text-[11px] hidden" id="seqsave-'+s.id+'" onclick="saveSeq('+s.id+')" style="padding:4px 12px">💾 Сохранить</button>';
@@ -1048,7 +1056,11 @@ async function saveSeq(id){
   var media_height=parseInt((document.getElementById('seqmediaheight-'+id)||{}).value)||null;
   var ab_text=(document.getElementById('seqabtext-'+id)||{}).value||null;
   if(ab_text==='')ab_text=null;
-  var r=await P('/admin/push/sequences',{id:id,trigger_type:s.trigger_type,delay_minutes:delay_minutes,credits_threshold:s.credits_threshold,text:text,media_type:(media_url||media_file_id)?savedMediaType:null,media_url:media_url,media_file_id:media_file_id,label:s.label,is_active:s.is_active,allow_hour_from:allow_hour_from,allow_hour_to:allow_hour_to,send_mode:send_mode,strict_time:strict_time,preferred_time:preferred_time,weekday:weekday,greeting_mode:greeting_mode,greeting_fixed:greeting_fixed,media_width:media_width,media_height:media_height,ab_text:ab_text});
+  var button_text=(document.getElementById('seqbtn-'+id)||{}).value||null;
+  var button_url=(document.getElementById('seqbtnurl-'+id)||{}).value||null;
+  if(button_text==='')button_text=null;
+  if(button_url==='')button_url=null;
+  var r=await P('/admin/push/sequences',{id:id,trigger_type:s.trigger_type,delay_minutes:delay_minutes,credits_threshold:s.credits_threshold,text:text,media_type:(media_url||media_file_id)?savedMediaType:null,media_url:media_url,media_file_id:media_file_id,label:s.label,is_active:s.is_active,allow_hour_from:allow_hour_from,allow_hour_to:allow_hour_to,send_mode:send_mode,strict_time:strict_time,preferred_time:preferred_time,weekday:weekday,greeting_mode:greeting_mode,greeting_fixed:greeting_fixed,media_width:media_width,media_height:media_height,ab_text:ab_text,button_text:button_text,button_url:button_url});
   if(r.id){document.getElementById('seqsave-'+id).classList.add('hidden');if(s)Object.assign(s,r)}
   else alert(r.error||'Ошибка')
   }finally{delete savingIds[id]}

@@ -418,6 +418,17 @@ export async function migrate() {
     EXCEPTION WHEN duplicate_column THEN NULL;
     END $$;
 
+    -- Кнопка со ссылкой в пушах
+    DO $$ BEGIN
+      ALTER TABLE push_sequences ADD COLUMN button_text TEXT;
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$;
+
+    DO $$ BEGIN
+      ALTER TABLE push_sequences ADD COLUMN button_url TEXT;
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$;
+
     -- ═══════════════════════════════════════════════════
     -- Маркетинговый план (задачи + цели)
     -- ═══════════════════════════════════════════════════

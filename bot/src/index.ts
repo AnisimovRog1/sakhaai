@@ -1142,6 +1142,9 @@ async function processAutoSequences() {
         }
 
         const media = p.media_file_id || p.media_url;
+        const reply_markup = p.button_url ? {
+          inline_keyboard: [[{ text: p.button_text || 'Открыть', url: p.button_url }]]
+        } : undefined;
         if (p.media_type === 'video' && media) {
           await bot.api.sendVideo(Number(p.user_id), media, {
             caption: formatText(text),
@@ -1149,15 +1152,18 @@ async function processAutoSequences() {
             supports_streaming: true,
             width: p.media_width || undefined,
             height: p.media_height || undefined,
+            reply_markup,
           });
         } else if (p.media_type === 'photo' && media) {
           await bot.api.sendPhoto(Number(p.user_id), media, {
             caption: formatText(text),
             parse_mode: 'HTML',
+            reply_markup,
           });
         } else {
           await bot.api.sendMessage(Number(p.user_id), formatText(text), {
             parse_mode: 'HTML',
+            reply_markup,
           });
         }
         await httpPost(`${SERVER_URL}/admin/push/sequences/mark-sent`, {

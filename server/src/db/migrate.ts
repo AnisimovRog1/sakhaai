@@ -429,6 +429,27 @@ export async function migrate() {
     EXCEPTION WHEN duplicate_column THEN NULL;
     END $$;
 
+    -- Кнопка в разовых пушах (push_templates)
+    DO $$ BEGIN
+      ALTER TABLE push_templates ADD COLUMN button_text TEXT;
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$;
+
+    DO $$ BEGIN
+      ALTER TABLE push_templates ADD COLUMN button_url TEXT;
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$;
+
+    -- Хранение message_id для удаления отправленных пушей
+    CREATE TABLE IF NOT EXISTS push_sent_messages (
+      id          SERIAL PRIMARY KEY,
+      log_id      INTEGER NOT NULL REFERENCES push_log(id) ON DELETE CASCADE,
+      chat_id     BIGINT NOT NULL,
+      message_id  INTEGER NOT NULL,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_push_sent_messages_log ON push_sent_messages (log_id);
+
     -- ═══════════════════════════════════════════════════
     -- Маркетинговый план (задачи + цели)
     -- ═══════════════════════════════════════════════════

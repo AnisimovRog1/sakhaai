@@ -513,11 +513,11 @@ adminRouter.get('/push/templates', async (req: Request, res: Response) => {
 
 adminRouter.post('/push/templates', async (req: Request, res: Response) => {
   try {
-    const { name, text, mediaType, mediaFileId, scheduleType, sendTime, createdBy, mediaWidth, mediaHeight } = req.body;
+    const { name, text, mediaType, mediaFileId, scheduleType, sendTime, createdBy, mediaWidth, mediaHeight, buttonText, buttonUrl } = req.body;
     const r = await pool.query(
-      `INSERT INTO push_templates (name, text, media_type, media_file_id, schedule_type, send_time, created_by, media_width, media_height)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-      [name, text, mediaType || null, mediaFileId || null, scheduleType || 'manual', sendTime || null, createdBy || null, mediaWidth || null, mediaHeight || null]
+      `INSERT INTO push_templates (name, text, media_type, media_file_id, schedule_type, send_time, created_by, media_width, media_height, button_text, button_url)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+      [name, text, mediaType || null, mediaFileId || null, scheduleType || 'manual', sendTime || null, createdBy || null, mediaWidth || null, mediaHeight || null, buttonText || null, buttonUrl || null]
     );
     res.json(r.rows[0]);
   } catch (err: any) { res.status(500).json({ error: err.message }); }
@@ -583,37 +583,95 @@ adminRouter.post('/push/send/:id', async (req: Request, res: Response) => {
       return t;
     };
 
+    // Кнопка со ссылкой (если есть)
+    const reply_markup = t.button_url ? {
+      inline_keyboard: [[{ text: t.button_text || 'Открыть', url: t.button_url }]]
+    } : undefined;
+
+    // Создаём лог заранее чтобы привязать message_id
+    const logResult = await pool.query(
+      'INSERT INTO push_log (template_id, sent_count, failed_count) VALUES ($1, 0, 0) RETURNING id',
+      [t.id]
+    );
+    const logId = logResult.rows[0].id;
+    const sentMsgIds: { chat_id: number; message_id: number }[] = [];
+
     for (const u of users.rows) {
       try {
         const media = t.media_file_id;
         const caption = formatText(t.text);
+        const base: any = { chat_id: u.id, parse_mode: 'HTML' };
+        if (reply_markup) base.reply_markup = reply_markup;
         let resp;
         if (t.media_type === 'video' && media) {
           resp = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendVideo`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: u.id, video: media, caption, parse_mode: 'HTML', supports_streaming: true, width: t.media_width || undefined, height: t.media_height || undefined })
+            body: JSON.stringify({ ...base, video: media, caption, supports_streaming: true, width: t.media_width || undefined, height: t.media_height || undefined })
           });
         } else if (t.media_type === 'photo' && media) {
           resp = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: u.id, photo: media, caption, parse_mode: 'HTML' })
+            body: JSON.stringify({ ...base, photo: media, caption })
           });
         } else {
           resp = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: u.id, text: caption, parse_mode: 'HTML' })
+            body: JSON.stringify({ ...base, text: caption })
           });
         }
-        const result = await resp.json() as { ok: boolean; description?: string };
-        if (result.ok) { sent++; } else { failed++; console.error('[push] send error:', u.id, result.description); }
+        const result = await resp.json() as any;
+        if (result.ok) {
+          sent++;
+          if (result.result?.message_id) {
+            sentMsgIds.push({ chat_id: Number(u.id), message_id: result.result.message_id });
+          }
+        } else { failed++; console.error('[push] send error:', u.id, result.description); }
         if (sent % 25 === 0) await new Promise(r => setTimeout(r, 1000)); // rate limit
       } catch { failed++; }
     }
 
-    // Логируем
-    await pool.query('INSERT INTO push_log (template_id, sent_count, failed_count, finished_at) VALUES ($1, $2, $3, NOW())', [t.id, sent, failed]);
+    // Сохраняем message_id для возможного удаления
+    if (sentMsgIds.length > 0) {
+      const vals = sentMsgIds.map((m, i) => `($1, $${i*2+2}, $${i*2+3})`).join(',');
+      const params: any[] = [logId];
+      sentMsgIds.forEach(m => { params.push(m.chat_id, m.message_id); });
+      await pool.query(`INSERT INTO push_sent_messages (log_id, chat_id, message_id) VALUES ${vals}`, params).catch(console.error);
+    }
 
-    res.json({ sent, failed, total: users.rows.length });
+    // Обновляем лог
+    await pool.query('UPDATE push_log SET sent_count = $1, failed_count = $2, finished_at = NOW() WHERE id = $3', [sent, failed, logId]);
+
+    res.json({ sent, failed, total: users.rows.length, logId });
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+// ─── DELETE /push/delete-sent/:logId — удалить отправленные сообщения ──
+adminRouter.delete('/push/delete-sent/:logId', async (req: Request, res: Response) => {
+  try {
+    const logId = parseInt(req.params.logId);
+    const msgs = await pool.query('SELECT chat_id, message_id FROM push_sent_messages WHERE log_id = $1', [logId]);
+    if (msgs.rowCount === 0) { res.json({ deleted: 0, error: 'Нет сохранённых сообщений' }); return; }
+
+    const BOT_TOKEN = process.env.BOT_TOKEN;
+    if (!BOT_TOKEN) { res.status(503).json({ error: 'BOT_TOKEN не настроен' }); return; }
+
+    let deleted = 0, failed = 0;
+    for (const m of msgs.rows) {
+      try {
+        const resp = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/deleteMessage`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: m.chat_id, message_id: m.message_id })
+        });
+        const result = await resp.json() as any;
+        if (result.ok) { deleted++; } else { failed++; }
+        if (deleted % 25 === 0) await new Promise(r => setTimeout(r, 1000));
+      } catch { failed++; }
+    }
+
+    // Удаляем записи из БД
+    await pool.query('DELETE FROM push_sent_messages WHERE log_id = $1', [logId]);
+    console.log(`🗑 Удалено ${deleted} сообщений пуша #${logId}`);
+    res.json({ deleted, failed, total: msgs.rowCount });
   } catch (err: any) { res.status(500).json({ error: err.message }); }
 });
 
@@ -629,11 +687,11 @@ adminRouter.get('/push/log', async (_req: Request, res: Response) => {
   try {
     // Объединяем: разовые пуши (push_log) + автопуши (push_sent с группировкой)
     const r = await pool.query(`
-      (SELECT 'manual' as source, t.name as label, l.sent_count, l.failed_count, l.started_at as sent_at
+      (SELECT 'manual' as source, t.name as label, l.sent_count, l.failed_count, l.started_at as sent_at, l.id as log_id
        FROM push_log l LEFT JOIN push_templates t ON l.template_id = t.id)
       UNION ALL
       (SELECT 'auto' as source, s.label, COUNT(ps.id)::int as sent_count, 0 as failed_count,
-              MAX(ps.sent_at) as sent_at
+              MAX(ps.sent_at) as sent_at, NULL::int as log_id
        FROM push_sent ps JOIN push_sequences s ON ps.sequence_id = s.id
        GROUP BY s.id, s.label)
       ORDER BY sent_at DESC LIMIT 50

@@ -294,6 +294,10 @@ table.bordered tr:last-child td{border-bottom:none}
         <div class="space-y-3">
           <input id="pushName" placeholder="📌 Название пуша">
           <textarea id="pushText" placeholder="✏️ Текст сообщения" rows="3"></textarea>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <input id="pushBtnText" placeholder="Текст кнопки (необяз.)" style="font-size:12px">
+            <input id="pushBtnUrl" placeholder="URL кнопки (https://...)" style="font-size:12px">
+          </div>
           <div>
             <div id="dropZone" style="border:2px dashed rgba(139,92,246,.3);border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:all .3s" onclick="document.getElementById('fileInput').click()" ondragover="event.preventDefault();this.style.borderColor='rgba(6,182,212,.6)';this.style.background='rgba(6,182,212,.05)'" ondragleave="this.style.borderColor='rgba(139,92,246,.3)';this.style.background='transparent'" ondrop="event.preventDefault();handleFileDrop(event);this.style.borderColor='rgba(139,92,246,.3)';this.style.background='transparent'">
               <div id="dropZoneContent">
@@ -792,7 +796,9 @@ async function createPush(send){
       if(ud.file_id){mediaFileId=ud.file_id}else{alert('Ошибка загрузки медиа: '+(ud.error||''));return}
     }catch(e){alert('Ошибка загрузки: '+e);return}
   }
-  const r=await P('/admin/push/templates',{name,text,scheduleType:timing==='scheduled'?'scheduled':'manual',sendTime:scheduleAt,mediaType:mediaType,mediaFileId:mediaFileId});
+  var btnText=document.getElementById('pushBtnText').value||null;
+  var btnUrl=document.getElementById('pushBtnUrl').value||null;
+  const r=await P('/admin/push/templates',{name,text,scheduleType:timing==='scheduled'?'scheduled':'manual',sendTime:scheduleAt,mediaType:mediaType,mediaFileId:mediaFileId,buttonText:btnText,buttonUrl:btnUrl});
   if(r.id){
     if(send&&timing==='now'){
       var recipients=(document.querySelector('input[name="pushRecipients"]:checked')||{}).value||'all';
@@ -805,6 +811,7 @@ async function createPush(send){
       alert('✅ Шаблон сохранён!');
     }
     document.getElementById('pushName').value='';document.getElementById('pushText').value='';
+    document.getElementById('pushBtnText').value='';document.getElementById('pushBtnUrl').value='';
     clearMedia();loadPushTemplates()
   } else alert('❌ '+(r.error||'Ошибка'))}
 
@@ -856,9 +863,10 @@ async function togglePush(id){await apiFetch('/admin/push/templates/'+id+'/toggl
 async function loadPushLog(){
   const l=await G('/admin/push/log');const el=document.getElementById('pushLogList');
   if(!Array.isArray(l)||!l.length){el.innerHTML='<p class="text-slate-600 text-sm">Рассылок не было</p>';return}
-  el.innerHTML='<div class="grid grid-cols-[auto_1fr_auto_auto_auto] gap-x-3 gap-y-2 text-sm items-center">'+
-    '<span class="text-slate-600 text-[10px] uppercase">Тип</span><span class="text-slate-600 text-[10px] uppercase">Название</span><span class="text-slate-600 text-[10px] uppercase">Дата</span><span class="text-slate-600 text-[10px] uppercase">Отправлено</span><span class="text-slate-600 text-[10px] uppercase">Ошибки</span>'+
-    l.map(x=>{var icon=x.source==='auto'?'🤖':'📨';var date=x.sent_at?new Date(x.sent_at).toLocaleDateString('ru'):'';var fail=x.failed_count>0?'<span class="text-red-400">'+x.failed_count+'</span>':'<span class="text-slate-600">0</span>';return '<span>'+icon+'</span><span class="text-white font-medium truncate">'+(x.label||'—')+'</span><span class="text-slate-500 text-xs">'+date+'</span><span class="text-green-400 font-bold">'+x.sent_count+'</span>'+fail}).join('')+'</div>'}
+  el.innerHTML='<div class="grid grid-cols-[auto_1fr_auto_auto_auto_auto] gap-x-3 gap-y-2 text-sm items-center">'+
+    '<span class="text-slate-600 text-[10px] uppercase">Тип</span><span class="text-slate-600 text-[10px] uppercase">Название</span><span class="text-slate-600 text-[10px] uppercase">Дата</span><span class="text-slate-600 text-[10px] uppercase">Отправлено</span><span class="text-slate-600 text-[10px] uppercase">Ошибки</span><span></span>'+
+    l.map(x=>{var icon=x.source==='auto'?'🤖':'📨';var date=x.sent_at?new Date(x.sent_at).toLocaleDateString('ru'):'';var fail=x.failed_count>0?'<span class="text-red-400">'+x.failed_count+'</span>':'<span class="text-slate-600">0</span>';var delBtn=x.log_id?'<button class="text-red-400/60 hover:text-red-400 text-[10px]" onclick="deleteSentPush('+x.log_id+')" title="Удалить у всех">🗑</button>':'';return '<span>'+icon+'</span><span class="text-white font-medium truncate">'+(x.label||'—')+'</span><span class="text-slate-500 text-xs">'+date+'</span><span class="text-green-400 font-bold">'+x.sent_count+'</span>'+fail+'<span>'+delBtn+'</span>'}).join('')+'</div>'}
+async function deleteSentPush(logId){if(!confirm('Удалить отправленные сообщения у всех пользователей?'))return;var r=await fetch('/admin/push/delete-sent/'+logId,{method:'DELETE',headers:{'Authorization':'Bearer '+localStorage.getItem('at')}}).then(r=>r.json());if(r.deleted!==undefined){alert('🗑 Удалено: '+r.deleted+' сообщений'+(r.failed?' (ошибки: '+r.failed+')':''));loadPushLog()}else{alert('❌ '+(r.error||'Ошибка'))}}
 
 // ═══ АВТОПУШ-ЦЕПОЧКИ ═══
 let seqData=[];

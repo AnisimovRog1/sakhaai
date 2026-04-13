@@ -7,6 +7,7 @@ import { getAllSequences, getActiveSequences, getDeletedSequences, upsertSequenc
 import { seedPushSequences } from '../services/push-seed';
 import { klingRequest } from '../services/kling-direct';
 import { getRateInfo, updateExchangeRate } from '../services/exchange-rate';
+import { saveTempBuffer } from '../services/kling-direct';
 
 export const adminRouter = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } }); // 50 МБ (Telegram Bot API лимит)
@@ -1563,5 +1564,28 @@ adminRouter.get('/share-rewards', async (_req: Request, res: Response) => {
   try {
     const rewards = await getShareRewardsRecent();
     res.json(rewards);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /admin/generation/:id — для inline query бота (share с медиа)
+adminRouter.get('/generation/:id', async (req: Request, res: Response) => {
+  try {
+    const { rows } = await pool.query(
+      'SELECT id, type, result_url, prompt FROM generations WHERE id = $1',
+      [req.params.id]
+    );
+    if (!rows[0]) { res.status(404).json({ error: 'Not found' }); return; }
+    const gen = rows[0];
+
+    // Картинки хранятся как data URL — конвертируем в публичный HTTPS
+    if (gen.result_url && gen.result_url.startsWith('data:')) {
+      const match = gen.result_url.match(/^data:([^;]+);base64,(.+)$/s);
+      if (match) {
+        const buffer = Buffer.from(match[2], 'base64');
+        gen.result_url = saveTempBuffer(buffer, match[1]);
+      }
+    }
+
+    res.json(gen);
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });

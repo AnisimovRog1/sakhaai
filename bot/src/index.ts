@@ -714,6 +714,51 @@ bot.callbackQuery(/^push_media_(photo|video|none)$/, async (ctx) => {
   }
 });
 
+// ═══════════════════════════════════════════════════════
+// INLINE QUERY — шеринг генераций с медиа
+// ═══════════════════════════════════════════════════════
+
+bot.on('inline_query', async (ctx) => {
+  const query = ctx.inlineQuery.query;
+  const match = query.match(/^share_(\d+)_(\d+)$/);
+  if (!match) return ctx.answerInlineQuery([]);
+
+  const sharerId = match[1];
+  const genId = match[2];
+  const deepLink = `https://t.me/UraanxAI_bot?start=share_${sharerId}_${genId}`;
+  const caption = `Создано с помощью нейросети UraanxAI \u{2728}\n\nПопробуй сам \u{1F447}\n${deepLink}`;
+
+  try {
+    const gen = await httpGet(`${SERVER_URL}/admin/generation/${genId}`) as any;
+    if (!gen?.result_url) return ctx.answerInlineQuery([]);
+
+    const isVideo = ['video', 'motion', 'avatar'].includes(gen.type);
+
+    if (isVideo) {
+      await ctx.answerInlineQuery([{
+        type: 'video' as const,
+        id: `share_${genId}`,
+        video_url: gen.result_url,
+        mime_type: 'video/mp4' as const,
+        thumbnail_url: gen.result_url,
+        title: 'Моя генерация UraanxAI',
+        caption,
+      }]);
+    } else {
+      await ctx.answerInlineQuery([{
+        type: 'photo' as const,
+        id: `share_${genId}`,
+        photo_url: gen.result_url,
+        thumbnail_url: gen.result_url,
+        caption,
+      }]);
+    }
+  } catch (e: any) {
+    console.error('[inline_query] error:', e?.message);
+    await ctx.answerInlineQuery([]);
+  }
+});
+
 // Получение медиа от админа
 bot.on('message:photo', async (ctx) => {
   if (!isAdmin(ctx.chat.id)) return;

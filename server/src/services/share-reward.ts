@@ -23,6 +23,19 @@ export async function processShareReward(
     return { ok: false, reason: 'already_rewarded' };
   }
 
+  // Антифрод: бонус ТОЛЬКО за новых юзеров (не было в БД до шеринга)
+  // Если created_at > 2 мин назад — юзер существовал ДО клика по ссылке
+  const userCheck = await pool.query(
+    'SELECT created_at FROM users WHERE id = $1',
+    [receiverId]
+  );
+  if (userCheck.rows.length > 0) {
+    const createdAt = new Date(userCheck.rows[0].created_at);
+    if (createdAt < new Date(Date.now() - 2 * 60 * 1000)) {
+      return { ok: false, reason: 'existing_user' };
+    }
+  }
+
   // Лимит 3 бонуса в день
   const todayCount = await pool.query(
     `SELECT COUNT(*) FROM share_rewards

@@ -4,13 +4,21 @@ type Props = {
 };
 
 export function ShareButton({ userId, generationId }: Props) {
-  const apiUrl = import.meta.env.VITE_API_URL ?? 'https://sakhaai-production.up.railway.app';
-  const sharePageUrl = `${apiUrl}/s/${userId}/${generationId}`;
-  const shareText = 'Смотри, что я создал с помощью нейросети! \u{1F680}\nПопробуй сам:';
-
   function handleShare() {
-    const url = `https://t.me/share/url?url=${encodeURIComponent(sharePageUrl)}&text=${encodeURIComponent(shareText)}`;
-    window.Telegram?.WebApp?.openTelegramLink?.(url);
+    const tg = window.Telegram?.WebApp as any;
+    const query = `share_${userId}_${generationId}`;
+
+    // switchInlineQuery — открывает inline-режим бота с медиа-превью
+    if (tg?.switchInlineQuery) {
+      tg.switchInlineQuery(query, ['users', 'groups', 'channels']);
+      return;
+    }
+
+    // Fallback для старых версий Telegram
+    const apiUrl = import.meta.env.VITE_API_URL ?? 'https://sakhaai-production.up.railway.app';
+    const sharePageUrl = `${apiUrl}/s/${userId}/${generationId}`;
+    const url = `https://t.me/share/url?url=${encodeURIComponent(sharePageUrl)}&text=${encodeURIComponent('\u041f\u043e\u043f\u0440\u043e\u0431\u0443\u0439 \u0441\u0430\u043c:')}`;
+    tg?.openTelegramLink?.(url);
   }
 
   return (

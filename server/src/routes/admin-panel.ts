@@ -1795,6 +1795,15 @@ async function saveGoal(){
   loadPlansTab();
 }
 
+var CAT_INFO={
+features:'<b>Цель: 100-200К руб за первую неделю</b><br>100К = ~400 оплат (200 Start + 120 Basic + 50 Pro + 10 Max)<br>200К = ~770 оплат',
+content:'<b>Каждое утро 20-30 мин:</b> Reels + TikTok + Pipiads<br>Находим виральное видео в нише AI/фото<br>Разбираем: хук + содержание + CTA<br>Переделываем под UraanxAI<br><b>Формула:</b> ХУК (0-2 сек) &#8594; СОДЕРЖАНИЕ (охватное + обучающее) &#8594; CTA<br><br><b>Сервисы:</b> Pipiads ($77/мес) | Exploding Topics ($97/мес) | Pentos (~$99/мес)',
+bloggers:'<b>Где искать:</b> Instagram #якутск #якутия #yakutsk | LabelUp/Getblogger | tgstat.ru | Паблики Якутска<br><b>Каждый вечер:</b> 15-25 новых блогеров найти + написать<br>Кто не ответил в ДМ &#8594; комментарий под последний Reels<br><br><b>Бартер инста:</b><br>1-5К: 10К кр (~500&#8381;) | 5-30К: 15К кр (~750&#8381;) | 30-100К: 20К кр (~1000&#8381;) + 3-5К&#8381;<br><b>Бартер ТГ:</b><br>1-5К: 10К кр | 5-20К: 15К кр + 0-2К&#8381; | 20-50К: 20К кр + 3-5К&#8381;<br>Паблики/каналы: Stories с лицом блогера + ссылка<br><br><b>6 сценариев видео</b> (все с оживлением фото блогером):<br>1. Оживление + реакция (основной, 15-30с)<br>2. Оживление + реставрация старого фото + эмоции (самый вирусный)<br>3. Оживление + рассказ о приле (все возможности + промокод)<br>4. Оживление + реферальная система (25% за друга)<br>5. Оживление + другие возможности (студийное фото, AI-чат)<br>6. Оживление + угадай (где AI? в комментах)',
+schedule:'<b>13 апреля:</b> фичи + таблица блогеров + написать ВСЕМ<br><b>14 апреля:</b> согласовать + запустить + VIRALMAXING рилсы + вечером новым<br><b>Каждый день:</b> утро VIRALMAXING &#8594; 1-3 Reels &#8594; блогеры &#8594; вечер 15-25 новых',
+may9:'С 25 апреля начинаем прогрев ч/б фото<br>1-4 мая: "Выберем подписчиков \\u2014 бесплатно оживим фото ветеранов"<br>8-9 мая: максимум контента',
+scale:'Якутия сработала (конверсия > 3%) &#8594; тот же плейбук:<br>Бурятия &#8594; Иркутск &#8594; Хабаровск &#8594; Красноярск'
+};
+
 function renderPlans(){
   var el=document.getElementById('plansCategories');
   if(!el)return;
@@ -1803,6 +1812,7 @@ function renderPlans(){
     var items=plansData.filter(function(p){return p.category===cat});
     var done=items.filter(function(p){return p.is_done}).length;
     html+='<div class="section-group mb-4"><div class="section-group-title">'+CAT_NAMES[cat]+' <span class="text-slate-500 font-normal">('+done+'/'+items.length+')</span></div>';
+    if(CAT_INFO[cat]) html+='<div class="glass p-3 mb-3 text-xs text-slate-300 leading-relaxed">'+CAT_INFO[cat]+'</div>';
     items.forEach(function(p){
       var checked=p.is_done?'checked':'';
       var strike=p.is_done?'line-through text-slate-600':'text-white';

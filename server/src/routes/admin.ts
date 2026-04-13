@@ -418,17 +418,26 @@ adminRouter.delete('/user/:id', async (req: Request, res: Response) => {
       await client.query('BEGIN');
 
       // Удаляем в правильном порядке (FK constraints)
-      await client.query('DELETE FROM push_sent WHERE user_id = $1', [userId]);
+      const delSafe = async (table: string, where: string) => {
+        try {
+          await client.query(`SAVEPOINT sp_${table}`);
+          await client.query(`DELETE FROM ${table} WHERE ${where}`, [userId]);
+        } catch {
+          await client.query(`ROLLBACK TO SAVEPOINT sp_${table}`);
+        }
+      };
+
+      await delSafe('push_sent', 'user_id = $1');
       await client.query('DELETE FROM messages WHERE chat_id IN (SELECT id FROM chats WHERE user_id = $1)', [userId]);
       await client.query('DELETE FROM chats WHERE user_id = $1', [userId]);
       await client.query('DELETE FROM transactions WHERE user_id = $1', [userId]);
       await client.query('DELETE FROM generations WHERE user_id = $1', [userId]);
-      await client.query('DELETE FROM pending_tasks WHERE user_id = $1', [userId]);
+      await delSafe('pending_tasks', 'user_id = $1');
       await client.query('DELETE FROM orders WHERE user_id = $1', [userId]);
       await client.query('DELETE FROM referrals WHERE referrer_id = $1 OR referee_id = $1', [userId]);
       await client.query('DELETE FROM user_ips WHERE user_id = $1', [userId]);
-      await client.query('DELETE FROM device_fingerprints WHERE user_id = $1', [userId]);
-      await client.query('DELETE FROM share_rewards WHERE user_id = $1', [userId]).catch(() => {}); // может не существовать
+      await delSafe('device_fingerprints', 'user_id = $1');
+      await delSafe('share_rewards', 'user_id = $1');
       // Убираем referred_by у тех, кого он пригласил
       await client.query('UPDATE users SET referred_by = NULL WHERE referred_by = $1', [userId]);
       await client.query('DELETE FROM users WHERE id = $1', [userId]);

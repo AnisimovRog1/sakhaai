@@ -1811,7 +1811,7 @@ function renderPlans(){
     });
     html+='<div class="flex gap-2 mt-2" id="plan-add-wrap-'+cat+'">'+
       '<input id="plan-add-input-'+cat+'" class="flex-1 text-xs" placeholder="Новая задача...">'+
-      '<button class="btn btn-primary text-xs" onclick="addPlan(\''+cat+'\')">+ Добавить</button>'+
+      '<button class="btn btn-primary text-xs" onclick="addPlan(&#39;'+cat+'&#39;)">+ Добавить</button>'+
       '</div></div>';
   });
   el.innerHTML=html;

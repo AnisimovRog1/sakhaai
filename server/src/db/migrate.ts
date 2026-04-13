@@ -429,6 +429,12 @@ export async function migrate() {
     EXCEPTION WHEN duplicate_column THEN NULL;
     END $$;
 
+    -- message_id в push_sent для удаления автопушей
+    DO $$ BEGIN
+      ALTER TABLE push_sent ADD COLUMN message_id INTEGER;
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$;
+
     -- Кнопка в разовых пушах (push_templates)
     DO $$ BEGIN
       ALTER TABLE push_templates ADD COLUMN button_text TEXT;

@@ -1145,8 +1145,9 @@ async function processAutoSequences() {
         const reply_markup = p.button_url ? {
           inline_keyboard: [[{ text: p.button_text || 'Открыть', url: p.button_url }]]
         } : undefined;
+        let msg: any;
         if (p.media_type === 'video' && media) {
-          await bot.api.sendVideo(Number(p.user_id), media, {
+          msg = await bot.api.sendVideo(Number(p.user_id), media, {
             caption: formatText(text),
             parse_mode: 'HTML',
             supports_streaming: true,
@@ -1155,19 +1156,20 @@ async function processAutoSequences() {
             reply_markup,
           });
         } else if (p.media_type === 'photo' && media) {
-          await bot.api.sendPhoto(Number(p.user_id), media, {
+          msg = await bot.api.sendPhoto(Number(p.user_id), media, {
             caption: formatText(text),
             parse_mode: 'HTML',
             reply_markup,
           });
         } else {
-          await bot.api.sendMessage(Number(p.user_id), formatText(text), {
+          msg = await bot.api.sendMessage(Number(p.user_id), formatText(text), {
             parse_mode: 'HTML',
             reply_markup,
           });
         }
         await httpPost(`${SERVER_URL}/admin/push/sequences/mark-sent`, {
           user_id: p.user_id, sequence_id: p.sequence_id,
+          message_id: msg?.message_id || null,
         });
         sent++;
         if (sent % 25 === 0) await new Promise(r => setTimeout(r, 1000));
@@ -1262,12 +1264,12 @@ async function startBot() {
       await bot.start({
         onStart: async () => {
           console.log('Бот @UraanxAI_bot запущен');
-
-          scheduleReports();
-          setInterval(processAutoSequences, 2 * 60 * 1000);
-          setTimeout(processAutoSequences, 30000);
         },
       });
+      // Регистрируем интервалы ОДИН раз после успешного запуска (не в onStart чтобы не дублировать при реконнекте)
+      scheduleReports();
+      setInterval(processAutoSequences, 2 * 60 * 1000);
+      setTimeout(processAutoSequences, 30000);
       return; // Успешно запущен
     } catch (err: any) {
       if ((err?.error_code === 409 || err?.error_code === 429 || err?.status >= 500) && attempt < 4) {

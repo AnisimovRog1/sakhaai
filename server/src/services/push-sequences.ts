@@ -406,23 +406,23 @@ export async function findPendingPushes(): Promise<PendingPush[]> {
 }
 
 // ─── Пометить пуш как отправленный ───
-export async function markPushSent(userId: number, sequenceId: number): Promise<void> {
+export async function markPushSent(userId: number, sequenceId: number, messageId?: number | null): Promise<void> {
   const seq = await pool.query('SELECT trigger_type FROM push_sequences WHERE id = $1', [sequenceId]);
   const triggerType = seq.rows[0]?.trigger_type;
   // daily и reactivation — вставляем новую запись каждый раз
   if (triggerType === 'daily' || triggerType === 'reactivation') {
     await pool.query(
-      `INSERT INTO push_sent (user_id, sequence_id) VALUES ($1, $2)`,
-      [userId, sequenceId]
+      `INSERT INTO push_sent (user_id, sequence_id, message_id) VALUES ($1, $2, $3)`,
+      [userId, sequenceId, messageId || null]
     );
   } else {
     // Одноразовые пуши — INSERT только если ещё нет записи (атомарно)
     await pool.query(
-      `INSERT INTO push_sent (user_id, sequence_id)
-       SELECT $1, $2 WHERE NOT EXISTS (
+      `INSERT INTO push_sent (user_id, sequence_id, message_id)
+       SELECT $1, $2, $3 WHERE NOT EXISTS (
          SELECT 1 FROM push_sent WHERE user_id = $1 AND sequence_id = $2
        )`,
-      [userId, sequenceId]
+      [userId, sequenceId, messageId || null]
     );
   }
 }

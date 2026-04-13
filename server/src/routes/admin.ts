@@ -836,9 +836,9 @@ adminRouter.post('/push/seed-sequences', async (req: Request, res: Response) => 
 // Пометить пуш как отправленный
 adminRouter.post('/push/sequences/mark-sent', async (req: Request, res: Response) => {
   try {
-    const { user_id, sequence_id } = req.body;
+    const { user_id, sequence_id, message_id } = req.body;
     if (!user_id || !sequence_id) { res.status(400).json({ error: 'Missing user_id or sequence_id' }); return; }
-    await markPushSent(Number(user_id), Number(sequence_id));
+    await markPushSent(Number(user_id), Number(sequence_id), message_id ? Number(message_id) : null);
     res.json({ ok: true });
   } catch (err: any) { res.status(500).json({ error: err.message }); }
 });

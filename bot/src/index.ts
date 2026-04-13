@@ -1143,11 +1143,7 @@ async function processAutoSequences() {
 
         const media = p.media_file_id || p.media_url;
         const reply_markup = p.button_url ? {
-          inline_keyboard: [[
-            p.button_url === WEBAPP_URL || p.button_url.includes(WEBAPP_URL)
-              ? { text: p.button_text || '🚀 Открыть UraanxAI', web_app: { url: WEBAPP_URL } }
-              : { text: p.button_text || 'Открыть', url: p.button_url }
-          ]]
+          inline_keyboard: [[{ text: p.button_text || 'Открыть', url: p.button_url }]]
         } : undefined;
         let msg: any;
         if (p.media_type === 'video' && media) {

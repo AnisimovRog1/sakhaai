@@ -584,14 +584,9 @@ adminRouter.post('/push/send/:id', async (req: Request, res: Response) => {
       return t;
     };
 
-    // Кнопка со ссылкой (если есть). Если URL = webapp → web_app кнопка (открывает Mini App)
-    const WEBAPP_URL = process.env.WEBAPP_URL ?? 'https://sakhaai-production.up.railway.app';
+    // Кнопка со ссылкой
     const reply_markup = t.button_url ? {
-      inline_keyboard: [[
-        t.button_url === WEBAPP_URL || t.button_url.includes(WEBAPP_URL)
-          ? { text: t.button_text || '🚀 Открыть UraanxAI', web_app: { url: WEBAPP_URL } }
-          : { text: t.button_text || 'Открыть', url: t.button_url }
-      ]]
+      inline_keyboard: [[{ text: t.button_text || 'Открыть', url: t.button_url }]]
     } : undefined;
 
     // Создаём лог заранее
@@ -667,24 +662,28 @@ adminRouter.delete('/push/delete-sent/:logId', async (req: Request, res: Respons
     const BOT_TOKEN = process.env.BOT_TOKEN;
     if (!BOT_TOKEN) { res.status(503).json({ error: 'BOT_TOKEN не настроен' }); return; }
 
+    // Фильтруем только с реальными message_id
+    const validMsgs = msgs.rows.filter((m: any) => m.message_id && m.message_id > 0);
+    if (validMsgs.length === 0) { res.json({ deleted: 0, error: 'message_id не сохранены (пуш отправлен до фикса)' }); return; }
+
     // Отвечаем сразу
-    res.json({ deleted: 0, total: msgs.rowCount, status: 'deleting' });
+    res.json({ deleted: 0, total: validMsgs.length, status: 'deleting' });
 
     // Удаляем в фоне
     let deleted = 0, failed = 0;
-    for (const m of msgs.rows) {
+    for (const m of validMsgs) {
       try {
         const resp = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/deleteMessage`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chat_id: m.chat_id, message_id: m.message_id })
+          body: JSON.stringify({ chat_id: Number(m.chat_id), message_id: Number(m.message_id) })
         });
         const result = await resp.json() as any;
-        if (result.ok) { deleted++; } else { failed++; }
-        if (deleted % 25 === 0) await new Promise(r => setTimeout(r, 1000));
-      } catch { failed++; }
+        if (result.ok) { deleted++; } else { failed++; console.error(`[deleteMsg] chat=${m.chat_id} msg=${m.message_id}: ${result.description}`); }
+        if ((deleted + failed) % 25 === 0) await new Promise(r => setTimeout(r, 1000));
+      } catch (e: any) { failed++; console.error(`[deleteMsg] error:`, e?.message); }
     }
     await pool.query('DELETE FROM push_sent_messages WHERE log_id = $1', [logId]);
-    console.log(`🗑 Удалено ${deleted}/${msgs.rowCount} сообщений пуша log#${logId}`);
+    console.log(`🗑 Удалено ${deleted}/${validMsgs.length} сообщений пуша log#${logId} (failed=${failed})`);
   } catch (err: any) { if (!res.headersSent) res.status(500).json({ error: err.message }); }
 });
 
@@ -708,16 +707,15 @@ adminRouter.delete('/push/delete-auto/:seqId', async (req: Request, res: Respons
       try {
         const resp = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/deleteMessage`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chat_id: m.chat_id, message_id: m.message_id })
+          body: JSON.stringify({ chat_id: Number(m.chat_id), message_id: Number(m.message_id) })
         });
         const result = await resp.json() as any;
-        if (result.ok) { deleted++; } else { failed++; }
-        if (deleted % 25 === 0) await new Promise(r => setTimeout(r, 1000));
-      } catch { failed++; }
+        if (result.ok) { deleted++; } else { failed++; console.error(`[deleteAutoMsg] chat=${m.chat_id} msg=${m.message_id}: ${result.description}`); }
+        if ((deleted + failed) % 25 === 0) await new Promise(r => setTimeout(r, 1000));
+      } catch (e: any) { failed++; console.error(`[deleteAutoMsg] error:`, e?.message); }
     }
-    // Обнуляем message_id (не удаляем записи — они нужны для дедупликации)
     await pool.query('UPDATE push_sent SET message_id = NULL WHERE sequence_id = $1 AND message_id IS NOT NULL', [seqId]);
-    console.log(`🗑 Удалено ${deleted}/${msgs.rowCount} автопушей seq#${seqId}`);
+    console.log(`🗑 Удалено ${deleted}/${msgs.rowCount} автопушей seq#${seqId} (failed=${failed})`);
   } catch (err: any) { if (!res.headersSent) res.status(500).json({ error: err.message }); }
 });
 

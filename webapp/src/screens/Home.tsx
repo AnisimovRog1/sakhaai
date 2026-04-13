@@ -95,10 +95,19 @@ export function Home({ user, onCreditsUpdate }: Props) {
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, []);
-  // Счётчик генераций платформы
-  const [genCount, setGenCount] = useState(0);
+  // Маркетинговые счётчики (базовые + плавный рост)
+  const [animatedCount, setAnimatedCount] = useState(14101);
+  const [restoredCount, setRestoredCount] = useState(7451);
   useEffect(() => {
-    api.getPublicStats().then(d => setGenCount(d.totalGenerations)).catch(() => {});
+    const tick = () => {
+      if (Math.random() > 0.5) {
+        setAnimatedCount(c => c + 1);
+      } else {
+        setRestoredCount(c => c + 1);
+      }
+    };
+    const interval = setInterval(tick, 3000 + Math.random() * 4000);
+    return () => clearInterval(interval);
   }, []);
 
   const { levelKey, next } = getLevel(user.credits);
@@ -206,17 +215,18 @@ export function Home({ user, onCreditsUpdate }: Props) {
           </div>
         </div>
 
-        {/* Счётчик генераций */}
-        {genCount > 0 && (
-          <div className="flex items-center justify-center gap-2 py-2" style={{ marginTop: '1.5vh' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-            </svg>
-            <p className="text-slate-400 text-sm font-medium">
-              <span className="text-white font-bold">{genCount.toLocaleString('ru')}</span> генераций создано
-            </p>
+        {/* Счётчики */}
+        <div className="flex items-center justify-center gap-6 py-2" style={{ marginTop: '1.5vh' }}>
+          <div className="text-center">
+            <p className="text-white font-extrabold text-lg">{animatedCount.toLocaleString('ru')}</p>
+            <p className="text-slate-400 text-xs">Оживлённых фото</p>
           </div>
-        )}
+          <div className="w-px h-8 bg-white/10" />
+          <div className="text-center">
+            <p className="text-white font-extrabold text-lg">{restoredCount.toLocaleString('ru')}</p>
+            <p className="text-slate-400 text-xs">Реставрированных фото</p>
+          </div>
+        </div>
 
         {/* Packages */}
         <div className="space-y-3 home-packages" style={{ marginTop: '1vh' }}>

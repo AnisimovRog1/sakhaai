@@ -298,7 +298,7 @@ table.bordered tr:last-child td{border-bottom:none}
           <textarea id="pushText" placeholder="✏️ Текст сообщения" rows="3"></textarea>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
             <input id="pushBtnText" placeholder="Текст кнопки (необяз.)" style="font-size:12px">
-            <input id="pushBtnUrl" placeholder="URL кнопки (https://...)" style="font-size:12px">
+            <input id="pushBtnUrl" placeholder="webapp = прила, или https://..." style="font-size:12px">
           </div>
           <div>
             <div id="dropZone" style="border:2px dashed rgba(139,92,246,.3);border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:all .3s" onclick="document.getElementById('fileInput').click()" ondragover="event.preventDefault();this.style.borderColor='rgba(6,182,212,.6)';this.style.background='rgba(6,182,212,.05)'" ondragleave="this.style.borderColor='rgba(139,92,246,.3)';this.style.background='transparent'" ondrop="event.preventDefault();handleFileDrop(event);this.style.borderColor='rgba(139,92,246,.3)';this.style.background='transparent'">
@@ -1033,7 +1033,7 @@ function renderSeqs(){
     var btnUrl=s.button_url||'';
     html+='<div class="mt-2 grid grid-cols-2 gap-2">';
     html+='<input class="bg-black/20 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-slate-300" id="seqbtn-'+s.id+'" placeholder="Текст кнопки" value="'+esc(btnText)+'" oninput="markSeqDirty('+s.id+')" onblur="saveSeq('+s.id+')">';
-    html+='<input class="bg-black/20 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-slate-300" id="seqbtnurl-'+s.id+'" placeholder="URL кнопки (https://...)" value="'+esc(btnUrl)+'" oninput="markSeqDirty('+s.id+')" onblur="saveSeq('+s.id+')">';
+    html+='<input class="bg-black/20 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-slate-300" id="seqbtnurl-'+s.id+'" placeholder="webapp = прила, или https://..." value="'+esc(btnUrl)+'" oninput="markSeqDirty('+s.id+')" onblur="saveSeq('+s.id+')">';
     html+='</div>';
 
     // ═══ Кнопки сохранения/удаления ═══

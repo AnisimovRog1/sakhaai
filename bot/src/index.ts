@@ -1142,9 +1142,12 @@ async function processAutoSequences() {
         }
 
         const media = p.media_file_id || p.media_url;
-        const reply_markup = p.button_url ? {
-          inline_keyboard: [[{ text: p.button_text || 'Открыть', url: p.button_url }]]
-        } : undefined;
+        let reply_markup;
+        if (p.button_url === 'webapp' || p.button_url === WEBAPP_URL) {
+          reply_markup = { inline_keyboard: [[{ text: p.button_text || '🚀 Открыть UraanxAI', web_app: { url: WEBAPP_URL } }]] };
+        } else if (p.button_url) {
+          reply_markup = { inline_keyboard: [[{ text: p.button_text || 'Открыть', url: p.button_url }]] };
+        }
         let msg: any;
         if (p.media_type === 'video' && media) {
           msg = await bot.api.sendVideo(Number(p.user_id), media, {

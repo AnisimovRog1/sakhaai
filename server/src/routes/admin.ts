@@ -584,10 +584,14 @@ adminRouter.post('/push/send/:id', async (req: Request, res: Response) => {
       return t;
     };
 
-    // Кнопка со ссылкой
-    const reply_markup = t.button_url ? {
-      inline_keyboard: [[{ text: t.button_text || 'Открыть', url: t.button_url }]]
-    } : undefined;
+    // Кнопка: "webapp" = Mini App, иначе обычный URL
+    const WEBAPP_URL = process.env.WEBAPP_URL ?? 'https://sakhaai-production.up.railway.app';
+    let reply_markup;
+    if (t.button_url === 'webapp' || t.button_url === WEBAPP_URL) {
+      reply_markup = { inline_keyboard: [[{ text: t.button_text || '🚀 Открыть UraanxAI', web_app: { url: WEBAPP_URL } }]] };
+    } else if (t.button_url) {
+      reply_markup = { inline_keyboard: [[{ text: t.button_text || 'Открыть', url: t.button_url }]] };
+    }
 
     // Создаём лог заранее
     const logResult = await pool.query(

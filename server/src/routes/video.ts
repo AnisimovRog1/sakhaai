@@ -204,6 +204,7 @@ videoRouter.get('/task-status/:taskId', async (req: Request, res: Response) => {
       resultUrl: task.result_url,
       errorMsg: task.error_msg,
       cost: task.cost,
+      generationId: task.generation_id ?? null,
       createdAt: task.created_at,
     });
   } catch (e: any) {
@@ -330,9 +331,9 @@ videoRouter.post('/avatar', async (req: Request, res: Response) => {
     const result = await generateAvatar(imageUrl, ttsResult.audioUrl, prompt);
 
     // Сохранить в историю
-    await saveGeneration(req.userId!, 'avatar', text.trim(), result.videoUrl, avatarCost).catch(console.error);
+    const generationId = await saveGeneration(req.userId!, 'avatar', text.trim(), result.videoUrl, avatarCost).catch(() => null);
 
-    res.json({ videoUrl: result.videoUrl, creditsLeft, cost: avatarCost });
+    res.json({ videoUrl: result.videoUrl, generationId, creditsLeft, cost: avatarCost });
   } catch (e: any) {
     await addCredits(req.userId!, avatarCost, 'avatar', `Рефанд: ошибка avatar`).catch(console.error);
     console.error('[avatar] error + refund:', e?.message);

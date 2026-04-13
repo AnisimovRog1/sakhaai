@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth';
 import { getReferralStats, getReferralFriends, registerReferral, REFERRAL_REWARDS } from '../services/referral';
+import { processShareReward } from '../services/share-reward';
 import { pool } from '../db/pool';
 
 export const referralRouter = Router();
@@ -39,6 +40,33 @@ referralRouter.post('/preregister', async (req: Request, res: Response) => {
   } catch (err) {
     console.error('preregister error:', err);
     res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// POST /referral/share-reward — вызывается ботом при /start share_X_Y
+// Защита: BOT_TOKEN в заголовке Authorization
+referralRouter.post('/share-reward', async (req: Request, res: Response) => {
+  try {
+    const auth = req.headers['authorization'];
+    if (!auth || auth !== `Bearer ${process.env.BOT_TOKEN}`) {
+      res.status(403).json({ error: 'Forbidden' });
+      return;
+    }
+
+    const { sharerId, receiverId, generationId } = req.body;
+    if (!sharerId || !receiverId) {
+      res.status(400).json({ error: 'Missing parameters' });
+      return;
+    }
+
+    const result = await processShareReward(
+      Number(sharerId), Number(receiverId), generationId ? Number(generationId) : undefined
+    );
+    console.log(`🎁 Share reward: ${sharerId} <- ${receiverId}: ${result.ok ? 'OK +50cr' : result.reason}`);
+    res.json(result);
+  } catch (err) {
+    console.error('share-reward error:', err);
+    res.status(500).json({ error: 'Server error' });
   }
 });
 

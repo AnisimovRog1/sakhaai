@@ -40,6 +40,7 @@ function iconForType(type: string): string {
     avatar:   '🗣️',
     topup:    '💳',
     referral: '👥',
+    share_bonus: '🎁',
   };
   return icons[type] ?? '📝';
 }
@@ -53,6 +54,7 @@ function labelForType(type: string): string {
     avatar:   'Avatar видео',
     topup:    'Пополнение',
     referral: 'Реферальный бонус',
+    share_bonus: 'Бонус за шеринг',
   };
   return labels[type] ?? type;
 }

@@ -81,15 +81,17 @@ async function handleSuccess(task: any, resultUrl: string) {
   try {
     await client.query('BEGIN');
     const genType = task.type === 'motion-control' ? 'motion' : task.type;
+    let generationId: number | null = null;
     if (task.type !== 'tts') {
-      await client.query(
-        `INSERT INTO generations (user_id, type, prompt, result_url, cost) VALUES ($1, $2, $3, $4, $5)`,
+      const genResult = await client.query(
+        `INSERT INTO generations (user_id, type, prompt, result_url, cost) VALUES ($1, $2, $3, $4, $5) RETURNING id`,
         [task.user_id, genType, task.prompt, resultUrl, task.cost]
       );
+      generationId = genResult.rows[0]?.id ?? null;
     }
     await client.query(
-      `UPDATE pending_tasks SET status = 'succeed', result_url = $1, updated_at = NOW() WHERE id = $2`,
-      [resultUrl, task.id]
+      `UPDATE pending_tasks SET status = 'succeed', result_url = $1, generation_id = $3, updated_at = NOW() WHERE id = $2`,
+      [resultUrl, task.id, generationId]
     );
     await client.query('COMMIT');
   } catch (e: any) {

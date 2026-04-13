@@ -90,6 +90,18 @@ bot.command('start', async (ctx) => {
     } else if (campMatch) {
       campaignCode = campMatch[1];
     }
+
+    // Share deep link: share_{sharerId}_{genId}
+    const shareMatch = payload.match(/^share_(\d+)_(\d+)$/);
+    if (shareMatch) {
+      const sharerId = parseInt(shareMatch[1], 10);
+      const genId = parseInt(shareMatch[2], 10);
+      httpPost(`${SERVER_URL}/referral/share-reward`, {
+        sharerId,
+        receiverId: ctx.from.id,
+        generationId: genId,
+      }).catch(console.error);
+    }
   }
 
   const inlineKb = new InlineKeyboard().webApp('🚀 Открыть UraanxAI', WEBAPP_URL);

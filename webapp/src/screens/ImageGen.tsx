@@ -5,6 +5,7 @@ import { useLang } from '../LangContext';
 import { PromptGallery } from '../components/PromptGallery';
 import { GenerationViewer } from '../components/GenerationViewer';
 import { downloadMedia } from '../utils/download';
+import { ShareButton } from '../components/ShareButton';
 
 type HistoryItem = { id: number; type: string; prompt: string | null; resultUrl: string; cost: number; createdAt: string };
 
@@ -62,6 +63,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
   const promptRef = useRef<HTMLTextAreaElement>(null);
 
   const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [generationIds, setGenerationIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
@@ -108,6 +110,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
     setError(null);
     setInfo(null);
     setImageUrls([]);
+    setGenerationIds([]);
     try {
       const result = await api.generateImage({
         prompt: prompt.trim(),
@@ -118,6 +121,7 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
         count,
       });
       setImageUrls(result.imageUrls || [result.imageUrl]);
+      setGenerationIds(result.generationIds || []);
       onCreditsUpdate(result.creditsLeft);
       loadHistory();
       // Уведомление о частичном рефанде
@@ -472,17 +476,20 @@ export function ImageGen({ user, onCreditsUpdate }: Props) {
                   alt={`Результат ${i + 1}`}
                   className={`w-full object-contain rounded-2xl shadow-xl shadow-black/40 ${imageUrls.length === 1 ? 'max-h-[50vh]' : ''}`}
                 />
-                <button
-                  onClick={() => downloadMedia(url, `uraanxai-image-${i + 1}.png`)}
-                  className="w-full bg-white/[0.08] border border-white/[0.10] rounded-lg py-2 text-center text-xs font-bold text-white active:bg-white/[0.12] transition-all flex items-center justify-center gap-1"
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-                    <polyline points="7 10 12 15 17 10"/>
-                    <line x1="12" y1="15" x2="12" y2="3"/>
-                  </svg>
-                  Скачать
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => downloadMedia(url, `uraanxai-image-${i + 1}.png`)}
+                    className="flex-1 bg-white/[0.08] border border-white/[0.10] rounded-lg py-2 text-center text-xs font-bold text-white active:bg-white/[0.12] transition-all flex items-center justify-center gap-1"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                      <polyline points="7 10 12 15 17 10"/>
+                      <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    Скачать
+                  </button>
+                  {generationIds[i] && <ShareButton userId={user.id} generationId={generationIds[i]} />}
+                </div>
               </div>
             ))}
           </div>

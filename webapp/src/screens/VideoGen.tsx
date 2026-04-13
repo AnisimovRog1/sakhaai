@@ -5,6 +5,7 @@ import { useLang } from '../LangContext';
 import { VideoPromptGallery } from '../components/VideoPromptGallery';
 import { GenerationViewer } from '../components/GenerationViewer';
 import { downloadMedia } from '../utils/download';
+import { ShareButton } from '../components/ShareButton';
 
 type HistoryItem = { id: number; type: string; prompt: string | null; resultUrl: string; cost: number; createdAt: string };
 
@@ -302,6 +303,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
 
   // Output
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [generationId, setGenerationId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [motionStatus, setMotionStatus] = useState<string | null>(null); // polling status text
@@ -361,6 +363,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
         errorCount = 0;
 
         if (result.status === 'succeed' && result.resultUrl) {
+          if (result.generationId) setGenerationId(result.generationId);
           return result.resultUrl;
         }
         if (result.status === 'failed') {
@@ -441,6 +444,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
           avatarPrompt: avatarPrompt?.trim() || undefined,
         });
         if (r.videoUrl) setVideoUrl(r.videoUrl);
+        if (r.generationId) setGenerationId(r.generationId);
         if (r.creditsLeft !== undefined) onCreditsUpdate(r.creditsLeft);
         loadHistory();
         return;
@@ -464,6 +468,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
 
   function reset() {
     setVideoUrl(null);
+    setGenerationId(null);
     setPrompt('');
     setStartFrame(null);
     setMotionVideo(null);
@@ -1182,6 +1187,7 @@ export function VideoGen({ user, onCreditsUpdate }: Props) {
               </svg>
               {t('video.download')}
             </button>
+            {generationId && <ShareButton userId={user.id} generationId={generationId} />}
             <button
               onClick={reset}
               className="flex-1 bg-violet-500/15 border border-violet-500/20 rounded-xl py-3 text-sm font-bold text-violet-300 active:opacity-80 transition-all flex items-center justify-center gap-1.5"

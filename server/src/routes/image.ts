@@ -120,9 +120,11 @@ imageRouter.post('/generate', async (req: Request, res: Response) => {
     }
 
     // Сохраняем каждый результат в историю
+    const generationIds: number[] = [];
     for (const url of imageUrls) {
       try {
-        await saveGeneration(req.userId!, 'image', prompt, url, costPerImage);
+        const genId = await saveGeneration(req.userId!, 'image', prompt, url, costPerImage);
+        generationIds.push(genId);
         console.log(`[image] saved to generations, url length: ${url.length}`);
       } catch (saveErr: any) {
         console.error('[image] SAVE FAILED:', saveErr?.message, 'url length:', url.length);
@@ -132,6 +134,7 @@ imageRouter.post('/generate', async (req: Request, res: Response) => {
     res.json({
       imageUrl: imageUrls[0],
       imageUrls,
+      generationIds,
       creditsLeft: creditsLeft + (costPerImage * failedCount),
       cost: costPerImage * imageUrls.length,
       requested: count,

@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import { pool } from '../db/pool';
 import { addCredits, deduct } from '../services/balance';
+import { getShareStats, getShareRewardsRecent } from '../services/share-reward';
 import { getAllSequences, getActiveSequences, getDeletedSequences, upsertSequence, deleteSequence, restoreSequence, toggleSequence, findPendingPushes, markPushSent } from '../services/push-sequences';
 import { seedPushSequences } from '../services/push-seed';
 import { klingRequest } from '../services/kling-direct';
@@ -437,7 +438,7 @@ adminRouter.delete('/user/:id', async (req: Request, res: Response) => {
       await client.query('DELETE FROM referrals WHERE referrer_id = $1 OR referee_id = $1', [userId]);
       await client.query('DELETE FROM user_ips WHERE user_id = $1', [userId]);
       await delSafe('device_fingerprints', 'user_id = $1');
-      await delSafe('share_rewards', 'user_id = $1');
+      await delSafe('share_rewards', 'sharer_id = $1 OR receiver_id = $1');
       // Убираем referred_by у тех, кого он пригласил
       await client.query('UPDATE users SET referred_by = NULL WHERE referred_by = $1', [userId]);
       await client.query('DELETE FROM users WHERE id = $1', [userId]);
@@ -1547,5 +1548,20 @@ adminRouter.get('/goals/progress', async (_req: Request, res: Response) => {
       total_revenue: allRevenue.rows[0].total,
       by_package: allByPackage.rows
     });
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── Share Stats ──────────────────────────────────────
+adminRouter.get('/share-stats', async (_req: Request, res: Response) => {
+  try {
+    const stats = await getShareStats();
+    res.json(stats);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+adminRouter.get('/share-rewards', async (_req: Request, res: Response) => {
+  try {
+    const rewards = await getShareRewardsRecent();
+    res.json(rewards);
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });

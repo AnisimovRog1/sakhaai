@@ -59,6 +59,7 @@ export type TaskStatus = {
   resultUrl?: string;
   errorMsg?: string;
   cost?: number;
+  generationId?: number;
   createdAt?: string;
 };
 
@@ -111,7 +112,7 @@ export const api = {
     resolution?: string;
     count?: number;
   }) =>
-    request<{ imageUrl: string; imageUrls?: string[]; creditsLeft: number; cost: number; requested?: number; generated?: number; refunded?: number }>('/image/generate', {
+    request<{ imageUrl: string; imageUrls?: string[]; generationIds?: number[]; creditsLeft: number; cost: number; requested?: number; generated?: number; refunded?: number }>('/image/generate', {
       method: 'POST',
       body: JSON.stringify(params),
     }),
@@ -153,7 +154,7 @@ export const api = {
     emotion?: string;
     avatarPrompt?: string;
   }) =>
-    request<{ videoUrl: string; creditsLeft: number; cost: number }>('/video/avatar', {
+    request<{ videoUrl: string; generationId?: number; creditsLeft: number; cost: number }>('/video/avatar', {
       method: 'POST',
       body: JSON.stringify(params),
     }),

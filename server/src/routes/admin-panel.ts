@@ -206,6 +206,7 @@ table.bordered tr:last-child td{border-bottom:none}
       <div class="nav-item" onclick="showTab(this,'campaigns')"><span class="nav-icon">📣</span> Кампании</div>
       <div class="nav-item" onclick="showTab(this,'adstats')"><span class="nav-icon">📈</span> Реклама</div>
       <div class="nav-item" onclick="showTab(this,'plans')"><span class="nav-icon">📋</span> Планы</div>
+      <div class="nav-item" onclick="showTab(this,'shares')"><span class="nav-icon">🎁</span> Шеринг</div>
     </nav>
     <div class="sidebar-footer">
       <div class="flex items-center gap-1.5 text-xs text-green-400 mb-3"><div class="live-dot"></div> Live</div>
@@ -465,6 +466,16 @@ table.bordered tr:last-child td{border-bottom:none}
       </div>
     </div>
 
+    <!-- SHARES TAB -->
+    <div id="tab-shares" class="hidden">
+      <h2 class="text-lg font-bold gradient-text uppercase tracking-wider mb-4">Бонусы за шеринг</h2>
+      <div id="shareStatsCards" class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5"></div>
+      <div class="glass p-4">
+        <h3 class="text-sm font-bold text-white mb-3">Последние шеры</h3>
+        <div id="shareRewardsTable" class="text-xs"></div>
+      </div>
+    </div>
+
     <!-- Notes Modal -->
     <div id="notesModal" class="hidden" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;align-items:center;justify-content:center;background:rgba(0,0,0,.7)">
       <div class="glass-neon p-6 w-full max-w-lg mx-4" style="border-radius:16px">
@@ -565,7 +576,7 @@ function G(p){return apiFetch(p)}
 function P(p,d){return apiFetch(p,{method:'POST',body:JSON.stringify(d)})}
 function D(p){return apiFetch(p,{method:'DELETE'})}
 
-function showTab(el,n){document.querySelectorAll('[id^=tab-]').forEach(function(e){e.classList.add('hidden')});document.getElementById('tab-'+n).classList.remove('hidden');document.querySelectorAll('.nav-item').forEach(function(e){e.classList.remove('active')});el.classList.add('active');var titles={dashboard:'Панель',users:'Пользователи',pushes:'Пуши',referrals:'Рефералы',campaigns:'Кампании',adstats:'Реклама',plans:'Планы'};var pt=document.getElementById('pageTitle');if(pt)pt.textContent=titles[n]||n;if(n==='users')loadUsers();if(n==='pushes'){loadPushTemplates();loadPushLog();loadSeqs();loadPushStats()}if(n==='campaigns')loadCampaigns();if(n==='referrals')loadReferrals();if(n==='adstats')loadAdStats();if(n==='plans')loadPlansTab()}
+function showTab(el,n){document.querySelectorAll('[id^=tab-]').forEach(function(e){e.classList.add('hidden')});document.getElementById('tab-'+n).classList.remove('hidden');document.querySelectorAll('.nav-item').forEach(function(e){e.classList.remove('active')});el.classList.add('active');var titles={dashboard:'Панель',users:'Пользователи',pushes:'Пуши',referrals:'Рефералы',campaigns:'Кампании',adstats:'Реклама',plans:'Планы',shares:'Шеринг'};var pt=document.getElementById('pageTitle');if(pt)pt.textContent=titles[n]||n;if(n==='users')loadUsers();if(n==='pushes'){loadPushTemplates();loadPushLog();loadSeqs();loadPushStats()}if(n==='campaigns')loadCampaigns();if(n==='referrals')loadReferrals();if(n==='adstats')loadAdStats();if(n==='plans')loadPlansTab();if(n==='shares')loadSharesTab()}
 
 // Курс ЦБ
 async function loadExRate(){
@@ -1941,6 +1952,33 @@ function copyTemplate(i){
   navigator.clipboard.writeText(txt).then(function(){
     alert('Скопировано!');
   });
+}
+
+async function loadSharesTab(){
+  try{
+    var stats=await G('/admin/share-stats');
+    var cards=document.getElementById('shareStatsCards');
+    if(cards&&stats){
+      cards.innerHTML=
+        '<div class="glass p-3 text-center"><div class="text-2xl font-bold text-white">'+(stats.total_shares||0)+'</div><div class="text-xs text-slate-400">Всего шеров</div></div>'+
+        '<div class="glass p-3 text-center"><div class="text-2xl font-bold text-green-400">'+(stats.rewarded_shares||0)+'</div><div class="text-xs text-slate-400">С бонусом</div></div>'+
+        '<div class="glass p-3 text-center"><div class="text-2xl font-bold text-violet-400">'+(stats.unique_sharers||0)+'</div><div class="text-xs text-slate-400">Шарили</div></div>'+
+        '<div class="glass p-3 text-center"><div class="text-2xl font-bold text-cyan-400">'+(stats.unique_receivers||0)+'</div><div class="text-xs text-slate-400">Перешли</div></div>'+
+        '<div class="glass p-3 text-center"><div class="text-2xl font-bold text-amber-400">'+(stats.total_credits_awarded||0)+' \\u{1F48E}</div><div class="text-xs text-slate-400">Начислено</div></div>';
+    }
+    var rewards=await G('/admin/share-rewards');
+    var tbl=document.getElementById('shareRewardsTable');
+    if(tbl&&Array.isArray(rewards)&&rewards.length>0){
+      tbl.innerHTML='<table class="bordered w-full"><thead><tr><th>Дата</th><th>Кто поделился</th><th>Кто перешёл</th><th>Gen ID</th><th>Кредиты</th></tr></thead><tbody>'+
+        rewards.map(function(r){
+          return '<tr><td>'+new Date(r.created_at).toLocaleDateString('ru')+'</td>'+
+            '<td>'+esc(r.sharer_name||'')+(r.sharer_username?' @'+esc(r.sharer_username):'')+'<br><span class="text-slate-500">'+r.sharer_id+'</span></td>'+
+            '<td>'+esc(r.receiver_name||'')+(r.receiver_username?' @'+esc(r.receiver_username):'')+'<br><span class="text-slate-500">'+r.receiver_id+'</span></td>'+
+            '<td>'+(r.generation_id||'—')+'</td>'+
+            '<td class="text-green-400">+'+(r.credits_awarded||0)+'</td></tr>';
+        }).join('')+'</tbody></table>';
+    }else if(tbl){tbl.innerHTML='<div class="text-slate-500 text-center py-4">Пока нет данных</div>'}
+  }catch(e){console.error('loadSharesTab error:',e)}
 }
 
 if(TOKEN)showPanel();

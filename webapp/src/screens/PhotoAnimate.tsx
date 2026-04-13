@@ -3,6 +3,7 @@ import { api } from '../api/client';
 import type { User } from '../types';
 import { GenerationViewer } from '../components/GenerationViewer';
 import { downloadMedia } from '../utils/download';
+import { ShareButton } from '../components/ShareButton';
 
 type HistoryItem = { id: number; type: string; prompt: string | null; resultUrl: string; cost: number; createdAt: string };
 
@@ -120,6 +121,7 @@ export function PhotoAnimate({ user, onCreditsUpdate }: Props) {
   const [videoRatio, setVideoRatio] = useState<VideoRatio>('9:16');
   const [nativeAudio, setNativeAudio] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [generationId, setGenerationId] = useState<number | null>(null);
   const [pollStatus, setPollStatus] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
 
@@ -136,6 +138,7 @@ export function PhotoAnimate({ user, onCreditsUpdate }: Props) {
   const [showModelPicker, setShowModelPicker] = useState(false);
   const [showAspectPicker, setShowAspectPicker] = useState(false);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [restoreGenIds, setRestoreGenIds] = useState<number[]>([]);
 
   // ─── History ───
   const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -193,7 +196,10 @@ export function PhotoAnimate({ user, onCreditsUpdate }: Props) {
       try {
         const result = await api.checkTaskStatus(taskId);
         errorCount = 0;
-        if (result.status === 'succeed' && result.resultUrl) return result.resultUrl;
+        if (result.status === 'succeed' && result.resultUrl) {
+          if (result.generationId) setGenerationId(result.generationId);
+          return result.resultUrl;
+        }
         if (result.status === 'failed') throw new Error(result.errorMsg || 'Kling: ошибка генерации. Кредиты возвращены.');
         const mins = Math.floor(i * 10 / 60);
         const secs = (i * 10) % 60;
@@ -252,6 +258,7 @@ export function PhotoAnimate({ user, onCreditsUpdate }: Props) {
         } else if (r.imageUrl) {
           setImageUrls([r.imageUrl]);
         }
+        setRestoreGenIds(r.generationIds || []);
         if (r.creditsLeft !== undefined) onCreditsUpdate(r.creditsLeft);
         loadHistory();
       }
@@ -266,7 +273,9 @@ export function PhotoAnimate({ user, onCreditsUpdate }: Props) {
 
   function reset() {
     setVideoUrl(null);
+    setGenerationId(null);
     setImageUrls([]);
+    setRestoreGenIds([]);
     setPrompt('');
     setPhoto(null);
     setError(null);
@@ -719,6 +728,7 @@ export function PhotoAnimate({ user, onCreditsUpdate }: Props) {
               </svg>
               Скачать
             </button>
+            {generationId && <ShareButton userId={user.id} generationId={generationId} />}
             <button
               onClick={reset}
               className="flex-1 bg-violet-500/15 border border-violet-500/20 rounded-xl py-3 text-sm font-bold text-violet-300 active:opacity-80 transition-all flex items-center justify-center gap-1.5"
@@ -739,15 +749,18 @@ export function PhotoAnimate({ user, onCreditsUpdate }: Props) {
             {imageUrls.map((url, i) => (
               <div key={i} className="space-y-2">
                 <img src={url} alt="" className={`w-full rounded-2xl shadow-xl shadow-black/40 ${imageUrls.length === 1 ? 'max-h-[50vh] object-contain' : ''}`} />
-                <button
-                  onClick={() => downloadMedia(url, `uraanxai-restore-${i + 1}.png`)}
-                  className="w-full bg-white/[0.08] border border-white/[0.10] rounded-xl py-2.5 text-center text-xs font-bold text-white active:bg-white/[0.12] transition-all flex items-center justify-center gap-1.5"
-                >
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-                  </svg>
-                  Скачать
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => downloadMedia(url, `uraanxai-restore-${i + 1}.png`)}
+                    className="flex-1 bg-white/[0.08] border border-white/[0.10] rounded-xl py-2.5 text-center text-xs font-bold text-white active:bg-white/[0.12] transition-all flex items-center justify-center gap-1.5"
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    Скачать
+                  </button>
+                  {restoreGenIds[i] && <ShareButton userId={user.id} generationId={restoreGenIds[i]} />}
+                </div>
               </div>
             ))}
           </div>

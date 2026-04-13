@@ -478,6 +478,28 @@ export async function migrate() {
       deadline    DATE,
       created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+
+    -- ═══════════════════════════════════════════════════
+    -- Бонусы за шеринг генераций
+    -- ═══════════════════════════════════════════════════
+
+    CREATE TABLE IF NOT EXISTS share_rewards (
+      id              SERIAL PRIMARY KEY,
+      sharer_id       BIGINT NOT NULL REFERENCES users(id),
+      receiver_id     BIGINT NOT NULL REFERENCES users(id),
+      generation_id   INTEGER,
+      credits_awarded INTEGER NOT NULL DEFAULT 0,
+      created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE(sharer_id, receiver_id)
+    );
+    CREATE INDEX IF NOT EXISTS share_rewards_sharer_idx ON share_rewards (sharer_id);
+    CREATE INDEX IF NOT EXISTS share_rewards_created_idx ON share_rewards (created_at);
+
+    -- generation_id для async задач (чтобы вернуть на фронт)
+    DO $$ BEGIN
+      ALTER TABLE pending_tasks ADD COLUMN generation_id INTEGER;
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$;
   `);
 
   console.log('✅ Миграции применены');

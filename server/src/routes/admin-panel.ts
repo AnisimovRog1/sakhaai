@@ -1741,10 +1741,9 @@ function renderGoal(){
   if(!el)return;
   var g=goalData;
   var todayRev=progressData?.today_revenue||0;
-  var totalRev=progressData?.total_revenue||0;
   var target=g?g.target_rub:200000;
-  var pct=target>0?Math.min(100,Math.round(totalRev/target*100)):0;
-  var remain=Math.max(0,target-totalRev);
+  var pct=target>0?Math.min(100,Math.round(todayRev/target*100)):0;
+  var remain=Math.max(0,target-todayRev);
   var daysLeft='';
   if(g&&g.deadline){
     var dl=new Date(g.deadline);
@@ -1754,7 +1753,6 @@ function renderGoal(){
   }
   var prices={start:99,basic:299,pro:799,max:1990};
   var remainPkgs=['start','basic','pro','max'];
-  var allBp=progressData?.by_package||[];
   var todayBp=progressData?.today_by_package||[];
   var remainHtml=remainPkgs.map(function(pk){
     var price=prices[pk]||250;
@@ -1763,7 +1761,6 @@ function renderGoal(){
   }).join('');
   var todayHtml=todayBp.map(function(p){return '<span class="glass px-3 py-1.5 rounded text-xs"><b class="text-green-400">'+p.cnt+'</b> '+esc(p.package||'?')+' ('+Number(p.sum).toLocaleString('ru')+'&#8381;)</span>'}).join(' ');
   if(!todayHtml) todayHtml='<span class="text-xs text-slate-600">Нет оплат сегодня</span>';
-  var allHtml=allBp.map(function(p){return '<span class="glass px-2 py-1 rounded text-xs">'+esc(p.package||'?')+': <b>'+p.cnt+'</b> ('+Number(p.sum).toLocaleString('ru')+'&#8381;)</span>'}).join(' ');
 
   el.innerHTML='<div class="section-group mb-5"><div class="section-group-title">ЦЕЛЬ</div>'+
     '<div class="glass-neon p-5">'+
@@ -1771,14 +1768,12 @@ function renderGoal(){
     '<div class="text-sm font-bold">'+(g?esc(g.name):'Цель не установлена')+'</div>'+
     '<div class="text-xs text-slate-400">'+(daysLeft?'до '+new Date(g.deadline).toLocaleDateString('ru')+' ('+daysLeft+')':'')+'</div></div>'+
     '<div class="w-full bg-white/5 rounded-full h-4 mb-3 overflow-hidden"><div class="h-full rounded-full transition-all" style="width:'+pct+'%;background:linear-gradient(90deg,#7c3aed,#06b6d4)"></div></div>'+
-    '<div class="flex justify-between text-sm mb-3"><span class="gradient-text font-bold">'+Number(totalRev).toLocaleString('ru')+' &#8381;</span><span class="text-slate-400">/ '+Number(target).toLocaleString('ru')+' &#8381; ('+pct+'%)</span></div>'+
+    '<div class="flex justify-between text-sm mb-3"><span class="gradient-text font-bold">'+Number(todayRev).toLocaleString('ru')+' &#8381;</span><span class="text-slate-400">/ '+Number(target).toLocaleString('ru')+' &#8381; ('+pct+'%)</span></div>'+
     '<div class="text-xs text-slate-400 mb-2">Осталось: <b class="text-white">'+Number(remain).toLocaleString('ru')+' &#8381;</b></div>'+
     '<div class="text-xs text-slate-500 mb-2">Осталось оплат до цели:</div>'+
     '<div class="grid grid-cols-4 gap-2 mb-4">'+remainHtml+'</div>'+
-    '<div class="text-xs text-slate-500 mb-2">Сегодня: <b class="text-green-400">'+Number(todayRev).toLocaleString('ru')+' &#8381;</b></div>'+
-    '<div class="flex flex-wrap gap-2 mb-3">'+todayHtml+'</div>'+
-    '<div class="text-xs text-slate-500 mb-2">Всего оплат:</div>'+
-    '<div class="flex flex-wrap gap-2 mb-4">'+allHtml+'</div>'+
+    '<div class="text-xs text-slate-500 mb-2">Оплаты сегодня:</div>'+
+    '<div class="flex flex-wrap gap-2 mb-4">'+todayHtml+'</div>'+
     '<div class="flex gap-2 items-end flex-wrap">'+
     '<div class="flex-1 min-w-[140px]"><label class="text-xs text-slate-400 block mb-1">Название</label><input id="goalName" class="w-full text-xs" value="'+(g?esc(g.name):'')+'"></div>'+
     '<div class="w-[120px]"><label class="text-xs text-slate-400 block mb-1">Сумма &#8381;</label><input id="goalTarget" type="number" class="w-full text-xs" value="'+target+'"></div>'+
@@ -1797,9 +1792,9 @@ async function saveGoal(){
 
 var CAT_INFO={
 features:'<b>Цель: 100-200К руб за первую неделю</b><br>100К = ~400 оплат (200 Start + 120 Basic + 50 Pro + 10 Max)<br>200К = ~770 оплат',
-content:'<b>Каждое утро 20-30 мин:</b> Reels + TikTok + Pipiads<br>Находим виральное видео в нише AI/фото<br>Разбираем: хук + содержание + CTA<br>Переделываем под UraanxAI<br><b>Формула:</b> ХУК (0-2 сек) &#8594; СОДЕРЖАНИЕ (охватное + обучающее) &#8594; CTA<br><br><b>Сервисы:</b> Pipiads ($77/мес) | Exploding Topics ($97/мес) | Pentos (~$99/мес)',
+content:'<b>Каждое утро 20-30 мин:</b> скроллим Reels, TikTok, Pipiads<br>Находим виральное видео в нише AI/фото<br>Разбираем: хук + содержание + CTA<br>Переделываем под UraanxAI<br>Публикуем 1-3 Reels/день<br><b>Формула:</b> ХУК (0-2 сек) &#8594; СОДЕРЖАНИЕ (охватное + обучающее) &#8594; CTA',
 bloggers:'<b>Где искать:</b> Instagram #якутск #якутия #yakutsk | LabelUp/Getblogger | tgstat.ru | Паблики Якутска<br><b>Каждый вечер:</b> 15-25 новых блогеров найти + написать<br>Кто не ответил в ДМ &#8594; комментарий под последний Reels<br><br><b>Бартер инста:</b><br>1-5К: 10К кр (~500&#8381;) | 5-30К: 15К кр (~750&#8381;) | 30-100К: 20К кр (~1000&#8381;) + 3-5К&#8381;<br><b>Бартер ТГ:</b><br>1-5К: 10К кр | 5-20К: 15К кр + 0-2К&#8381; | 20-50К: 20К кр + 3-5К&#8381;<br>Паблики/каналы: Stories с лицом блогера + ссылка<br><br><b>6 сценариев видео</b> (все с оживлением фото блогером):<br>1. Оживление + реакция (основной, 15-30с)<br>2. Оживление + реставрация старого фото + эмоции (самый вирусный)<br>3. Оживление + рассказ о приле (все возможности + промокод)<br>4. Оживление + реферальная система (25% за друга)<br>5. Оживление + другие возможности (студийное фото, AI-чат)<br>6. Оживление + угадай (где AI? в комментах)',
-schedule:'<b>13 апреля:</b> фичи + таблица блогеров + написать ВСЕМ<br><b>14 апреля:</b> согласовать + запустить + VIRALMAXING рилсы + вечером новым<br><b>Каждый день:</b> утро VIRALMAXING &#8594; 1-3 Reels &#8594; блогеры &#8594; вечер 15-25 новых',
+schedule:'<b>День 1 (13 апр):</b> фичи в прилу + таблица блогеров + написать ВСЕМ + 5 демо<br><b>День 2 (14 апр):</b> VIRALMAXING рилсы + согласовать рекламы + запустить + вечером новым блогерам<br><b>День 3 (15 апр):</b> 1-3 Reels + обработка ответов + комментарии неответившим + 15-25 новых<br><b>День 4 (16 апр):</b> 1-3 Reels + первые выкладки блогеров + проверка промокодов + новые блогеры<br><b>День 5 (17 апр):</b> 1-3 Reels + анализ промокодов + вторая волна блогеров + ч/б фото (прогрев 9 мая)<br><b>День 6 (18 апр):</b> 1-3 Reels + полный анализ: DAU, покупки, выручка, ROI + удвоить что работает<br><b>День 7 (19 апр):</b> 1-3 Reels + ИТОГИ НЕДЕЛИ: выручка vs цель, ROI по промокодам, что работает/нет<br><br><b>Каждый день:</b> утро VIRALMAXING &#8594; 1-3 Reels &#8594; блогеры (бартер / бартер+оплата) &#8594; вечер 15-25 новых<br><b>Стратегия:</b> бартер + бартер+оплата. Если работает &#8594; продолжаем той же стратегией',
 may9:'С 25 апреля начинаем прогрев ч/б фото<br>1-4 мая: "Выберем подписчиков \\u2014 бесплатно оживим фото ветеранов"<br>8-9 мая: максимум контента',
 scale:'Якутия сработала (конверсия > 3%) &#8594; тот же плейбук:<br>Бурятия &#8594; Иркутск &#8594; Хабаровск &#8594; Красноярск'
 };

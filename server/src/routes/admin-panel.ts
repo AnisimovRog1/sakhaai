@@ -1072,7 +1072,7 @@ function previewSeq(id){
   text=text.replace(/&lt;&lt;([^&]+?)&gt;&gt;/g,'<b>$1</b>');
   text=text.replace(/\\*\\*(.+?)\\*\\*/g,'<b>$1</b>');
   text=text.replace(/(?<!\\w)_(.+?)_(?!\\w)/g,'<i>$1</i>');
-  text=text.replace(/\\n/g,'<br>');
+  text=text.replace(/\\\\n/g,'<br>');
   html+='<div style="background:#182533;border-radius:0 12px 12px 12px;padding:8px 12px;max-width:320px;color:#e4e6ea;font-size:14px;line-height:1.5;word-wrap:break-word;white-space:pre-wrap">'+text+'</div>';
   // Кнопка
   html+='<div style="margin-top:6px;max-width:320px"><div style="background:#2b5278;border-radius:8px;padding:8px;text-align:center;color:#7eb8e6;font-size:13px;cursor:pointer">🚀 Открыть UraanxAI</div></div>';

@@ -21,6 +21,7 @@ import { serveTempFile, saveTempBuffer } from './services/kling-direct';
 // processHeldReferrals убран — бонус реферу начисляется сразу при оплате
 import { startTaskWorker } from './services/task-worker';
 import { seedPushSequences } from './services/push-seed';
+import { seedMarketingPlan } from './db/migrate';
 import { initExchangeRate, updateExchangeRate, getRateInfo } from './services/exchange-rate';
 import { LANDING_HTML } from './landing';
 import { LINK_PAGE_HTML } from './link-page';
@@ -62,6 +63,9 @@ if (cluster.isPrimary) {
 
       // Seed пушей — только в master
       seedPushSequences().then(n => { if (n) console.log('📥 Seed пушей: ' + n); }).catch(e => console.error('❌ Seed пушей:', e));
+
+      // Seed маркетингового плана
+      seedMarketingPlan().catch(e => console.error('❌ Seed плана:', e));
     })
     .catch((err) => {
       console.error('❌ Ошибка миграции:', err);

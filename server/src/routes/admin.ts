@@ -1282,3 +1282,99 @@ adminRouter.post('/exchange-rate/update', async (_req: Request, res: Response) =
     res.status(500).json({ error: e.message });
   }
 });
+
+// ═══ Маркетинговый план ═══
+
+// Все задачи
+adminRouter.get('/plans', async (_req: Request, res: Response) => {
+  try {
+    const { rows } = await pool.query(`SELECT * FROM marketing_plans ORDER BY category, sort_order`);
+    res.json(rows);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// Создать задачу
+adminRouter.post('/plans', async (req: Request, res: Response) => {
+  try {
+    const { category, title } = req.body;
+    if (!category || !title) return res.status(400).json({ error: 'category и title обязательны' });
+    const maxOrder = await pool.query(`SELECT COALESCE(MAX(sort_order),0)+1 as next FROM marketing_plans WHERE category=$1`, [category]);
+    const { rows } = await pool.query(
+      `INSERT INTO marketing_plans (category, title, sort_order) VALUES ($1, $2, $3) RETURNING *`,
+      [category, title, maxOrder.rows[0].next]
+    );
+    res.json(rows[0]);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// Обновить задачу (is_done, comment, title)
+adminRouter.put('/plans/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { is_done, comment, title } = req.body;
+    const sets: string[] = [];
+    const vals: any[] = [];
+    let idx = 1;
+    if (is_done !== undefined) { sets.push(`is_done=$${idx++}`); vals.push(is_done); }
+    if (comment !== undefined) { sets.push(`comment=$${idx++}`); vals.push(comment); }
+    if (title !== undefined) { sets.push(`title=$${idx++}`); vals.push(title); }
+    if (!sets.length) return res.status(400).json({ error: 'нечего обновлять' });
+    vals.push(parseInt(id));
+    const { rows } = await pool.query(`UPDATE marketing_plans SET ${sets.join(',')} WHERE id=$${idx} RETURNING *`, vals);
+    res.json(rows[0] || { error: 'не найдено' });
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// Удалить задачу
+adminRouter.delete('/plans/:id', async (req: Request, res: Response) => {
+  try {
+    await pool.query(`DELETE FROM marketing_plans WHERE id=$1`, [parseInt(req.params.id)]);
+    res.json({ ok: true });
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// Цели
+adminRouter.get('/goals', async (_req: Request, res: Response) => {
+  try {
+    const { rows } = await pool.query(`SELECT * FROM marketing_goals ORDER BY created_at DESC LIMIT 1`);
+    res.json(rows[0] || null);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+adminRouter.post('/goals', async (req: Request, res: Response) => {
+  try {
+    const { name, target_rub, deadline } = req.body;
+    // Upsert — обновляем если есть, создаём если нет
+    const existing = await pool.query(`SELECT id FROM marketing_goals LIMIT 1`);
+    if (existing.rows.length > 0) {
+      const { rows } = await pool.query(
+        `UPDATE marketing_goals SET name=$1, target_rub=$2, deadline=$3 WHERE id=$4 RETURNING *`,
+        [name, target_rub, deadline, existing.rows[0].id]
+      );
+      res.json(rows[0]);
+    } else {
+      const { rows } = await pool.query(
+        `INSERT INTO marketing_goals (name, target_rub, deadline) VALUES ($1, $2, $3) RETURNING *`,
+        [name, target_rub, deadline]
+      );
+      res.json(rows[0]);
+    }
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// Прогресс к цели — реальная выручка из orders
+adminRouter.get('/goals/progress', async (_req: Request, res: Response) => {
+  try {
+    const goal = await pool.query(`SELECT * FROM marketing_goals ORDER BY created_at DESC LIMIT 1`);
+    const revenue = await pool.query(`SELECT COALESCE(SUM(amount_rub),0)::int as total FROM orders WHERE status='paid'`);
+    const byPackage = await pool.query(`
+      SELECT package, COUNT(*)::int as cnt, COALESCE(SUM(amount_rub),0)::int as sum
+      FROM orders WHERE status='paid' GROUP BY package
+    `);
+    res.json({
+      goal: goal.rows[0] || null,
+      total_revenue: revenue.rows[0].total,
+      by_package: byPackage.rows
+    });
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});

@@ -203,6 +203,7 @@ table.bordered tr:last-child td{border-bottom:none}
       <div class="nav-item" onclick="showTab(this,'referrals')"><span class="nav-icon">🤝</span> Рефералы</div>
       <div class="nav-item" onclick="showTab(this,'campaigns')"><span class="nav-icon">📣</span> Кампании</div>
       <div class="nav-item" onclick="showTab(this,'adstats')"><span class="nav-icon">📈</span> Реклама</div>
+      <div class="nav-item" onclick="showTab(this,'plans')"><span class="nav-icon">📋</span> Планы</div>
     </nav>
     <div class="sidebar-footer">
       <div class="flex items-center gap-1.5 text-xs text-green-400 mb-3"><div class="live-dot"></div> Live</div>
@@ -436,6 +437,28 @@ table.bordered tr:last-child td{border-bottom:none}
       <div id="adTotalsCircular" class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-5"></div>
     </div>
 
+    <!-- PLANS TAB -->
+    <div id="tab-plans" class="hidden">
+      <div id="goalBlock"></div>
+      <div id="plansCategories"></div>
+      <div class="section-group mt-5">
+        <div class="section-group-title">ШАБЛОНЫ СООБЩЕНИЙ</div>
+        <div id="templatesBlock"></div>
+      </div>
+      <div class="section-group mt-5">
+        <div class="section-group-title">СПРАВКА: СЕБЕСТОИМОСТИ</div>
+        <div class="glass p-4">
+          <table class="bordered text-xs w-full"><thead><tr><th>Пакет</th><th>Цена</th><th>Себест.</th><th>Прибыль</th><th>-30%</th><th>Прибыль -30%</th></tr></thead><tbody>
+          <tr><td>Start</td><td>99 &#8381;</td><td>43 &#8381;</td><td class="text-green-400">56 &#8381;</td><td>69 &#8381;</td><td class="text-green-400">26 &#8381;</td></tr>
+          <tr><td>Basic</td><td>299 &#8381;</td><td>130 &#8381;</td><td class="text-green-400">169 &#8381;</td><td>209 &#8381;</td><td class="text-green-400">79 &#8381;</td></tr>
+          <tr><td>Pro</td><td>799 &#8381;</td><td>347 &#8381;</td><td class="text-green-400">452 &#8381;</td><td>559 &#8381;</td><td class="text-green-400">212 &#8381;</td></tr>
+          <tr><td>Max</td><td>1 990 &#8381;</td><td>865 &#8381;</td><td class="text-green-400">1 125 &#8381;</td><td>1 393 &#8381;</td><td class="text-green-400">528 &#8381;</td></tr>
+          </tbody></table>
+          <div class="text-xs text-slate-500 mt-3">Welcome 300 кр = ~17&#8381; | 10К кр блогеру = ~500&#8381; | 15К = ~750&#8381; | 20К = ~1000&#8381;</div>
+        </div>
+      </div>
+    </div>
+
     <!-- Notes Modal -->
     <div id="notesModal" class="hidden" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;align-items:center;justify-content:center;background:rgba(0,0,0,.7)">
       <div class="glass-neon p-6 w-full max-w-lg mx-4" style="border-radius:16px">
@@ -536,7 +559,7 @@ function G(p){return apiFetch(p)}
 function P(p,d){return apiFetch(p,{method:'POST',body:JSON.stringify(d)})}
 function D(p){return apiFetch(p,{method:'DELETE'})}
 
-function showTab(el,n){document.querySelectorAll('[id^=tab-]').forEach(function(e){e.classList.add('hidden')});document.getElementById('tab-'+n).classList.remove('hidden');document.querySelectorAll('.nav-item').forEach(function(e){e.classList.remove('active')});el.classList.add('active');var titles={dashboard:'Панель',users:'Пользователи',pushes:'Пуши',referrals:'Рефералы',campaigns:'Кампании',adstats:'Реклама'};var pt=document.getElementById('pageTitle');if(pt)pt.textContent=titles[n]||n;if(n==='users')loadUsers();if(n==='pushes'){loadPushTemplates();loadPushLog();loadSeqs();loadPushStats()}if(n==='campaigns')loadCampaigns();if(n==='referrals')loadReferrals();if(n==='adstats')loadAdStats()}
+function showTab(el,n){document.querySelectorAll('[id^=tab-]').forEach(function(e){e.classList.add('hidden')});document.getElementById('tab-'+n).classList.remove('hidden');document.querySelectorAll('.nav-item').forEach(function(e){e.classList.remove('active')});el.classList.add('active');var titles={dashboard:'Панель',users:'Пользователи',pushes:'Пуши',referrals:'Рефералы',campaigns:'Кампании',adstats:'Реклама',plans:'Планы'};var pt=document.getElementById('pageTitle');if(pt)pt.textContent=titles[n]||n;if(n==='users')loadUsers();if(n==='pushes'){loadPushTemplates();loadPushLog();loadSeqs();loadPushStats()}if(n==='campaigns')loadCampaigns();if(n==='referrals')loadReferrals();if(n==='adstats')loadAdStats();if(n==='plans')loadPlansTab()}
 
 // Курс ЦБ
 async function loadExRate(){
@@ -1690,6 +1713,170 @@ async function saveAdStat(){
   loadAdStats()
 }
 async function deleteAdStat(id){if(!confirm('Удалить запись?'))return;await D('/admin/ad-stats/'+id);loadAdStats()}
+
+// ═══ ПЛАНЫ ═══
+var plansData=[];
+var goalData=null;
+var progressData=null;
+
+var TEMPLATES=[
+{name:'Сотрудничество (инста + ТГ)',text:'Здравствуйте!\\n\\nМы UraanxAI — AI-стартап из Якутии, развиваем новое направление для региона. Приложение работает прямо в Telegram — ничего скачивать не нужно.\\n\\nЧто умеет:\\n- Оживляет фото (фото начинает двигаться, улыбаться)\\n- Генерирует трендовые AI-фото и видео\\n- AI-чат на базе Gemini (мощнее ChatGPT)\\n- Создает говорящие AI-аватары\\n\\nСейчас формат оживления фото набирает огромные охваты в Reels — идеально для вовлечения аудитории.\\n\\nХотим предложить сотрудничество:\\n- Вам: [10К/15К/20К] кредитов для создания контента [+ X руб за публикацию]\\n- Персональный промокод — Ваши подписчики получат бонус при покупке, а Вы сможете отслеживать охват\\n- От Вас: 1 Reels — оживляете свое фото + Ваша реакция\\n\\nВыгода для Вас:\\n- Трендовый AI-контент = высокие охваты\\n- Промокод с Вашим именем = вовлечение подписчиков + лояльность и благодарность от подписчиков\\n- Поддержка якутского стартапа = крутая история для аудитории\\n\\nВыгода для Ваших подписчиков:\\n- Бонусные кредиты по Вашему промокоду\\n- Доступ к AI-инструментам без скачивания приложений\\n- Оживление фото, AI-фото, чат — все в одном месте\\n- Освоение передовых AI-инструментов, которые меняют подход к созданию контента\\n\\nМы развиваем AI-направление для Якутии и были бы рады Вашей поддержке. Вот как это выглядит: [демо-видео]\\n\\nЕсли интересно — отправлю доступ прямо сейчас.'},
+{name:'Комментарий (если ДМ не видят)',text:'Здравствуйте! Написали Вам в директ — предложение по сотрудничеству от AI-стартапа из Якутии!'}
+];
+
+var CAT_NAMES={features:'ФИЧИ (13 апреля)',content:'VIRALMAXING',bloggers:'БЛОГЕРЫ',may9:'ПРОГРЕВ 9 МАЯ',scale:'МАСШТАБИРОВАНИЕ'};
+var CAT_ORDER=['features','content','bloggers','may9','scale'];
+
+async function loadPlansTab(){
+  var [plans,progress]=await Promise.all([G('/admin/plans'),G('/admin/goals/progress')]);
+  plansData=Array.isArray(plans)?plans:[];
+  progressData=progress;
+  goalData=progress?.goal||null;
+  renderGoal();
+  renderPlans();
+  renderTemplates();
+}
+
+function renderGoal(){
+  var el=document.getElementById('goalBlock');
+  if(!el)return;
+  var g=goalData;
+  var rev=progressData?.total_revenue||0;
+  var target=g?g.target_rub:200000;
+  var pct=target>0?Math.min(100,Math.round(rev/target*100)):0;
+  var remain=Math.max(0,target-rev);
+  var avgCheck=250;
+  var remainOrders=Math.ceil(remain/avgCheck);
+  var daysLeft='';
+  if(g&&g.deadline){
+    var dl=new Date(g.deadline);
+    var now=new Date();
+    var diff=Math.ceil((dl.getTime()-now.getTime())/(1000*60*60*24));
+    daysLeft=diff>0?diff+' дней':'Просрочено';
+  }
+  var bp=progressData?.by_package||[];
+  var pkgHtml=bp.map(function(p){return '<span class="glass px-2 py-1 rounded text-xs">'+esc(p.package||'?')+': <b>'+p.cnt+'</b> ('+Number(p.sum).toLocaleString('ru')+'&#8381;)</span>'}).join(' ');
+
+  el.innerHTML='<div class="section-group mb-5"><div class="section-group-title">ЦЕЛЬ</div>'+
+    '<div class="glass-neon p-5">'+
+    '<div class="flex justify-between items-center mb-3">'+
+    '<div class="text-sm font-bold">'+(g?esc(g.name):'Цель не установлена')+'</div>'+
+    '<div class="text-xs text-slate-400">'+(daysLeft?'до '+new Date(g.deadline).toLocaleDateString('ru')+' ('+daysLeft+')':'')+'</div></div>'+
+    '<div class="w-full bg-white/5 rounded-full h-4 mb-3 overflow-hidden"><div class="h-full rounded-full transition-all" style="width:'+pct+'%;background:linear-gradient(90deg,#7c3aed,#06b6d4)"></div></div>'+
+    '<div class="flex justify-between text-sm mb-3"><span class="gradient-text font-bold">'+Number(rev).toLocaleString('ru')+' &#8381;</span><span class="text-slate-400">/ '+Number(target).toLocaleString('ru')+' &#8381; ('+pct+'%)</span></div>'+
+    '<div class="text-xs text-slate-400 mb-3">Осталось: <b class="text-white">'+Number(remain).toLocaleString('ru')+' &#8381;</b> (~'+remainOrders+' оплат по '+avgCheck+'&#8381;)</div>'+
+    '<div class="flex flex-wrap gap-2 mb-4">'+pkgHtml+'</div>'+
+    '<div class="flex gap-2 items-end flex-wrap">'+
+    '<div class="flex-1 min-w-[140px]"><label class="text-xs text-slate-400 block mb-1">Название</label><input id="goalName" class="w-full text-xs" value="'+(g?esc(g.name):'')+'"></div>'+
+    '<div class="w-[120px]"><label class="text-xs text-slate-400 block mb-1">Сумма &#8381;</label><input id="goalTarget" type="number" class="w-full text-xs" value="'+target+'"></div>'+
+    '<div class="w-[130px]"><label class="text-xs text-slate-400 block mb-1">Дедлайн</label><input id="goalDeadline" type="date" class="w-full text-xs" value="'+(g&&g.deadline?g.deadline.substring(0,10):'')+'"></div>'+
+    '<button class="btn btn-primary text-xs" onclick="saveGoal()">Сохранить</button>'+
+    '</div></div></div>';
+}
+
+async function saveGoal(){
+  var n=document.getElementById('goalName').value.trim()||'Цель';
+  var t=parseInt(document.getElementById('goalTarget').value)||200000;
+  var d=document.getElementById('goalDeadline').value||null;
+  await P('/admin/goals',{name:n,target_rub:t,deadline:d});
+  loadPlansTab();
+}
+
+function renderPlans(){
+  var el=document.getElementById('plansCategories');
+  if(!el)return;
+  var html='';
+  CAT_ORDER.forEach(function(cat){
+    var items=plansData.filter(function(p){return p.category===cat});
+    var done=items.filter(function(p){return p.is_done}).length;
+    html+='<div class="section-group mb-4"><div class="section-group-title">'+CAT_NAMES[cat]+' <span class="text-slate-500 font-normal">('+done+'/'+items.length+')</span></div>';
+    items.forEach(function(p){
+      var checked=p.is_done?'checked':'';
+      var strike=p.is_done?'line-through text-slate-600':'text-white';
+      var checkColor=p.is_done?'text-green-400':'text-slate-600';
+      html+='<div class="glass p-3 mb-2" id="plan-item-'+p.id+'">'+
+        '<div class="flex items-start gap-3">'+
+        '<label class="flex items-center mt-0.5 cursor-pointer"><input type="checkbox" '+checked+' onchange="togglePlanDone('+p.id+')" class="w-4 h-4 accent-green-500 rounded cursor-pointer"></label>'+
+        '<div class="flex-1 min-w-0">'+
+        '<div class="text-sm '+strike+'">'+esc(p.title)+'</div>'+
+        (p.comment?'<div class="text-xs text-cyan-400 mt-1">'+esc(p.comment)+'</div>':'')+
+        '</div>'+
+        '<div class="flex gap-1 shrink-0">'+
+        '<button class="btn btn-ghost text-xs px-2" onclick="editPlanComment('+p.id+')" title="Комментарий">&#128172;</button>'+
+        '<button class="btn btn-ghost text-xs px-2 text-red-400" onclick="deletePlan('+p.id+')" title="Удалить">&#10005;</button>'+
+        '</div></div>'+
+        '<div id="plan-comment-edit-'+p.id+'" class="hidden mt-2">'+
+        '<textarea id="plan-comment-val-'+p.id+'" class="w-full text-xs" rows="2" placeholder="Комментарий...">'+(p.comment||'')+'</textarea>'+
+        '<button class="btn btn-primary text-xs mt-1" onclick="savePlanComment('+p.id+')">Сохранить</button>'+
+        '</div></div>';
+    });
+    html+='<div class="flex gap-2 mt-2" id="plan-add-wrap-'+cat+'">'+
+      '<input id="plan-add-input-'+cat+'" class="flex-1 text-xs" placeholder="Новая задача...">'+
+      '<button class="btn btn-primary text-xs" onclick="addPlan(\''+cat+'\')">+ Добавить</button>'+
+      '</div></div>';
+  });
+  el.innerHTML=html;
+}
+
+async function togglePlanDone(id){
+  var item=plansData.find(function(p){return p.id===id});
+  if(!item)return;
+  await apiFetch('/admin/plans/'+id,{method:'PUT',body:JSON.stringify({is_done:!item.is_done})});
+  loadPlansTab();
+}
+
+function editPlanComment(id){
+  var el=document.getElementById('plan-comment-edit-'+id);
+  if(!el)return;
+  el.classList.toggle('hidden');
+  if(!el.classList.contains('hidden')){
+    var ta=document.getElementById('plan-comment-val-'+id);
+    if(ta)ta.focus();
+  }
+}
+
+async function savePlanComment(id){
+  var ta=document.getElementById('plan-comment-val-'+id);
+  if(!ta)return;
+  await apiFetch('/admin/plans/'+id,{method:'PUT',body:JSON.stringify({comment:ta.value})});
+  loadPlansTab();
+}
+
+async function addPlan(cat){
+  var inp=document.getElementById('plan-add-input-'+cat);
+  if(!inp||!inp.value.trim())return;
+  await P('/admin/plans',{category:cat,title:inp.value.trim()});
+  inp.value='';
+  loadPlansTab();
+}
+
+async function deletePlan(id){
+  if(!confirm('Удалить задачу?'))return;
+  await D('/admin/plans/'+id);
+  loadPlansTab();
+}
+
+function renderTemplates(){
+  var el=document.getElementById('templatesBlock');
+  if(!el)return;
+  el.innerHTML=TEMPLATES.map(function(t,i){
+    var txt=t.text;
+    return '<div class="glass p-4 mb-3">'+
+      '<div class="flex justify-between items-center mb-2">'+
+      '<div class="text-sm font-bold">'+esc(t.name)+'</div>'+
+      '<button class="btn btn-primary text-xs" onclick="copyTemplate('+i+')">&#128203; Скопировать</button>'+
+      '</div>'+
+      '<pre class="text-xs text-slate-300 whitespace-pre-wrap bg-black/30 rounded-lg p-3 border border-white/5 max-h-[300px] overflow-y-auto">'+esc(txt)+'</pre>'+
+      '</div>';
+  }).join('');
+}
+
+function copyTemplate(i){
+  var txt=TEMPLATES[i].text;
+  navigator.clipboard.writeText(txt).then(function(){
+    alert('Скопировано!');
+  });
+}
 
 if(TOKEN)showPanel();
 </script></body></html>`;

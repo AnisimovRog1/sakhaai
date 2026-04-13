@@ -393,6 +393,29 @@ export async function migrate() {
       ALTER TABLE ad_campaigns ADD COLUMN saves INTEGER NOT NULL DEFAULT 0;
     EXCEPTION WHEN duplicate_column THEN NULL;
     END $$;
+
+    -- ═══════════════════════════════════════════════════
+    -- Маркетинговый план (задачи + цели)
+    -- ═══════════════════════════════════════════════════
+
+    CREATE TABLE IF NOT EXISTS marketing_plans (
+      id          SERIAL PRIMARY KEY,
+      category    TEXT NOT NULL,
+      title       TEXT NOT NULL,
+      description TEXT,
+      is_done     BOOLEAN NOT NULL DEFAULT false,
+      comment     TEXT,
+      sort_order  INTEGER NOT NULL DEFAULT 0,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS marketing_goals (
+      id          SERIAL PRIMARY KEY,
+      name        TEXT NOT NULL,
+      target_rub  INTEGER NOT NULL,
+      deadline    DATE,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
   `);
 
   console.log('✅ Миграции применены');
@@ -456,4 +479,60 @@ export async function seedPushData() {
     }
     console.log(`✅ Заполнено ${seeds.length} пуш-последовательностей`);
   return seeds.length;
+}
+
+// Seed маркетинговый план
+export async function seedMarketingPlan() {
+  const { rows } = await pool.query(`SELECT COUNT(*) as cnt FROM marketing_plans`);
+  if (parseInt(rows[0].cnt) > 0) { console.log('⏭ marketing_plans: уже есть данные'); return; }
+  console.log('📥 Заполняем маркетинговый план...');
+
+  const tasks: [string, string, number][] = [
+    // category, title, sort_order
+    ['features', 'Водяной знак + outro на генерациях без пакета. Плашка "Без водяного знака при покупке"', 1],
+    ['features', 'Кнопка "Поделиться" + share-to-earn (+50 кр, лимит 3/день)', 2],
+    ['features', 'Промокод-система (админка Кампании + поле при покупке + deep link)', 3],
+    ['features', 'Таймер скидки -30% на Pro на 1 день', 4],
+    ['features', 'Счетчик генераций на главном экране (14 101 / 8 451)', 5],
+    ['features', 'Трекер цели в админке', 6],
+
+    ['content', '5 демо-анимаций (лучшее качество)', 1],
+    ['content', '5 видео для рассылки блогерам', 2],
+    ['content', 'Аккаунт Instagram @uraanxai', 3],
+    ['content', 'Утренняя рутина VIRALMAXING (Pipiads + Explore + TikTok)', 4],
+    ['content', '1-3 Reels/день из VIRALMAXING', 5],
+
+    ['bloggers', 'Собрать таблицу блогеров: Instagram #якутск #якутия — все от 1,000 подписчиков', 1],
+    ['bloggers', 'LabelUp/Getblogger — фильтр Якутия', 2],
+    ['bloggers', 'tgstat.ru — 10-15 ТГ-каналов Якутии', 3],
+    ['bloggers', 'Создать промокоды в /panel для первых 20', 4],
+    ['bloggers', 'Написать ВСЕМ из таблицы — ДМ в Instagram + ТГ', 5],
+    ['bloggers', 'Обработка ответов: кредиты, промокоды, сценарии', 6],
+    ['bloggers', 'Комментарии неответившим (через 2-3 дня)', 7],
+    ['bloggers', 'Анализ промокодов: кто дает результат', 8],
+
+    ['may9', 'Ролики с ч/б фото (прогрев)', 1],
+    ['may9', 'Ролик "Выберем подписчиков — бесплатно оживим фото ветеранов"', 2],
+    ['may9', 'Публикация результатов для выбранных', 3],
+    ['may9', 'Блогерам предложить контент к 9 мая', 4],
+
+    ['scale', 'Анализ конверсии Якутии (цель > 3%)', 1],
+    ['scale', 'Собрать блогеров Бурятии', 2],
+    ['scale', 'Тот же плейбук на Бурятию', 3],
+  ];
+
+  for (const [cat, title, order] of tasks) {
+    await pool.query(
+      `INSERT INTO marketing_plans (category, title, sort_order) VALUES ($1, $2, $3)`,
+      [cat, title, order]
+    );
+  }
+
+  // Создать цель по умолчанию
+  await pool.query(
+    `INSERT INTO marketing_goals (name, target_rub, deadline) VALUES ($1, $2, $3)`,
+    ['Выручка за первую неделю', 200000, '2026-04-20']
+  );
+
+  console.log(`✅ Заполнено ${tasks.length} задач маркетингового плана`);
 }

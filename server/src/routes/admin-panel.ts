@@ -414,6 +414,22 @@ table.bordered tr:last-child td{border-bottom:none}
         </div>
       </div>
       <div id="campList"></div>
+
+      <div class="section-group mt-6">
+        <div class="section-group-title">🎟️ ПРОМОКОДЫ</div>
+        <div class="flex gap-3 items-end flex-wrap mb-4">
+          <div class="min-w-[150px]"><label class="text-xs text-slate-400 mb-1 block">Код</label><input id="promoCode" placeholder="Darina300"></div>
+          <div class="min-w-[100px]"><label class="text-xs text-slate-400 mb-1 block">Бонус (кр)</label><input id="promoBonus" type="number" placeholder="300"></div>
+          <div class="min-w-[100px]"><label class="text-xs text-slate-400 mb-1 block">Лимит (0=безл.)</label><input id="promoLimit" type="number" placeholder="0"></div>
+          <button class="btn btn-primary" onclick="createPromo()">➕ Создать</button>
+        </div>
+        <div id="promoList"></div>
+      </div>
+
+      <div class="section-group mt-6">
+        <div class="section-group-title">📊 ИСПОЛЬЗОВАНИЯ ПРОМО</div>
+        <div id="promoUsesList"></div>
+      </div>
     </div>
 
     <!-- AD STATS -->
@@ -576,7 +592,7 @@ function G(p){return apiFetch(p)}
 function P(p,d){return apiFetch(p,{method:'POST',body:JSON.stringify(d)})}
 function D(p){return apiFetch(p,{method:'DELETE'})}
 
-function showTab(el,n){document.querySelectorAll('[id^=tab-]').forEach(function(e){e.classList.add('hidden')});document.getElementById('tab-'+n).classList.remove('hidden');document.querySelectorAll('.nav-item').forEach(function(e){e.classList.remove('active')});el.classList.add('active');var titles={dashboard:'Панель',users:'Пользователи',pushes:'Пуши',referrals:'Рефералы',campaigns:'Кампании',adstats:'Реклама',plans:'Планы',shares:'Шеринг'};var pt=document.getElementById('pageTitle');if(pt)pt.textContent=titles[n]||n;if(n==='users')loadUsers();if(n==='pushes'){loadPushTemplates();loadPushLog();loadSeqs();loadPushStats()}if(n==='campaigns')loadCampaigns();if(n==='referrals')loadReferrals();if(n==='adstats')loadAdStats();if(n==='plans')loadPlansTab();if(n==='shares')loadSharesTab()}
+function showTab(el,n){document.querySelectorAll('[id^=tab-]').forEach(function(e){e.classList.add('hidden')});document.getElementById('tab-'+n).classList.remove('hidden');document.querySelectorAll('.nav-item').forEach(function(e){e.classList.remove('active')});el.classList.add('active');var titles={dashboard:'Панель',users:'Пользователи',pushes:'Пуши',referrals:'Рефералы',campaigns:'Кампании',adstats:'Реклама',plans:'Планы',shares:'Шеринг'};var pt=document.getElementById('pageTitle');if(pt)pt.textContent=titles[n]||n;if(n==='users')loadUsers();if(n==='pushes'){loadPushTemplates();loadPushLog();loadSeqs();loadPushStats()}if(n==='campaigns'){loadCampaigns();loadPromoCodes();loadPromoUses()}if(n==='referrals')loadReferrals();if(n==='adstats')loadAdStats();if(n==='plans')loadPlansTab();if(n==='shares')loadSharesTab()}
 
 // Курс ЦБ
 async function loadExRate(){
@@ -1473,6 +1489,51 @@ async function loadCampaigns(){
   }).join('')
 }
 async function deleteCamp(id){if(!confirm('Удалить кампанию?'))return;await D('/admin/campaigns/'+id);loadCampaigns()}
+
+// ── Промокоды ──
+async function createPromo(){
+  var code=document.getElementById('promoCode').value.trim();
+  var bonus=parseInt(document.getElementById('promoBonus').value)||0;
+  var limit=parseInt(document.getElementById('promoLimit').value)||0;
+  if(!code||!bonus){alert('Введите код и бонус');return}
+  var r=await P('/admin/promo-codes',{code:code,bonusCredits:bonus,maxUses:limit||null});
+  if(r.error){alert(r.error);return}
+  document.getElementById('promoCode').value='';
+  document.getElementById('promoBonus').value='';
+  document.getElementById('promoLimit').value='';
+  loadPromoCodes()
+}
+async function loadPromoCodes(){
+  var data=await G('/admin/promo-codes');
+  if(!Array.isArray(data))data=[];
+  var el=document.getElementById('promoList');
+  if(!data.length){el.innerHTML='<p class="text-slate-500 text-center py-4">Нет промокодов</p>';return}
+  el.innerHTML='<table class="bordered w-full text-xs"><thead><tr><th>Код</th><th>Бонус</th><th>Лимит</th><th>Исполь.</th><th>Статус</th><th></th></tr></thead><tbody>'+
+    data.map(function(p){
+      return '<tr><td class="font-mono font-bold text-cyan-400">'+esc(p.code)+'</td>'+
+        '<td class="text-green-400">+'+p.bonus_credits+'</td>'+
+        '<td>'+(p.max_uses||'\\u221E')+'</td>'+
+        '<td>'+p.used_count+'</td>'+
+        '<td>'+(p.is_active?'<span class="text-green-400">Активен</span>':'<span class="text-red-400">Выкл</span>')+'</td>'+
+        '<td><button class="btn btn-ghost text-xs" style="padding:2px 8px" onclick="togglePromo('+p.id+')">'+(p.is_active?'Выкл':'Вкл')+'</button></td></tr>'
+    }).join('')+'</tbody></table>'
+}
+async function togglePromo(id){await P('/admin/promo-codes/'+id+'/toggle',{});loadPromoCodes()}
+async function loadPromoUses(){
+  var data=await G('/admin/promo-uses');
+  if(!Array.isArray(data))data=[];
+  var el=document.getElementById('promoUsesList');
+  if(!data.length){el.innerHTML='<p class="text-slate-500 text-center py-4">Пока нет использований</p>';return}
+  el.innerHTML='<table class="bordered w-full text-xs"><thead><tr><th>Дата</th><th>Юзер</th><th>Промокод</th><th>Пакет</th><th>Сумма</th><th>Бонус</th></tr></thead><tbody>'+
+    data.map(function(u){
+      return '<tr><td>'+new Date(u.created_at).toLocaleDateString('ru')+'</td>'+
+        '<td>'+esc(u.first_name||'')+(u.username?' @'+esc(u.username):'')+'</td>'+
+        '<td class="font-mono text-cyan-400">'+esc(u.code)+'</td>'+
+        '<td>'+(u.package||'—')+'</td>'+
+        '<td>'+(u.amount_rub?u.amount_rub+'\\u20BD':'—')+'</td>'+
+        '<td class="text-green-400">+'+u.credits_awarded+'</td></tr>'
+    }).join('')+'</tbody></table>'
+}
 async function toggleCampUsers(code){
   var el=document.getElementById('camp-users-'+code);
   if(!el)return;

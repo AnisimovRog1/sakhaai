@@ -122,13 +122,38 @@ export function Home({ user, onCreditsUpdate }: Props) {
 
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
+  const [promoInput, setPromoInput] = useState('');
+  const [promoStatus, setPromoStatus] = useState<'idle' | 'checking' | 'valid' | 'invalid'>('idle');
+  const [promoBonus, setPromoBonus] = useState(0);
+  const [promoError, setPromoError] = useState('');
+  const [validPromoCode, setValidPromoCode] = useState<string | null>(null);
+
+  async function handleApplyPromo() {
+    if (!promoInput.trim()) return;
+    setPromoStatus('checking');
+    setPromoError('');
+    try {
+      const res = await api.validatePromo(promoInput.trim());
+      if (res.valid) {
+        setPromoStatus('valid');
+        setPromoBonus(res.bonusCredits || 0);
+        setValidPromoCode(res.code || promoInput.trim());
+      } else {
+        setPromoStatus('invalid');
+        setPromoError(res.reason || 'Неверный промокод');
+      }
+    } catch {
+      setPromoStatus('invalid');
+      setPromoError('Ошибка проверки');
+    }
+  }
 
   async function handleConfirmPay() {
     if (!selectedPkg || paying) return;
     setPaying(true);
     setPayError(null);
     try {
-      const res = await api.createPayment(selectedPkg.key);
+      const res = await api.createPayment(selectedPkg.key, validPromoCode || undefined);
       if (res.paymentUrl) {
         const tg = window.Telegram?.WebApp as any;
         if (tg?.openLink) {
@@ -349,6 +374,32 @@ export function Home({ user, onCreditsUpdate }: Props) {
                   </button>
                 );
               })}
+            </div>
+
+            {/* Promo code */}
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={promoInput}
+                  onChange={(e) => { setPromoInput(e.target.value); setPromoStatus('idle'); setPromoError(''); }}
+                  placeholder="Промокод"
+                  className="flex-1 bg-white/[0.06] border border-white/[0.12] rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 outline-none focus:border-violet-500/50"
+                />
+                <button
+                  onClick={handleApplyPromo}
+                  disabled={promoStatus === 'checking' || !promoInput.trim()}
+                  className="px-4 py-3 rounded-xl text-sm font-bold bg-white/[0.08] border border-white/[0.12] text-slate-300 active:bg-white/[0.12] transition-all disabled:opacity-40"
+                >
+                  {promoStatus === 'checking' ? '...' : 'Применить'}
+                </button>
+              </div>
+              {promoStatus === 'valid' && (
+                <p className="text-green-400 text-sm font-semibold">+{promoBonus} 💎 бонус к покупке</p>
+              )}
+              {promoStatus === 'invalid' && (
+                <p className="text-red-400 text-sm">{promoError}</p>
+              )}
             </div>
 
             {/* Confirm */}

@@ -27,10 +27,42 @@ function unitpaySign(method: string, params: Record<string, string>): string {
   return crypto.createHash('sha256').update(str).digest('hex');
 }
 
+// ── POST /payment/validate-promo — проверить промокод ──
+paymentRouter.post('/validate-promo', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { code } = req.body;
+    if (!code) { res.json({ valid: false, reason: 'Введите промокод' }); return; }
+
+    const promoResult = await pool.query(
+      'SELECT * FROM promo_codes WHERE LOWER(code) = LOWER($1) AND is_active = true',
+      [code.trim()]
+    );
+    const promo = promoResult.rows[0];
+    if (!promo) { res.json({ valid: false, reason: 'Промокод не найден' }); return; }
+
+    if (promo.max_uses && promo.used_count >= promo.max_uses) {
+      res.json({ valid: false, reason: 'Промокод исчерпан' }); return;
+    }
+
+    const usedResult = await pool.query(
+      'SELECT id FROM promo_uses WHERE user_id = $1',
+      [req.userId]
+    );
+    if (usedResult.rows.length > 0) {
+      res.json({ valid: false, reason: 'Вы уже использовали промокод' }); return;
+    }
+
+    res.json({ valid: true, bonusCredits: promo.bonus_credits, code: promo.code });
+  } catch (err: any) {
+    console.error('validate-promo error:', err);
+    res.status(500).json({ valid: false, reason: 'Ошибка сервера' });
+  }
+});
+
 // ── POST /payment/create — создать заказ и вернуть URL оплаты ──
 paymentRouter.post('/create', requireAuth, async (req: Request, res: Response) => {
   try {
-    const { package: pkg, paymentMethod } = req.body;
+    const { package: pkg, paymentMethod, promoCode } = req.body;
     const pack = PACKAGES[pkg];
     if (!pack) { res.status(400).json({ error: 'Неизвестный пакет' }); return; }
 
@@ -61,10 +93,28 @@ paymentRouter.post('/create', requireAuth, async (req: Request, res: Response) =
       console.log(`💰 Скидка -${discountPercent}%: user=${req.userId}, pkg=${pkg}, ${pack.amountRub}₽ → ${finalAmount}₽`);
     }
 
+    // Промокод — валидация и сохранение
+    let validPromoCode: string | null = null;
+    let promoBonus = 0;
+    if (promoCode) {
+      const promoResult = await pool.query(
+        'SELECT * FROM promo_codes WHERE LOWER(code) = LOWER($1) AND is_active = true',
+        [promoCode.trim()]
+      );
+      const promo = promoResult.rows[0];
+      if (promo && (!promo.max_uses || promo.used_count < promo.max_uses)) {
+        const usedResult = await pool.query('SELECT id FROM promo_uses WHERE user_id = $1', [req.userId]);
+        if (usedResult.rows.length === 0) {
+          validPromoCode = promo.code;
+          promoBonus = promo.bonus_credits;
+        }
+      }
+    }
+
     const orderId = crypto.randomUUID();
     await pool.query(
-      `INSERT INTO orders (id, user_id, package, amount_rub, credits, discount_percent) VALUES ($1, $2, $3, $4, $5, $6)`,
-      [orderId, req.userId, pkg, finalAmount, pack.credits, discountPercent],
+      `INSERT INTO orders (id, user_id, package, amount_rub, credits, discount_percent, promo_code, promo_bonus) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [orderId, req.userId, pkg, finalAmount, pack.credits, discountPercent, validPromoCode, promoBonus],
     );
 
     // Вызываем UnitPay API — initPayment
@@ -221,9 +271,34 @@ paymentRouter.get('/unitpay', async (req: Request, res: Response) => {
           console.log(`🎁 Реферал: +${rewardCredits} кр. реферу ${referrerId}`);
         }
 
+        // Промо-бонус (если есть)
+        if (order.promo_code && order.promo_bonus > 0) {
+          await client.query(
+            `UPDATE users SET credits = credits + $1, updated_at = NOW() WHERE id = $2`,
+            [order.promo_bonus, order.user_id]
+          );
+          await client.query(
+            `INSERT INTO transactions (user_id, type, amount, description) VALUES ($1, 'topup', $2, $3)`,
+            [order.user_id, order.promo_bonus, `Промо-бонус "${order.promo_code}": +${order.promo_bonus} кр.`]
+          );
+          // Записываем использование промокода
+          const promoRow = await client.query('SELECT id FROM promo_codes WHERE code = $1', [order.promo_code]);
+          if (promoRow.rows[0]) {
+            await client.query(
+              `INSERT INTO promo_uses (promo_id, user_id, order_id, credits_awarded) VALUES ($1, $2, $3, $4) ON CONFLICT (user_id) DO NOTHING`,
+              [promoRow.rows[0].id, order.user_id, order.id, order.promo_bonus]
+            );
+            await client.query(
+              `UPDATE promo_codes SET used_count = used_count + 1 WHERE id = $1`,
+              [promoRow.rows[0].id]
+            );
+          }
+          console.log(`🎟️ Промо: +${order.promo_bonus} кр. юзеру ${order.user_id} (${order.promo_code})`);
+        }
+
         await client.query('COMMIT');
 
-        console.log(`✅ Оплата UnitPay: user=${order.user_id}, пакет=${order.package}, +${order.credits} кр.`);
+        console.log(`✅ Оплата UnitPay: user=${order.user_id}, пакет=${order.package}, +${order.credits} кр.${order.promo_bonus ? ` + ${order.promo_bonus} промо` : ''}`);
         notifyAdmins(order).catch(console.error);
 
         res.json({ result: { message: 'Оплата обработана' } });

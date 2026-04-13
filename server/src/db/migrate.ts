@@ -500,6 +500,33 @@ export async function migrate() {
       ALTER TABLE pending_tasks ADD COLUMN generation_id INTEGER;
     EXCEPTION WHEN duplicate_column THEN NULL;
     END $$;
+
+    -- ═══════════════════════════════════════════════════
+    -- Промокоды для блогеров
+    -- ═══════════════════════════════════════════════════
+
+    CREATE TABLE IF NOT EXISTS promo_codes (
+      id            SERIAL PRIMARY KEY,
+      code          TEXT NOT NULL UNIQUE,
+      bonus_credits INTEGER NOT NULL DEFAULT 0,
+      max_uses      INTEGER,
+      used_count    INTEGER NOT NULL DEFAULT 0,
+      is_active     BOOLEAN NOT NULL DEFAULT true,
+      created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS promo_uses (
+      id              SERIAL PRIMARY KEY,
+      promo_id        INTEGER NOT NULL REFERENCES promo_codes(id),
+      user_id         BIGINT NOT NULL REFERENCES users(id),
+      order_id        TEXT,
+      credits_awarded INTEGER NOT NULL DEFAULT 0,
+      created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE(user_id)
+    );
+
+    DO $$ BEGIN ALTER TABLE orders ADD COLUMN promo_code TEXT; EXCEPTION WHEN duplicate_column THEN NULL; END $$;
+    DO $$ BEGIN ALTER TABLE orders ADD COLUMN promo_bonus INTEGER DEFAULT 0; EXCEPTION WHEN duplicate_column THEN NULL; END $$;
   `);
 
   console.log('✅ Миграции применены');

@@ -214,10 +214,16 @@ export const api = {
     request<{ success: boolean }>(`/generations/${id}`, { method: 'DELETE' }),
 
   // ── Оплата ────────────────────────────
-  createPayment: (pkg: string) =>
+  validatePromo: (code: string) =>
+    request<{ valid: boolean; bonusCredits?: number; code?: string; reason?: string }>('/payment/validate-promo', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    }),
+
+  createPayment: (pkg: string, promoCode?: string) =>
     request<{ orderId: string; paymentUrl: string | null; message?: string }>('/payment/create', {
       method: 'POST',
-      body: JSON.stringify({ package: pkg }),
+      body: JSON.stringify({ package: pkg, promoCode }),
     }),
 
   // ── Курс валют ────────────────────────

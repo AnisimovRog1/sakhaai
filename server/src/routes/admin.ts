@@ -1589,3 +1589,46 @@ adminRouter.get('/generation/:id', async (req: Request, res: Response) => {
     res.json(gen);
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
+
+// ─── Промокоды ──────────────────────────────────────
+adminRouter.get('/promo-codes', async (_req: Request, res: Response) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM promo_codes ORDER BY created_at DESC');
+    res.json(rows);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+adminRouter.post('/promo-codes', async (req: Request, res: Response) => {
+  try {
+    const { code, bonusCredits, maxUses } = req.body;
+    if (!code || !bonusCredits) { res.status(400).json({ error: 'code и bonusCredits обязательны' }); return; }
+    const { rows } = await pool.query(
+      'INSERT INTO promo_codes (code, bonus_credits, max_uses) VALUES ($1, $2, $3) RETURNING *',
+      [code.trim(), bonusCredits, maxUses || null]
+    );
+    res.json(rows[0]);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+adminRouter.post('/promo-codes/:id/toggle', async (req: Request, res: Response) => {
+  try {
+    await pool.query('UPDATE promo_codes SET is_active = NOT is_active WHERE id = $1', [req.params.id]);
+    res.json({ ok: true });
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+adminRouter.get('/promo-uses', async (_req: Request, res: Response) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT pu.*, pc.code, pc.bonus_credits,
+             u.username, u.first_name,
+             o.package, o.amount_rub
+      FROM promo_uses pu
+      JOIN promo_codes pc ON pc.id = pu.promo_id
+      JOIN users u ON u.id = pu.user_id
+      LEFT JOIN orders o ON o.id = pu.order_id
+      ORDER BY pu.created_at DESC LIMIT 100
+    `);
+    res.json(rows);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});

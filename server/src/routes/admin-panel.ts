@@ -693,10 +693,11 @@ function renderUsers(list){
     '<td>'+(u.is_banned?'<span class="text-red-400 text-xs font-bold">🚫</span>':'<span class="text-green-400 text-xs">✅</span>')+'</td>'+
     '<td class="text-slate-500 text-xs">UTC'+(u.timezone_offset>=0?'+':'')+Math.round((u.timezone_offset||540)/60)+'</td>'+
     '<td class="text-slate-500 text-xs">'+new Date(u.created_at).toLocaleDateString('ru')+'</td>'+
-    '<td onclick="event.stopPropagation()"><button class="btn btn-sm '+(u.is_banned?'btn-success':'btn-danger')+'" style="padding:5px 12px;font-size:11px" onclick="toggleBan('+u.id+','+!u.is_banned+')">'+(u.is_banned?'Разбан':'Бан')+'</button></td></tr>'
+    '<td onclick="event.stopPropagation()" style="white-space:nowrap"><button class="btn btn-sm '+(u.is_banned?'btn-success':'btn-danger')+'" style="padding:5px 12px;font-size:11px" onclick="toggleBan('+u.id+','+!u.is_banned+')">'+(u.is_banned?'Разбан':'Бан')+'</button> <button class="btn btn-sm" style="padding:5px 10px;font-size:11px;background:#dc2626;color:#fff" onclick="deleteUser('+u.id+')">🗑</button></td></tr>'
   ).join('')}
 function filterUsers(){const q=document.getElementById('userSearch').value.toLowerCase();renderUsers(allUsers.filter(u=>(u.username||'').toLowerCase().includes(q)||String(u.id).includes(q)||(u.first_name||'').toLowerCase().includes(q)))}
 async function toggleBan(id,ban){await P('/admin/ban',{userId:id,ban});loadUsers()}
+async function deleteUser(id){if(!confirm('Удалить юзера '+id+' и ВСЕ его данные? Это необратимо!')){return}const r=await fetch('/admin/user/'+id,{method:'DELETE',headers:{'Authorization':'Bearer '+localStorage.getItem('at')}}).then(r=>r.json());if(r.success){alert('✅ Юзер '+id+' удал��н');loadUsers()}else{alert('❌ '+(r.error||'Ошибка'))}}
 async function addCredits(){
   const id=document.getElementById('addCreditsId').value,amt=document.getElementById('addCreditsAmount').value;
   if(!id||!amt){alert('Заполните ID и сумму');return}

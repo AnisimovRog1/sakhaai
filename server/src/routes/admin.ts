@@ -403,6 +403,53 @@ adminRouter.post('/ban', async (req: Request, res: Response) => {
   }
 });
 
+// ─── DELETE /user/:id — удалить юзера и все связанные данные ──
+adminRouter.delete('/user/:id', async (req: Request, res: Response) => {
+  try {
+    const userId = req.params.id;
+    if (!userId) { res.status(400).json({ error: 'userId обязателен' }); return; }
+
+    // Проверяем что юзер существует
+    const check = await pool.query('SELECT id, first_name, username FROM users WHERE id = $1', [userId]);
+    if (check.rowCount === 0) { res.status(404).json({ error: 'Юзер не найден' }); return; }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Удаляем в правильном порядке (FK constraints)
+      await client.query('DELETE FROM push_sent WHERE user_id = $1', [userId]);
+      await client.query('DELETE FROM messages WHERE chat_id IN (SELECT id FROM chats WHERE user_id = $1)', [userId]);
+      await client.query('DELETE FROM chats WHERE user_id = $1', [userId]);
+      await client.query('DELETE FROM transactions WHERE user_id = $1', [userId]);
+      await client.query('DELETE FROM generations WHERE user_id = $1', [userId]);
+      await client.query('DELETE FROM pending_tasks WHERE user_id = $1', [userId]);
+      await client.query('DELETE FROM orders WHERE user_id = $1', [userId]);
+      await client.query('DELETE FROM referrals WHERE referrer_id = $1 OR referee_id = $1', [userId]);
+      await client.query('DELETE FROM user_ips WHERE user_id = $1', [userId]);
+      await client.query('DELETE FROM device_fingerprints WHERE user_id = $1', [userId]);
+      await client.query('DELETE FROM share_rewards WHERE user_id = $1', [userId]).catch(() => {}); // может не существовать
+      // Убираем referred_by у тех, кого он пригласил
+      await client.query('UPDATE users SET referred_by = NULL WHERE referred_by = $1', [userId]);
+      await client.query('DELETE FROM users WHERE id = $1', [userId]);
+
+      await client.query('COMMIT');
+
+      const u = check.rows[0];
+      console.log(`🗑 Удалён юзер: ${userId} (${u.first_name} @${u.username})`);
+      res.json({ success: true, deleted: userId });
+    } catch (err) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw err;
+    } finally {
+      client.release();
+    }
+  } catch (err: any) {
+    console.error('Delete user error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── GET /users ─────────────────────────────────────────
 adminRouter.get('/users', async (_req: Request, res: Response) => {
   try {

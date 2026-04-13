@@ -652,7 +652,7 @@ adminRouter.post('/push/send/:id', async (req: Request, res: Response) => {
   } catch (err: any) { res.status(500).json({ error: err.message }); }
 });
 
-// ─── DELETE /push/delete-sent/:logId — удалить отправленные сообщения ──
+// ─── DELETE /push/delete-sent/:logId — удалить разовые (push_sent_messages) ──
 adminRouter.delete('/push/delete-sent/:logId', async (req: Request, res: Response) => {
   try {
     const logId = parseInt(req.params.logId);
@@ -661,6 +661,42 @@ adminRouter.delete('/push/delete-sent/:logId', async (req: Request, res: Respons
 
     const BOT_TOKEN = process.env.BOT_TOKEN;
     if (!BOT_TOKEN) { res.status(503).json({ error: 'BOT_TOKEN не настроен' }); return; }
+
+    // Отвечаем сразу
+    res.json({ deleted: 0, total: msgs.rowCount, status: 'deleting' });
+
+    // Удаляем в фоне
+    let deleted = 0, failed = 0;
+    for (const m of msgs.rows) {
+      try {
+        const resp = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/deleteMessage`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: m.chat_id, message_id: m.message_id })
+        });
+        const result = await resp.json() as any;
+        if (result.ok) { deleted++; } else { failed++; }
+        if (deleted % 25 === 0) await new Promise(r => setTimeout(r, 1000));
+      } catch { failed++; }
+    }
+    await pool.query('DELETE FROM push_sent_messages WHERE log_id = $1', [logId]);
+    console.log(`🗑 Удалено ${deleted}/${msgs.rowCount} сообщений пуша log#${logId}`);
+  } catch (err: any) { if (!res.headersSent) res.status(500).json({ error: err.message }); }
+});
+
+// ─── DELETE /push/delete-auto/:seqId — удалить автопуши (push_sent с message_id) ──
+adminRouter.delete('/push/delete-auto/:seqId', async (req: Request, res: Response) => {
+  try {
+    const seqId = parseInt(req.params.seqId);
+    const msgs = await pool.query(
+      'SELECT user_id AS chat_id, message_id FROM push_sent WHERE sequence_id = $1 AND message_id IS NOT NULL',
+      [seqId]
+    );
+    if (msgs.rowCount === 0) { res.json({ deleted: 0, error: 'Нет сохранённых сообщений' }); return; }
+
+    const BOT_TOKEN = process.env.BOT_TOKEN;
+    if (!BOT_TOKEN) { res.status(503).json({ error: 'BOT_TOKEN не настроен' }); return; }
+
+    res.json({ deleted: 0, total: msgs.rowCount, status: 'deleting' });
 
     let deleted = 0, failed = 0;
     for (const m of msgs.rows) {
@@ -674,12 +710,10 @@ adminRouter.delete('/push/delete-sent/:logId', async (req: Request, res: Respons
         if (deleted % 25 === 0) await new Promise(r => setTimeout(r, 1000));
       } catch { failed++; }
     }
-
-    // Удаляем записи из БД
-    await pool.query('DELETE FROM push_sent_messages WHERE log_id = $1', [logId]);
-    console.log(`🗑 Удалено ${deleted} сообщений пуша #${logId}`);
-    res.json({ deleted, failed, total: msgs.rowCount });
-  } catch (err: any) { res.status(500).json({ error: err.message }); }
+    // Обнуляем message_id (не удаляем записи — они нужны для дедупликации)
+    await pool.query('UPDATE push_sent SET message_id = NULL WHERE sequence_id = $1 AND message_id IS NOT NULL', [seqId]);
+    console.log(`🗑 Удалено ${deleted}/${msgs.rowCount} автопушей seq#${seqId}`);
+  } catch (err: any) { if (!res.headersSent) res.status(500).json({ error: err.message }); }
 });
 
 adminRouter.post('/push/log', async (req: Request, res: Response) => {
@@ -694,11 +728,11 @@ adminRouter.get('/push/log', async (_req: Request, res: Response) => {
   try {
     // Объединяем: разовые пуши (push_log) + автопуши (push_sent с группировкой)
     const r = await pool.query(`
-      (SELECT 'manual' as source, t.name as label, l.sent_count, l.failed_count, l.started_at as sent_at, l.id as log_id
+      (SELECT 'manual' as source, t.name as label, l.sent_count, l.failed_count, l.started_at as sent_at, l.id as log_id, NULL::int as seq_id
        FROM push_log l LEFT JOIN push_templates t ON l.template_id = t.id)
       UNION ALL
       (SELECT 'auto' as source, s.label, COUNT(ps.id)::int as sent_count, 0 as failed_count,
-              MAX(ps.sent_at) as sent_at, NULL::int as log_id
+              MAX(ps.sent_at) as sent_at, NULL::int as log_id, s.id as seq_id
        FROM push_sent ps JOIN push_sequences s ON ps.sequence_id = s.id
        GROUP BY s.id, s.label)
       ORDER BY sent_at DESC LIMIT 50

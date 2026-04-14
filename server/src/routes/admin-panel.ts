@@ -1885,9 +1885,10 @@ function renderGoal(){
   if(!el)return;
   var g=goalData;
   var todayRev=progressData?.today_revenue||0;
+  var totalRev=progressData?.total_revenue||0;
   var target=g?g.target_rub:200000;
-  var pct=target>0?Math.min(100,Math.round(todayRev/target*100)):0;
-  var remain=Math.max(0,target-todayRev);
+  var pct=target>0?Math.min(100,Math.round(totalRev/target*100)):0;
+  var remain=Math.max(0,target-totalRev);
   var daysLeft='';
   if(g&&g.deadline){
     var dl=new Date(g.deadline);
@@ -1912,7 +1913,7 @@ function renderGoal(){
     '<div class="text-sm font-bold">'+(g?esc(g.name):'Цель не установлена')+'</div>'+
     '<div class="text-xs text-slate-400">'+(daysLeft?'до '+new Date(g.deadline).toLocaleDateString('ru')+' ('+daysLeft+')':'')+'</div></div>'+
     '<div class="w-full bg-white/5 rounded-full h-4 mb-3 overflow-hidden"><div class="h-full rounded-full transition-all" style="width:'+pct+'%;background:linear-gradient(90deg,#7c3aed,#06b6d4)"></div></div>'+
-    '<div class="flex justify-between text-sm mb-3"><span class="gradient-text font-bold">'+Number(todayRev).toLocaleString('ru')+' &#8381;</span><span class="text-slate-400">/ '+Number(target).toLocaleString('ru')+' &#8381; ('+pct+'%)</span></div>'+
+    '<div class="flex justify-between text-sm mb-3"><span class="gradient-text font-bold">'+Number(totalRev).toLocaleString('ru')+' &#8381;</span><span class="text-slate-400">/ '+Number(target).toLocaleString('ru')+' &#8381; ('+pct+'%)</span></div>'+
     '<div class="text-xs text-slate-400 mb-2">Осталось: <b class="text-white">'+Number(remain).toLocaleString('ru')+' &#8381;</b></div>'+
     '<div class="text-xs text-slate-500 mb-2">Осталось оплат до цели:</div>'+
     '<div class="grid grid-cols-4 gap-2 mb-4">'+remainHtml+'</div>'+
@@ -1934,7 +1935,8 @@ async function saveGoal(){
   var d=document.getElementById('goalDeadline').value||null;
   var sd=document.getElementById('goalStartDate').value||null;
   var rev=parseInt(document.getElementById('goalRevenue').value)||0;
-  await P('/admin/goals',{name:n,target_rub:t,deadline:d,start_date:sd,current_revenue:rev});
+  var r=await P('/admin/goals',{name:n,target_rub:t,deadline:d,start_date:sd,current_revenue:rev});
+  if(r&&r.error){alert('Ошибка: '+r.error)}else{alert('Сохранено! Выручка: '+(r.current_revenue||rev)+' ₽')}
   loadPlansTab();
 }
 

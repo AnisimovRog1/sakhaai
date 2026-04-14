@@ -1508,19 +1508,18 @@ adminRouter.get('/goals', async (_req: Request, res: Response) => {
 
 adminRouter.post('/goals', async (req: Request, res: Response) => {
   try {
-    const { name, target_rub, deadline } = req.body;
-    // Upsert — обновляем если есть, создаём если нет
+    const { name, target_rub, deadline, start_date } = req.body;
     const existing = await pool.query(`SELECT id FROM marketing_goals LIMIT 1`);
     if (existing.rows.length > 0) {
       const { rows } = await pool.query(
-        `UPDATE marketing_goals SET name=$1, target_rub=$2, deadline=$3 WHERE id=$4 RETURNING *`,
-        [name, target_rub, deadline, existing.rows[0].id]
+        `UPDATE marketing_goals SET name=$1, target_rub=$2, deadline=$3, start_date=$5 WHERE id=$4 RETURNING *`,
+        [name, target_rub, deadline, existing.rows[0].id, start_date || null]
       );
       res.json(rows[0]);
     } else {
       const { rows } = await pool.query(
-        `INSERT INTO marketing_goals (name, target_rub, deadline) VALUES ($1, $2, $3) RETURNING *`,
-        [name, target_rub, deadline]
+        `INSERT INTO marketing_goals (name, target_rub, deadline, start_date) VALUES ($1, $2, $3, $4) RETURNING *`,
+        [name, target_rub, deadline, start_date || null]
       );
       res.json(rows[0]);
     }
@@ -1537,13 +1536,13 @@ adminRouter.get('/goals/progress', async (_req: Request, res: Response) => {
       SELECT package, COUNT(*)::int as cnt, COALESCE(SUM(amount_rub),0)::int as sum
       FROM orders WHERE status='paid' AND DATE(paid_at AT TIME ZONE 'Asia/Yakutsk') = (NOW() AT TIME ZONE 'Asia/Yakutsk')::date GROUP BY package
     `);
-    // Выручка с даты создания цели (для прогресса к цели)
-    const goalCreatedAt = goal.rows[0]?.created_at || '2026-04-12';
-    const allRevenue = await pool.query(`SELECT COALESCE(SUM(amount_rub),0)::int as total FROM orders WHERE status='paid' AND paid_at >= $1`, [goalCreatedAt]);
+    // Выручка с даты начала цели
+    const startDate = goal.rows[0]?.start_date || goal.rows[0]?.created_at || '2026-01-01';
+    const allRevenue = await pool.query(`SELECT COALESCE(SUM(amount_rub),0)::int as total FROM orders WHERE status='paid' AND paid_at >= $1`, [startDate]);
     const allByPackage = await pool.query(`
       SELECT package, COUNT(*)::int as cnt, COALESCE(SUM(amount_rub),0)::int as sum
       FROM orders WHERE status='paid' AND paid_at >= $1 GROUP BY package
-    `, [goalCreatedAt]);
+    `, [startDate]);
     res.json({
       goal: goal.rows[0] || null,
       today_revenue: todayRevenue.rows[0].total,

@@ -526,6 +526,7 @@ export async function migrate() {
     );
 
     DO $$ BEGIN ALTER TABLE promo_codes ADD COLUMN campaign_id INTEGER REFERENCES ref_campaigns(id); EXCEPTION WHEN duplicate_column THEN NULL; END $$;
+    DO $$ BEGIN ALTER TABLE marketing_goals ADD COLUMN start_date DATE; EXCEPTION WHEN duplicate_column THEN NULL; END $$;
 
     -- Планировщик задач (admin)
     CREATE TABLE IF NOT EXISTS plans (

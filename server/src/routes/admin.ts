@@ -1538,7 +1538,9 @@ adminRouter.get('/goals/progress', async (_req: Request, res: Response) => {
     `);
     // Выручка с даты начала цели
     const startDate = goal.rows[0]?.start_date || '2026-04-12';
+    console.log(`[goals] start_date=${startDate}, goal.start_date=${goal.rows[0]?.start_date}, goal.created_at=${goal.rows[0]?.created_at}`);
     const allRevenue = await pool.query(`SELECT COALESCE(SUM(amount_rub),0)::int as total FROM orders WHERE status='paid' AND paid_at >= $1`, [startDate]);
+    console.log(`[goals] total_revenue=${allRevenue.rows[0].total} from ${startDate}`);
     const allByPackage = await pool.query(`
       SELECT package, COUNT(*)::int as cnt, COALESCE(SUM(amount_rub),0)::int as sum
       FROM orders WHERE status='paid' AND paid_at >= $1 GROUP BY package

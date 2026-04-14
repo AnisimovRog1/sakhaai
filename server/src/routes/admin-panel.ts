@@ -2097,7 +2097,7 @@ function renderTaskPlans(){
       '<div class="text-xs text-slate-500 mb-2 font-bold">Подзадачи:</div>'+
       '<div id="plan-subs-'+p.id+'">'+subsHtml+'</div>'+
       '<div class="flex gap-2 mt-2">'+
-      '<input id="sub-input-'+p.id+'" placeholder="Новая подзадача..." class="flex-1 text-xs" onkeydown="if(event.key===\'Enter\')addSubtask('+p.id+')">'+
+      '<input id="sub-input-'+p.id+'" placeholder="Новая подзадача..." class="flex-1 text-xs" onkeydown="if(event.key===&quot;Enter&quot;)addSubtask('+p.id+')">'+
       '<button class="btn btn-ghost text-xs" style="padding:4px 10px" onclick="addSubtask('+p.id+')">+</button>'+
       '</div></div></div>'
   }).join('')

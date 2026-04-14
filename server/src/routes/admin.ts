@@ -1508,18 +1508,18 @@ adminRouter.get('/goals', async (_req: Request, res: Response) => {
 
 adminRouter.post('/goals', async (req: Request, res: Response) => {
   try {
-    const { name, target_rub, deadline, start_date } = req.body;
+    const { name, target_rub, deadline, start_date, current_revenue } = req.body;
     const existing = await pool.query(`SELECT id FROM marketing_goals LIMIT 1`);
     if (existing.rows.length > 0) {
       const { rows } = await pool.query(
-        `UPDATE marketing_goals SET name=$1, target_rub=$2, deadline=$3, start_date=$5 WHERE id=$4 RETURNING *`,
-        [name, target_rub, deadline, existing.rows[0].id, start_date || null]
+        `UPDATE marketing_goals SET name=$1, target_rub=$2, deadline=$3, start_date=$5, current_revenue=COALESCE($6, current_revenue) WHERE id=$4 RETURNING *`,
+        [name, target_rub, deadline, existing.rows[0].id, start_date || null, current_revenue !== undefined ? current_revenue : null]
       );
       res.json(rows[0]);
     } else {
       const { rows } = await pool.query(
-        `INSERT INTO marketing_goals (name, target_rub, deadline, start_date) VALUES ($1, $2, $3, $4) RETURNING *`,
-        [name, target_rub, deadline, start_date || null]
+        `INSERT INTO marketing_goals (name, target_rub, deadline, start_date, current_revenue) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+        [name, target_rub, deadline, start_date || null, current_revenue || 0]
       );
       res.json(rows[0]);
     }
@@ -1536,21 +1536,13 @@ adminRouter.get('/goals/progress', async (_req: Request, res: Response) => {
       SELECT package, COUNT(*)::int as cnt, COALESCE(SUM(amount_rub),0)::int as sum
       FROM orders WHERE status='paid' AND DATE(paid_at AT TIME ZONE 'Asia/Yakutsk') = (NOW() AT TIME ZONE 'Asia/Yakutsk')::date GROUP BY package
     `);
-    // Выручка с даты начала цели
-    const startDate = goal.rows[0]?.start_date || '2026-04-12';
-    console.log(`[goals] start_date=${startDate}, goal.start_date=${goal.rows[0]?.start_date}, goal.created_at=${goal.rows[0]?.created_at}`);
-    const allRevenue = await pool.query(`SELECT COALESCE(SUM(amount_rub),0)::int as total FROM orders WHERE status='paid' AND paid_at >= $1`, [startDate]);
-    console.log(`[goals] total_revenue=${allRevenue.rows[0].total} from ${startDate}`);
-    const allByPackage = await pool.query(`
-      SELECT package, COUNT(*)::int as cnt, COALESCE(SUM(amount_rub),0)::int as sum
-      FROM orders WHERE status='paid' AND paid_at >= $1 GROUP BY package
-    `, [startDate]);
+    // Выручка = current_revenue (ручная + автоматическая из webhook)
+    const totalRevenue = goal.rows[0]?.current_revenue || 0;
     res.json({
       goal: goal.rows[0] || null,
       today_revenue: todayRevenue.rows[0].total,
       today_by_package: todayByPackage.rows,
-      total_revenue: allRevenue.rows[0].total,
-      by_package: allByPackage.rows
+      total_revenue: totalRevenue,
     });
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });

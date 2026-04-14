@@ -1920,7 +1920,8 @@ function renderGoal(){
     '<div class="flex flex-wrap gap-2 mb-4">'+todayHtml+'</div>'+
     '<div class="flex gap-2 items-end flex-wrap">'+
     '<div class="flex-1 min-w-[140px]"><label class="text-xs text-slate-400 block mb-1">Название</label><input id="goalName" class="w-full text-xs" value="'+(g?esc(g.name):'')+'"></div>'+
-    '<div class="w-[120px]"><label class="text-xs text-slate-400 block mb-1">Сумма &#8381;</label><input id="goalTarget" type="number" class="w-full text-xs" value="'+target+'"></div>'+
+    '<div class="w-[120px]"><label class="text-xs text-slate-400 block mb-1">Цель &#8381;</label><input id="goalTarget" type="number" class="w-full text-xs" value="'+target+'"></div>'+
+    '<div class="w-[120px]"><label class="text-xs text-slate-400 block mb-1">Выручка &#8381;</label><input id="goalRevenue" type="number" class="w-full text-xs" value="'+(g?g.current_revenue||0:0)+'"></div>'+
     '<div class="w-[130px]"><label class="text-xs text-slate-400 block mb-1">Начало</label><input id="goalStartDate" type="date" class="w-full text-xs" value="'+(g&&g.start_date?g.start_date.substring(0,10):'')+'"></div>'+
     '<div class="w-[130px]"><label class="text-xs text-slate-400 block mb-1">Дедлайн</label><input id="goalDeadline" type="date" class="w-full text-xs" value="'+(g&&g.deadline?g.deadline.substring(0,10):'')+'"></div>'+
     '<button class="btn btn-primary text-xs" onclick="saveGoal()">Сохранить</button>'+
@@ -1932,7 +1933,8 @@ async function saveGoal(){
   var t=parseInt(document.getElementById('goalTarget').value)||200000;
   var d=document.getElementById('goalDeadline').value||null;
   var sd=document.getElementById('goalStartDate').value||null;
-  await P('/admin/goals',{name:n,target_rub:t,deadline:d,start_date:sd});
+  var rev=parseInt(document.getElementById('goalRevenue').value)||0;
+  await P('/admin/goals',{name:n,target_rub:t,deadline:d,start_date:sd,current_revenue:rev});
   loadPlansTab();
 }
 

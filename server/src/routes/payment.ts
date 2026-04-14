@@ -299,6 +299,8 @@ paymentRouter.get('/unitpay', async (req: Request, res: Response) => {
         await client.query('COMMIT');
 
         console.log(`✅ Оплата UnitPay: user=${order.user_id}, пакет=${order.package}, +${order.credits} кр.${order.promo_bonus ? ` + ${order.promo_bonus} промо` : ''}`);
+        // Прибавляем к цели
+        pool.query('UPDATE marketing_goals SET current_revenue = current_revenue + $1', [order.amount_rub]).catch(console.error);
         notifyAdmins(order).catch(console.error);
 
         res.json({ result: { message: 'Оплата обработана' } });

@@ -1593,18 +1593,23 @@ adminRouter.get('/generation/:id', async (req: Request, res: Response) => {
 // ─── Промокоды ──────────────────────────────────────
 adminRouter.get('/promo-codes', async (_req: Request, res: Response) => {
   try {
-    const { rows } = await pool.query('SELECT * FROM promo_codes ORDER BY created_at DESC');
+    const { rows } = await pool.query(`
+      SELECT pc.*, rc.name AS campaign_name
+      FROM promo_codes pc
+      LEFT JOIN ref_campaigns rc ON rc.id = pc.campaign_id
+      ORDER BY pc.created_at DESC
+    `);
     res.json(rows);
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
 adminRouter.post('/promo-codes', async (req: Request, res: Response) => {
   try {
-    const { code, bonusCredits, maxUses } = req.body;
+    const { code, bonusCredits, maxUses, campaignId } = req.body;
     if (!code || !bonusCredits) { res.status(400).json({ error: 'code и bonusCredits обязательны' }); return; }
     const { rows } = await pool.query(
-      'INSERT INTO promo_codes (code, bonus_credits, max_uses) VALUES ($1, $2, $3) RETURNING *',
-      [code.trim(), bonusCredits, maxUses || null]
+      'INSERT INTO promo_codes (code, bonus_credits, max_uses, campaign_id) VALUES ($1, $2, $3, $4) RETURNING *',
+      [code.trim(), bonusCredits, maxUses || null, campaignId || null]
     );
     res.json(rows[0]);
   } catch (e: any) { res.status(500).json({ error: e.message }); }

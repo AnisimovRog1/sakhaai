@@ -525,6 +525,8 @@ export async function migrate() {
       UNIQUE(user_id)
     );
 
+    DO $$ BEGIN ALTER TABLE promo_codes ADD COLUMN campaign_id INTEGER REFERENCES ref_campaigns(id); EXCEPTION WHEN duplicate_column THEN NULL; END $$;
+
     DO $$ BEGIN ALTER TABLE orders ADD COLUMN promo_code TEXT; EXCEPTION WHEN duplicate_column THEN NULL; END $$;
     DO $$ BEGIN ALTER TABLE orders ADD COLUMN promo_bonus INTEGER DEFAULT 0; EXCEPTION WHEN duplicate_column THEN NULL; END $$;
   `);

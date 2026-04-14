@@ -418,6 +418,7 @@ table.bordered tr:last-child td{border-bottom:none}
       <div class="section-group mt-6">
         <div class="section-group-title">🎟️ ПРОМОКОДЫ</div>
         <div class="flex gap-3 items-end flex-wrap mb-4">
+          <div class="min-w-[150px]"><label class="text-xs text-slate-400 mb-1 block">Кампания</label><select id="promoCampaign"><option value="">— без кампании —</option></select></div>
           <div class="min-w-[150px]"><label class="text-xs text-slate-400 mb-1 block">Код</label><input id="promoCode" placeholder="Darina300"></div>
           <div class="min-w-[100px]"><label class="text-xs text-slate-400 mb-1 block">Бонус (кр)</label><input id="promoBonus" type="number" placeholder="300"></div>
           <div class="min-w-[100px]"><label class="text-xs text-slate-400 mb-1 block">Лимит (0=безл.)</label><input id="promoLimit" type="number" placeholder="0"></div>
@@ -1491,12 +1492,20 @@ async function loadCampaigns(){
 async function deleteCamp(id){if(!confirm('Удалить кампанию?'))return;await D('/admin/campaigns/'+id);loadCampaigns()}
 
 // ── Промокоды ──
+async function loadCampaignSelect(){
+  var data=await G('/admin/campaigns');
+  if(!Array.isArray(data))data=[];
+  var sel=document.getElementById('promoCampaign');
+  if(!sel)return;
+  sel.innerHTML='<option value="">\\u2014 без кампании \\u2014</option>'+data.map(function(c){return '<option value="'+c.id+'">'+esc(c.name)+'</option>'}).join('');
+}
 async function createPromo(){
   var code=document.getElementById('promoCode').value.trim();
   var bonus=parseInt(document.getElementById('promoBonus').value)||0;
   var limit=parseInt(document.getElementById('promoLimit').value)||0;
+  var campId=document.getElementById('promoCampaign').value||null;
   if(!code||!bonus){alert('Введите код и бонус');return}
-  var r=await P('/admin/promo-codes',{code:code,bonusCredits:bonus,maxUses:limit||null});
+  var r=await P('/admin/promo-codes',{code:code,bonusCredits:bonus,maxUses:limit||null,campaignId:campId?parseInt(campId):null});
   if(r.error){alert(r.error);return}
   document.getElementById('promoCode').value='';
   document.getElementById('promoBonus').value='';
@@ -1504,13 +1513,15 @@ async function createPromo(){
   loadPromoCodes()
 }
 async function loadPromoCodes(){
+  loadCampaignSelect();
   var data=await G('/admin/promo-codes');
   if(!Array.isArray(data))data=[];
   var el=document.getElementById('promoList');
   if(!data.length){el.innerHTML='<p class="text-slate-500 text-center py-4">Нет промокодов</p>';return}
-  el.innerHTML='<table class="bordered w-full text-xs"><thead><tr><th>Код</th><th>Бонус</th><th>Лимит</th><th>Исполь.</th><th>Статус</th><th></th></tr></thead><tbody>'+
+  el.innerHTML='<table class="bordered w-full text-xs"><thead><tr><th>Кампания</th><th>Код</th><th>Бонус</th><th>Лимит</th><th>Исполь.</th><th>Статус</th><th></th></tr></thead><tbody>'+
     data.map(function(p){
-      return '<tr><td class="font-mono font-bold text-cyan-400">'+esc(p.code)+'</td>'+
+      return '<tr><td class="text-slate-400">'+(p.campaign_name?esc(p.campaign_name):'\\u2014')+'</td>'+
+        '<td class="font-mono font-bold text-cyan-400">'+esc(p.code)+'</td>'+
         '<td class="text-green-400">+'+p.bonus_credits+'</td>'+
         '<td>'+(p.max_uses||'\\u221E')+'</td>'+
         '<td>'+p.used_count+'</td>'+

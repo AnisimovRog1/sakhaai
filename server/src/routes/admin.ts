@@ -465,8 +465,9 @@ adminRouter.delete('/user/:id', async (req: Request, res: Response) => {
 adminRouter.get('/users', async (_req: Request, res: Response) => {
   try {
     const result = await pool.query(`
-      SELECT id, username, first_name, credits, is_banned, timezone_offset, language_code, created_at, app_opened, campaign_code, welcome_bonus_granted, fraud_score
-      FROM users ORDER BY created_at DESC LIMIT 1000
+      SELECT u.id, u.username, u.first_name, u.credits, u.is_banned, u.timezone_offset, u.language_code, u.created_at, u.app_opened, u.campaign_code, u.welcome_bonus_granted, u.fraud_score,
+             (SELECT pc.code FROM promo_uses pu JOIN promo_codes pc ON pc.id = pu.promo_id WHERE pu.user_id = u.id LIMIT 1) AS promo_used
+      FROM users u ORDER BY u.created_at DESC LIMIT 1000
     `);
     res.json(result.rows);
   } catch (err: any) {

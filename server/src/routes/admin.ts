@@ -1537,12 +1537,13 @@ adminRouter.get('/goals/progress', async (_req: Request, res: Response) => {
       SELECT package, COUNT(*)::int as cnt, COALESCE(SUM(amount_rub),0)::int as sum
       FROM orders WHERE status='paid' AND DATE(paid_at AT TIME ZONE 'Asia/Yakutsk') = (NOW() AT TIME ZONE 'Asia/Yakutsk')::date GROUP BY package
     `);
-    // Всего за всё время (для общего прогресса)
-    const allRevenue = await pool.query(`SELECT COALESCE(SUM(amount_rub),0)::int as total FROM orders WHERE status='paid'`);
+    // Выручка с даты создания цели (для прогресса к цели)
+    const goalCreatedAt = goal.rows[0]?.created_at || '2026-04-12';
+    const allRevenue = await pool.query(`SELECT COALESCE(SUM(amount_rub),0)::int as total FROM orders WHERE status='paid' AND paid_at >= $1`, [goalCreatedAt]);
     const allByPackage = await pool.query(`
       SELECT package, COUNT(*)::int as cnt, COALESCE(SUM(amount_rub),0)::int as sum
-      FROM orders WHERE status='paid' GROUP BY package
-    `);
+      FROM orders WHERE status='paid' AND paid_at >= $1 GROUP BY package
+    `, [goalCreatedAt]);
     res.json({
       goal: goal.rows[0] || null,
       today_revenue: todayRevenue.rows[0].total,

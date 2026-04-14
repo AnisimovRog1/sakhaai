@@ -1638,3 +1638,47 @@ adminRouter.get('/promo-uses', async (_req: Request, res: Response) => {
     res.json(rows);
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
+
+// ─── Планы (задачи) ──────────────────────────────────
+adminRouter.get('/task-plans', async (_req: Request, res: Response) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM plans ORDER BY is_done, due_date NULLS LAST, created_at DESC');
+    res.json(rows);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+adminRouter.post('/task-plans', async (req: Request, res: Response) => {
+  try {
+    const { title, description, dueDate } = req.body;
+    if (!title) { res.status(400).json({ error: 'title обязателен' }); return; }
+    const { rows } = await pool.query(
+      'INSERT INTO plans (title, description, due_date) VALUES ($1, $2, $3) RETURNING *',
+      [title, description || null, dueDate || null]
+    );
+    res.json(rows[0]);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+adminRouter.put('/task-plans/:id', async (req: Request, res: Response) => {
+  try {
+    const { title, description, dueDate, isDone } = req.body;
+    const sets: string[] = [];
+    const vals: any[] = [];
+    let idx = 1;
+    if (title !== undefined) { sets.push(`title = $${idx++}`); vals.push(title); }
+    if (description !== undefined) { sets.push(`description = $${idx++}`); vals.push(description); }
+    if (dueDate !== undefined) { sets.push(`due_date = $${idx++}`); vals.push(dueDate || null); }
+    if (isDone !== undefined) { sets.push(`is_done = $${idx++}`); vals.push(isDone); }
+    if (!sets.length) { res.json({ ok: true }); return; }
+    vals.push(req.params.id);
+    await pool.query(`UPDATE plans SET ${sets.join(', ')} WHERE id = $${idx}`, vals);
+    res.json({ ok: true });
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+adminRouter.delete('/task-plans/:id', async (req: Request, res: Response) => {
+  try {
+    await pool.query('DELETE FROM plans WHERE id = $1', [req.params.id]);
+    res.json({ ok: true });
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});

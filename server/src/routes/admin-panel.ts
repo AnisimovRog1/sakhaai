@@ -205,7 +205,8 @@ table.bordered tr:last-child td{border-bottom:none}
       <div class="nav-item" onclick="showTab(this,'referrals')"><span class="nav-icon">🤝</span> Рефералы</div>
       <div class="nav-item" onclick="showTab(this,'campaigns')"><span class="nav-icon">📣</span> Кампании</div>
       <div class="nav-item" onclick="showTab(this,'adstats')"><span class="nav-icon">📈</span> Реклама</div>
-      <div class="nav-item" onclick="showTab(this,'plans')"><span class="nav-icon">📋</span> Планы</div>
+      <div class="nav-item" onclick="showTab(this,'taskplans')"><span class="nav-icon">📝</span> Планы</div>
+      <div class="nav-item" onclick="showTab(this,'strategy')"><span class="nav-icon">📋</span> Стратегия</div>
       <div class="nav-item" onclick="showTab(this,'shares')"><span class="nav-icon">🎁</span> Шеринг</div>
     </nav>
     <div class="sidebar-footer">
@@ -461,8 +462,20 @@ table.bordered tr:last-child td{border-bottom:none}
       <div id="adTotalsCircular" class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-5"></div>
     </div>
 
-    <!-- PLANS TAB -->
-    <div id="tab-plans" class="hidden">
+    <!-- TASK PLANS TAB -->
+    <div id="tab-taskplans" class="hidden">
+      <div class="glass p-4 mb-4">
+        <div class="flex gap-3 items-end flex-wrap">
+          <div class="flex-1 min-w-[200px]"><label class="text-xs text-slate-400 mb-1 block">Название плана</label><input id="planTitle" placeholder="Что нужно сделать..."></div>
+          <div class="min-w-[140px]"><label class="text-xs text-slate-400 mb-1 block">Дедлайн</label><input id="planDate" type="date"></div>
+          <button class="btn btn-primary" onclick="addTaskPlan()">➕ Добавить</button>
+        </div>
+      </div>
+      <div id="taskPlansList"></div>
+    </div>
+
+    <!-- STRATEGY TAB (ex-PLANS) -->
+    <div id="tab-strategy" class="hidden">
       <div id="goalBlock"></div>
       <div id="plansCategories"></div>
       <div class="section-group mt-5">
@@ -593,7 +606,7 @@ function G(p){return apiFetch(p)}
 function P(p,d){return apiFetch(p,{method:'POST',body:JSON.stringify(d)})}
 function D(p){return apiFetch(p,{method:'DELETE'})}
 
-function showTab(el,n){document.querySelectorAll('[id^=tab-]').forEach(function(e){e.classList.add('hidden')});document.getElementById('tab-'+n).classList.remove('hidden');document.querySelectorAll('.nav-item').forEach(function(e){e.classList.remove('active')});el.classList.add('active');var titles={dashboard:'Панель',users:'Пользователи',pushes:'Пуши',referrals:'Рефералы',campaigns:'Кампании',adstats:'Реклама',plans:'Планы',shares:'Шеринг'};var pt=document.getElementById('pageTitle');if(pt)pt.textContent=titles[n]||n;if(n==='users')loadUsers();if(n==='pushes'){loadPushTemplates();loadPushLog();loadSeqs();loadPushStats()}if(n==='campaigns'){loadCampaigns();loadPromoCodes();loadPromoUses()}if(n==='referrals')loadReferrals();if(n==='adstats')loadAdStats();if(n==='plans')loadPlansTab();if(n==='shares')loadSharesTab()}
+function showTab(el,n){document.querySelectorAll('[id^=tab-]').forEach(function(e){e.classList.add('hidden')});document.getElementById('tab-'+n).classList.remove('hidden');document.querySelectorAll('.nav-item').forEach(function(e){e.classList.remove('active')});el.classList.add('active');var titles={dashboard:'Панель',users:'Пользователи',pushes:'Пуши',referrals:'Рефералы',campaigns:'Кампании',adstats:'Реклама',taskplans:'Планы',strategy:'Стратегия работы',shares:'Шеринг'};var pt=document.getElementById('pageTitle');if(pt)pt.textContent=titles[n]||n;if(n==='users')loadUsers();if(n==='pushes'){loadPushTemplates();loadPushLog();loadSeqs();loadPushStats()}if(n==='campaigns'){loadCampaigns();loadPromoCodes();loadPromoUses()}if(n==='referrals')loadReferrals();if(n==='adstats')loadAdStats();if(n==='strategy')loadPlansTab();if(n==='taskplans')loadTaskPlans();if(n==='shares')loadSharesTab()}
 
 // Курс ЦБ
 async function loadExRate(){
@@ -2025,6 +2038,82 @@ function copyTemplate(i){
   navigator.clipboard.writeText(txt).then(function(){
     alert('Скопировано!');
   });
+}
+
+// ── Планы (задачи) ──
+var taskPlansData=[];
+async function loadTaskPlans(){
+  var data=await G('/admin/task-plans');
+  taskPlansData=Array.isArray(data)?data:[];
+  renderTaskPlans();
+}
+function renderTaskPlans(){
+  var el=document.getElementById('taskPlansList');
+  if(!taskPlansData.length){el.innerHTML='<div class="text-slate-500 text-center py-8">Нет планов. Добавьте первый!</div>';return}
+  var today=new Date().toISOString().slice(0,10);
+  el.innerHTML=taskPlansData.map(function(p){
+    var dateStr='';var dateClass='text-slate-500';
+    if(p.due_date){
+      var d=p.due_date.slice(0,10);
+      if(d<today&&!p.is_done){dateClass='text-red-400';dateStr='Просрочен: '+new Date(d).toLocaleDateString('ru')}
+      else if(d===today){dateClass='text-amber-400';dateStr='Сегодня'}
+      else{dateClass='text-green-400';dateStr=new Date(d).toLocaleDateString('ru')}
+    }
+    var doneClass=p.is_done?'opacity-50':'';
+    var titleClass=p.is_done?'line-through text-slate-500':'text-white';
+    return '<div class="glass p-4 mb-3 '+doneClass+'">'+
+      '<div class="flex items-start gap-3">'+
+      '<input type="checkbox" '+(p.is_done?'checked':'')+' onchange="toggleTaskPlan('+p.id+')" class="mt-1 w-5 h-5 rounded cursor-pointer accent-violet-500" style="min-width:20px">'+
+      '<div class="flex-1 min-w-0">'+
+      '<div class="flex items-center justify-between gap-2 mb-1">'+
+      '<span class="font-bold text-sm '+titleClass+'">'+esc(p.title)+'</span>'+
+      (dateStr?'<span class="text-xs '+dateClass+' whitespace-nowrap">'+dateStr+'</span>':'')+
+      '</div>'+
+      '<div id="plan-desc-'+p.id+'" onclick="editTaskPlanDesc('+p.id+')" class="text-xs text-slate-400 cursor-pointer min-h-[20px]">'+(p.description?esc(p.description):'<span class=\\'text-slate-600\\'>Нажмите чтобы добавить описание...</span>')+'</div>'+
+      '<textarea id="plan-edit-'+p.id+'" class="hidden w-full mt-2 text-xs" rows="3" onblur="saveTaskPlanDesc('+p.id+')">'+(p.description||'')+'</textarea>'+
+      '</div>'+
+      '<button class="text-slate-600 hover:text-red-400 text-xs mt-1" onclick="deleteTaskPlan('+p.id+')" style="min-width:24px">\\u2716</button>'+
+      '</div></div>'
+  }).join('')
+}
+async function addTaskPlan(){
+  var title=document.getElementById('planTitle').value.trim();
+  var date=document.getElementById('planDate').value;
+  if(!title){alert('Введите название');return}
+  await P('/admin/task-plans',{title:title,dueDate:date||null});
+  document.getElementById('planTitle').value='';
+  document.getElementById('planDate').value='';
+  loadTaskPlans()
+}
+async function toggleTaskPlan(id){
+  var p=taskPlansData.find(function(x){return x.id===id});
+  if(!p)return;
+  await apiFetch('/admin/task-plans/'+id,{method:'PUT',body:JSON.stringify({isDone:!p.is_done})});
+  loadTaskPlans()
+}
+function editTaskPlanDesc(id){
+  var desc=document.getElementById('plan-desc-'+id);
+  var edit=document.getElementById('plan-edit-'+id);
+  if(!desc||!edit)return;
+  desc.classList.add('hidden');
+  edit.classList.remove('hidden');
+  edit.focus()
+}
+async function saveTaskPlanDesc(id){
+  var edit=document.getElementById('plan-edit-'+id);
+  var desc=document.getElementById('plan-desc-'+id);
+  if(!edit||!desc)return;
+  await apiFetch('/admin/task-plans/'+id,{method:'PUT',body:JSON.stringify({description:edit.value})});
+  desc.innerHTML=edit.value?esc(edit.value):'<span class="text-slate-600">Нажмите чтобы добавить описание...</span>';
+  edit.classList.add('hidden');
+  desc.classList.remove('hidden');
+  var p=taskPlansData.find(function(x){return x.id===id});
+  if(p)p.description=edit.value
+}
+async function deleteTaskPlan(id){
+  if(!confirm('Удалить план?'))return;
+  await D('/admin/task-plans/'+id);
+  loadTaskPlans()
 }
 
 async function loadSharesTab(){

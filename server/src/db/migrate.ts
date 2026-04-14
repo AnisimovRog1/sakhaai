@@ -527,6 +527,16 @@ export async function migrate() {
 
     DO $$ BEGIN ALTER TABLE promo_codes ADD COLUMN campaign_id INTEGER REFERENCES ref_campaigns(id); EXCEPTION WHEN duplicate_column THEN NULL; END $$;
 
+    -- Планировщик задач (admin)
+    CREATE TABLE IF NOT EXISTS plans (
+      id          SERIAL PRIMARY KEY,
+      title       TEXT NOT NULL,
+      description TEXT,
+      due_date    DATE,
+      is_done     BOOLEAN NOT NULL DEFAULT false,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
     DO $$ BEGIN ALTER TABLE orders ADD COLUMN promo_code TEXT; EXCEPTION WHEN duplicate_column THEN NULL; END $$;
     DO $$ BEGIN ALTER TABLE orders ADD COLUMN promo_bonus INTEGER DEFAULT 0; EXCEPTION WHEN duplicate_column THEN NULL; END $$;
   `);

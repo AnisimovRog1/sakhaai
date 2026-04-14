@@ -2067,20 +2067,47 @@ function renderTaskPlans(){
     }
     var doneClass=p.is_done?'opacity-50':'';
     var titleClass=p.is_done?'line-through text-slate-500':'text-white';
-    return '<div class="glass p-4 mb-3 '+doneClass+'">'+
-      '<div class="flex items-start gap-3">'+
-      '<input type="checkbox" '+(p.is_done?'checked':'')+' onchange="toggleTaskPlan('+p.id+')" class="mt-1 w-5 h-5 rounded cursor-pointer accent-violet-500" style="min-width:20px">'+
+    var subs=p.subtasks||[];
+    var subsDone=subs.filter(function(s){return s.is_done}).length;
+    var subsTotal=subs.length;
+    var progress=subsTotal>0?'<span class="text-xs ml-2 '+(subsDone===subsTotal&&subsTotal>0?'text-green-400':'text-slate-500')+'">'+subsDone+'/'+subsTotal+'</span>':'';
+    var subsHtml=subs.map(function(s){
+      return '<div class="flex items-center gap-2 py-1">'+
+        '<input type="checkbox" '+(s.is_done?'checked':'')+' onchange="toggleSubtask('+s.id+')" class="w-4 h-4 rounded cursor-pointer accent-violet-500">'+
+        '<span class="text-xs flex-1 '+(s.is_done?'line-through text-slate-600':'text-slate-300')+'">'+esc(s.title)+'</span>'+
+        '<button class="text-slate-700 hover:text-red-400 text-xs" onclick="deleteSubtask('+s.id+')">\\u2716</button></div>'
+    }).join('');
+    return '<div class="glass mb-3 '+doneClass+'">'+
+      '<div class="p-4 flex items-start gap-3 cursor-pointer" onclick="togglePlanExpand('+p.id+')">'+
+      '<input type="checkbox" '+(p.is_done?'checked':'')+' onchange="event.stopPropagation();toggleTaskPlan('+p.id+')" class="mt-1 w-5 h-5 rounded cursor-pointer accent-violet-500" style="min-width:20px">'+
       '<div class="flex-1 min-w-0">'+
-      '<div class="flex items-center justify-between gap-2 mb-1">'+
-      '<span class="font-bold text-sm '+titleClass+'">'+esc(p.title)+'</span>'+
+      '<div class="flex items-center justify-between gap-2">'+
+      '<span class="font-bold text-sm '+titleClass+'">'+
+      '<span id="plan-arrow-'+p.id+'" class="text-slate-500 text-xs mr-1">\\u25B6</span>'+
+      esc(p.title)+progress+'</span>'+
       (dateStr?'<span class="text-xs '+dateClass+' whitespace-nowrap">'+dateStr+'</span>':'')+
       '</div>'+
-      '<div id="plan-desc-'+p.id+'" onclick="editTaskPlanDesc('+p.id+')" class="text-xs text-slate-400 cursor-pointer min-h-[20px]">'+(p.description?esc(p.description):'<span class=\\'text-slate-600\\'>Нажмите чтобы добавить описание...</span>')+'</div>'+
-      '<textarea id="plan-edit-'+p.id+'" class="hidden w-full mt-2 text-xs" rows="3" onblur="saveTaskPlanDesc('+p.id+')">'+(p.description||'')+'</textarea>'+
+      (p.description?'<div class="text-xs text-slate-500 mt-1">'+esc(p.description).substring(0,100)+'</div>':'')+
       '</div>'+
-      '<button class="text-slate-600 hover:text-red-400 text-xs mt-1" onclick="deleteTaskPlan('+p.id+')" style="min-width:24px">\\u2716</button>'+
-      '</div></div>'
+      '<button class="text-slate-600 hover:text-red-400 text-xs mt-1" onclick="event.stopPropagation();deleteTaskPlan('+p.id+')" style="min-width:24px">\\u2716</button>'+
+      '</div>'+
+      '<div id="plan-expand-'+p.id+'" class="hidden px-4 pb-4 border-t border-white/5 pt-3">'+
+      '<div id="plan-desc-'+p.id+'" onclick="editTaskPlanDesc('+p.id+')" class="text-xs text-slate-400 cursor-pointer mb-3 min-h-[20px]">'+(p.description?esc(p.description):'<span class="text-slate-600">Нажмите чтобы добавить описание...</span>')+'</div>'+
+      '<textarea id="plan-edit-'+p.id+'" class="hidden w-full mb-3 text-xs" rows="3" onblur="saveTaskPlanDesc('+p.id+')">'+(p.description||'')+'</textarea>'+
+      '<div class="text-xs text-slate-500 mb-2 font-bold">Подзадачи:</div>'+
+      '<div id="plan-subs-'+p.id+'">'+subsHtml+'</div>'+
+      '<div class="flex gap-2 mt-2">'+
+      '<input id="sub-input-'+p.id+'" placeholder="Новая подзадача..." class="flex-1 text-xs" onkeydown="if(event.key===\'Enter\')addSubtask('+p.id+')">'+
+      '<button class="btn btn-ghost text-xs" style="padding:4px 10px" onclick="addSubtask('+p.id+')">+</button>'+
+      '</div></div></div>'
   }).join('')
+}
+function togglePlanExpand(id){
+  var el=document.getElementById('plan-expand-'+id);
+  var arrow=document.getElementById('plan-arrow-'+id);
+  if(!el)return;
+  if(el.classList.contains('hidden')){el.classList.remove('hidden');if(arrow)arrow.textContent='\\u25BC'}
+  else{el.classList.add('hidden');if(arrow)arrow.textContent='\\u25B6'}
 }
 async function addTaskPlan(){
   var title=document.getElementById('planTitle').value.trim();
@@ -2119,6 +2146,24 @@ async function saveTaskPlanDesc(id){
 async function deleteTaskPlan(id){
   if(!confirm('Удалить план?'))return;
   await D('/admin/task-plans/'+id);
+  loadTaskPlans()
+}
+async function addSubtask(planId){
+  var inp=document.getElementById('sub-input-'+planId);
+  if(!inp||!inp.value.trim())return;
+  await P('/admin/task-plans/'+planId+'/subtasks',{title:inp.value.trim()});
+  inp.value='';
+  loadTaskPlans()
+}
+async function toggleSubtask(id){
+  var sub=null;
+  taskPlansData.forEach(function(p){(p.subtasks||[]).forEach(function(s){if(s.id===id)sub=s})});
+  if(!sub)return;
+  await apiFetch('/admin/task-plans/subtask/'+id,{method:'PUT',body:JSON.stringify({isDone:!sub.is_done})});
+  loadTaskPlans()
+}
+async function deleteSubtask(id){
+  await D('/admin/task-plans/subtask/'+id);
   loadTaskPlans()
 }
 

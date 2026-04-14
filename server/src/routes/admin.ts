@@ -1636,8 +1636,13 @@ adminRouter.get('/promo-uses', async (_req: Request, res: Response) => {
 // ─── Планы (задачи) ──────────────────────────────────
 adminRouter.get('/task-plans', async (_req: Request, res: Response) => {
   try {
-    const { rows } = await pool.query('SELECT * FROM plans ORDER BY is_done, due_date NULLS LAST, created_at DESC');
-    res.json(rows);
+    const { rows: plans } = await pool.query('SELECT * FROM plans ORDER BY is_done, due_date NULLS LAST, created_at DESC');
+    const { rows: subtasks } = await pool.query('SELECT * FROM plan_subtasks ORDER BY sort_order, created_at');
+    const result = plans.map((p: any) => ({
+      ...p,
+      subtasks: subtasks.filter((s: any) => s.plan_id === p.id),
+    }));
+    res.json(result);
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
@@ -1673,6 +1678,34 @@ adminRouter.put('/task-plans/:id', async (req: Request, res: Response) => {
 adminRouter.delete('/task-plans/:id', async (req: Request, res: Response) => {
   try {
     await pool.query('DELETE FROM plans WHERE id = $1', [req.params.id]);
+    res.json({ ok: true });
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// Подзадачи планов
+adminRouter.post('/task-plans/:id/subtasks', async (req: Request, res: Response) => {
+  try {
+    const { title } = req.body;
+    if (!title) { res.status(400).json({ error: 'title обязателен' }); return; }
+    const { rows } = await pool.query(
+      'INSERT INTO plan_subtasks (plan_id, title) VALUES ($1, $2) RETURNING *',
+      [req.params.id, title]
+    );
+    res.json(rows[0]);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+adminRouter.put('/task-plans/subtask/:id', async (req: Request, res: Response) => {
+  try {
+    const { isDone } = req.body;
+    await pool.query('UPDATE plan_subtasks SET is_done = $1 WHERE id = $2', [isDone, req.params.id]);
+    res.json({ ok: true });
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+adminRouter.delete('/task-plans/subtask/:id', async (req: Request, res: Response) => {
+  try {
+    await pool.query('DELETE FROM plan_subtasks WHERE id = $1', [req.params.id]);
     res.json({ ok: true });
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });

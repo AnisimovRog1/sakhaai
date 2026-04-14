@@ -539,6 +539,15 @@ export async function migrate() {
       created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 
+    CREATE TABLE IF NOT EXISTS plan_subtasks (
+      id          SERIAL PRIMARY KEY,
+      plan_id     INTEGER NOT NULL REFERENCES plans(id) ON DELETE CASCADE,
+      title       TEXT NOT NULL,
+      is_done     BOOLEAN NOT NULL DEFAULT false,
+      sort_order  INTEGER NOT NULL DEFAULT 0,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
     DO $$ BEGIN ALTER TABLE orders ADD COLUMN promo_code TEXT; EXCEPTION WHEN duplicate_column THEN NULL; END $$;
     DO $$ BEGIN ALTER TABLE orders ADD COLUMN promo_bonus INTEGER DEFAULT 0; EXCEPTION WHEN duplicate_column THEN NULL; END $$;
   `);

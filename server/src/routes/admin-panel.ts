@@ -2085,7 +2085,7 @@ function renderTaskPlans(){
       '<span class="font-bold text-sm '+titleClass+'">'+
       '<span id="plan-arrow-'+p.id+'" class="text-slate-500 text-xs mr-1">\\u25B6</span>'+
       esc(p.title)+progress+'</span>'+
-      (dateStr?'<span class="text-xs '+dateClass+' whitespace-nowrap">'+dateStr+'</span>':'')+
+      '<input type="date" value="'+(p.due_date?p.due_date.slice(0,10):'')+'" onchange="updatePlanDate('+p.id+',this.value)" onclick="event.stopPropagation()" class="text-xs '+dateClass+' bg-transparent border-none cursor-pointer" style="width:120px">'+
       '</div>'+
       (p.description?'<div class="text-xs text-slate-500 mt-1">'+esc(p.description).substring(0,100)+'</div>':'')+
       '</div>'+
@@ -2142,6 +2142,10 @@ async function saveTaskPlanDesc(id){
   desc.classList.remove('hidden');
   var p=taskPlansData.find(function(x){return x.id===id});
   if(p)p.description=edit.value
+}
+async function updatePlanDate(id,val){
+  await apiFetch('/admin/task-plans/'+id,{method:'PUT',body:JSON.stringify({dueDate:val||null})});
+  loadTaskPlans()
 }
 async function deleteTaskPlan(id){
   if(!confirm('Удалить план?'))return;

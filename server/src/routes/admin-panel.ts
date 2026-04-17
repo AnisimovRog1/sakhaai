@@ -200,6 +200,7 @@ table.bordered tr:last-child td{border-bottom:none}
     </div>
     <nav class="sidebar-nav">
       <div class="nav-item active" onclick="showTab(this,'dashboard')"><span class="nav-icon">📊</span> Панель</div>
+      <div class="nav-item" onclick="showTab(this,'analytics')"><span class="nav-icon">📊</span> Аналитика</div>
       <div class="nav-item" onclick="showTab(this,'users')"><span class="nav-icon">👥</span> Пользователи</div>
       <div class="nav-item" onclick="showTab(this,'pushes')"><span class="nav-icon">📢</span> Пуши</div>
       <div class="nav-item" onclick="showTab(this,'referrals')"><span class="nav-icon">🤝</span> Рефералы</div>
@@ -274,6 +275,20 @@ table.bordered tr:last-child td{border-bottom:none}
     </div>
 
     <!-- USERS -->
+    <div id="tab-analytics" class="hidden">
+      <div class="flex gap-2 mb-4">
+        <button class="btn btn-primary btn-sm" data-aperiod="week" onclick="loadAnalytics('week')">Неделя</button>
+        <button class="btn btn-ghost btn-sm" data-aperiod="10d" onclick="loadAnalytics('10d')">10 дней</button>
+        <button class="btn btn-ghost btn-sm" data-aperiod="15d" onclick="loadAnalytics('15d')">15 дней</button>
+        <button class="btn btn-ghost btn-sm" data-aperiod="all" onclick="loadAnalytics('all')">Всё время</button>
+      </div>
+      <div class="section-group mb-5"><div class="section-group-title">РАСХОД КРЕДИТОВ ПО ПРОДУКТАМ</div><div id="productCards" class="grid grid-cols-2 md:grid-cols-5 gap-3"></div></div>
+      <div class="section-group mb-5"><div class="section-group-title">ВЫРУЧКА ₽ ПО ПРОДУКТАМ</div><div id="revenueCards" class="grid grid-cols-2 md:grid-cols-5 gap-3"></div></div>
+      <div class="section-group mb-5"><div class="section-group-title">ВОРОНКА (ЮЗЕРФЛОУ)</div><div id="funnelBlock"></div></div>
+      <div class="section-group mb-5"><div class="section-group-title">ТРЕНД ПО ДНЯМ</div><div id="dailyTable" class="scroll-container"></div></div>
+      <div class="section-group"><div class="section-group-title">ТОП ЮЗЕРЫ ПО РАСХОДУ</div><div id="topUsersAnalytics" class="scroll-container"></div></div>
+    </div>
+
     <div id="tab-users" class="hidden">
       <div class="flex flex-wrap gap-3 mb-4">
         <input id="userSearch" placeholder="🔍 Поиск..." class="flex-1 min-w-[200px]" oninput="filterUsers()">
@@ -606,7 +621,7 @@ function G(p){return apiFetch(p)}
 function P(p,d){return apiFetch(p,{method:'POST',body:JSON.stringify(d)})}
 function D(p){return apiFetch(p,{method:'DELETE'})}
 
-function showTab(el,n){document.querySelectorAll('[id^=tab-]').forEach(function(e){e.classList.add('hidden')});document.getElementById('tab-'+n).classList.remove('hidden');document.querySelectorAll('.nav-item').forEach(function(e){e.classList.remove('active')});el.classList.add('active');var titles={dashboard:'Панель',users:'Пользователи',pushes:'Пуши',referrals:'Рефералы',campaigns:'Кампании',adstats:'Реклама',taskplans:'Планы',strategy:'Стратегия работы',shares:'Шеринг'};var pt=document.getElementById('pageTitle');if(pt)pt.textContent=titles[n]||n;if(n==='users')loadUsers();if(n==='pushes'){loadPushTemplates();loadPushLog();loadSeqs();loadPushStats()}if(n==='campaigns'){loadCampaigns();loadPromoCodes();loadPromoUses()}if(n==='referrals')loadReferrals();if(n==='adstats')loadAdStats();if(n==='strategy')loadPlansTab();if(n==='taskplans')loadTaskPlans();if(n==='shares')loadSharesTab()}
+function showTab(el,n){document.querySelectorAll('[id^=tab-]').forEach(function(e){e.classList.add('hidden')});document.getElementById('tab-'+n).classList.remove('hidden');document.querySelectorAll('.nav-item').forEach(function(e){e.classList.remove('active')});el.classList.add('active');var titles={dashboard:'Панель',users:'Пользователи',pushes:'Пуши',referrals:'Рефералы',campaigns:'Кампании',adstats:'Реклама',analytics:'Аналитика',taskplans:'Планы',strategy:'Стратегия работы',shares:'Шеринг'};var pt=document.getElementById('pageTitle');if(pt)pt.textContent=titles[n]||n;if(n==='analytics')loadAnalytics('week');if(n==='users')loadUsers();if(n==='pushes'){loadPushTemplates();loadPushLog();loadSeqs();loadPushStats()}if(n==='campaigns'){loadCampaigns();loadPromoCodes();loadPromoUses()}if(n==='referrals')loadReferrals();if(n==='adstats')loadAdStats();if(n==='strategy')loadPlansTab();if(n==='taskplans')loadTaskPlans();if(n==='shares')loadSharesTab()}
 
 // Курс ЦБ
 async function loadExRate(){
@@ -2044,6 +2059,85 @@ function copyTemplate(i){
   navigator.clipboard.writeText(txt).then(function(){
     alert('Скопировано!');
   });
+}
+
+// ── Аналитика продуктов ──
+var PROD_ICONS={chat:'\\u{1F4AC}',image:'\\u{1F3A8}',video:'\\u{1F3AC}',motion:'\\u2728',avatar:'\\u{1F5E3}'};
+var PROD_NAMES={chat:'Чат',image:'Фото',video:'Видео',motion:'Motion',avatar:'Аватар'};
+async function loadAnalytics(period){
+  document.querySelectorAll('[data-aperiod]').forEach(function(b){b.classList.remove('btn-primary');b.classList.add('btn-ghost')});
+  var active=document.querySelector('[data-aperiod="'+period+'"]');if(active){active.classList.remove('btn-ghost');active.classList.add('btn-primary')}
+  var d=await G('/admin/product-analytics?period='+period);if(!d||d.error)return;
+
+  // Карточки продуктов
+  var totalCr=0;d.byProduct.forEach(function(p){totalCr+=p.credits});
+  var maxCr=0;d.byProduct.forEach(function(p){if(p.credits>maxCr)maxCr=p.credits});
+  var allTypes=['chat','image','video','motion','avatar'];
+  var el=document.getElementById('productCards');
+  el.innerHTML=allTypes.map(function(t){
+    var item=d.byProduct.find(function(p){return p.type===t})||{ops:0,credits:0};
+    var pct=totalCr>0?Math.round(item.credits/totalCr*100):0;
+    var isMax=item.credits===maxCr&&maxCr>0;
+    return '<div class="glass p-4 text-center'+(isMax?' border-2 border-violet-500/60':'')+'">'+
+      '<div class="text-2xl mb-1">'+(PROD_ICONS[t]||t)+'</div>'+
+      '<div class="text-xs text-slate-400 mb-2">'+(PROD_NAMES[t]||t)+'</div>'+
+      '<div class="text-xl font-bold '+(isMax?'gradient-text':'text-white')+'">'+Number(item.credits).toLocaleString('ru')+'</div>'+
+      '<div class="text-xs text-slate-500">'+item.ops+' операций</div>'+
+      '<div class="text-xs font-bold '+(isMax?'text-violet-400':'text-slate-500')+' mt-1">'+pct+'%</div></div>'
+  }).join('');
+
+  // Выручка в ₽
+  var revEl=document.getElementById('revenueCards');
+  revEl.innerHTML=allTypes.map(function(t){
+    var item=d.byProduct.find(function(p){return p.type===t})||{credits:0};
+    var rubShare=totalCr>0?Math.round(item.credits/totalCr*d.revenue):0;
+    return '<div class="glass p-3 text-center">'+
+      '<div class="text-sm mb-1">'+(PROD_ICONS[t]||t)+' '+(PROD_NAMES[t]||t)+'</div>'+
+      '<div class="text-lg font-bold text-green-400">'+Number(rubShare).toLocaleString('ru')+' \\u20BD</div></div>'
+  }).join('');
+
+  // Воронка
+  var fn=d.funnel;
+  var steps=[
+    {name:'/start',val:fn.start},
+    {name:'Открыли app',val:fn.opened},
+    {name:'Генерация',val:fn.generated},
+    {name:'Покупка',val:fn.paid}
+  ];
+  var fEl=document.getElementById('funnelBlock');
+  fEl.innerHTML='<div class="glass p-4">'+steps.map(function(s,i){
+    var w=fn.start>0?Math.max(5,Math.round(s.val/fn.start*100)):0;
+    var conv=i>0&&steps[i-1].val>0?Math.round(s.val/steps[i-1].val*100):100;
+    var colors=['from-violet-600 to-cyan-500','from-cyan-500 to-green-500','from-green-500 to-amber-500','from-amber-500 to-red-500'];
+    return '<div class="mb-3"><div class="flex justify-between text-xs mb-1"><span class="text-white font-bold">'+s.name+'</span><span class="text-slate-400">'+s.val+(i>0?' ('+conv+'% \\u2192)':'')+'</span></div>'+
+      '<div class="w-full bg-white/5 rounded-full h-3"><div class="h-full rounded-full bg-gradient-to-r '+colors[i]+'" style="width:'+w+'%"></div></div></div>'
+  }).join('')+'</div>';
+
+  // Тренд по дням
+  var days={};d.daily.forEach(function(r){
+    var day=r.day.slice(0,10);if(!days[day])days[day]={};
+    days[day][r.type]={ops:r.ops,credits:r.credits}
+  });
+  var dayNames=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+  var dKeys=Object.keys(days).sort().reverse();
+  var dtEl=document.getElementById('dailyTable');
+  dtEl.innerHTML='<table class="bordered w-full text-xs"><thead><tr><th>Дата</th><th>День</th><th>\\u{1F4AC}</th><th>\\u{1F3A8}</th><th>\\u{1F3AC}</th><th>\\u2728</th><th>\\u{1F5E3}</th><th>Всего кр</th><th>Операций</th></tr></thead><tbody>'+
+    dKeys.map(function(day){
+      var dd=new Date(day);var dn=dayNames[dd.getDay()];
+      var row=days[day];var totalC=0;var totalO=0;
+      var cells=allTypes.map(function(t){var c=row[t]||{ops:0,credits:0};totalC+=c.credits;totalO+=c.ops;return '<td>'+(c.ops||'<span class="text-slate-700">-</span>')+'</td>'}).join('');
+      return '<tr><td class="text-slate-400">'+dd.toLocaleDateString('ru')+'</td><td class="font-bold">'+dn+'</td>'+cells+'<td class="text-green-400 font-bold">'+Number(totalC).toLocaleString('ru')+'</td><td>'+totalO+'</td></tr>'
+    }).join('')+'</tbody></table>';
+
+  // Топ юзеры
+  var tuEl=document.getElementById('topUsersAnalytics');
+  if(!d.topUsers.length){tuEl.innerHTML='<p class="text-slate-500 text-center py-4">Нет данных</p>';return}
+  tuEl.innerHTML='<table class="bordered w-full text-xs"><thead><tr><th>Юзер</th><th>Всего</th><th>\\u{1F4AC}</th><th>\\u{1F3A8}</th><th>\\u{1F3AC}</th><th>\\u2728</th><th>\\u{1F5E3}</th></tr></thead><tbody>'+
+    d.topUsers.map(function(u){
+      return '<tr><td>'+esc(u.first_name||'')+(u.username?' @'+esc(u.username):'')+'</td>'+
+        '<td class="font-bold gradient-text">'+Number(u.total).toLocaleString('ru')+'</td>'+
+        '<td>'+u.chat+'</td><td>'+u.image+'</td><td>'+u.video+'</td><td>'+u.motion+'</td><td>'+u.avatar+'</td></tr>'
+    }).join('')+'</tbody></table>'
 }
 
 // ── Планы (задачи) ──

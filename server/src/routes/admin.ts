@@ -1709,3 +1709,73 @@ adminRouter.delete('/task-plans/subtask/:id', async (req: Request, res: Response
     res.json({ ok: true });
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
+
+// ─── Аналитика продуктов ──────────────────────────────
+adminRouter.get('/product-analytics', async (req: Request, res: Response) => {
+  try {
+    const period = (req.query.period as string) || 'week';
+    let dateFilter: string;
+    let trendDays: number;
+    if (period === 'week') {
+      dateFilter = `DATE_TRUNC('week', NOW() AT TIME ZONE 'Asia/Yakutsk')`;
+      trendDays = 7;
+    } else if (period === '10d') {
+      dateFilter = `(NOW() - INTERVAL '10 days')`;
+      trendDays = 10;
+    } else if (period === '15d') {
+      dateFilter = `(NOW() - INTERVAL '15 days')`;
+      trendDays = 15;
+    } else {
+      dateFilter = `'2020-01-01'`;
+      trendDays = 30;
+    }
+
+    const ptypes = `('chat','image','video','motion','avatar')`;
+
+    const byProduct = await pool.query(`
+      SELECT type, COUNT(*)::int as ops, COALESCE(SUM(ABS(amount)),0)::int as credits
+      FROM transactions WHERE amount < 0 AND type IN ${ptypes} AND created_at >= ${dateFilter}
+      GROUP BY type
+    `);
+
+    const f1 = await pool.query(`SELECT COUNT(*)::int as cnt FROM users WHERE created_at >= ${dateFilter}`);
+    const f2 = await pool.query(`SELECT COUNT(*)::int as cnt FROM users WHERE app_opened = true AND created_at >= ${dateFilter}`);
+    const f3 = await pool.query(`SELECT COUNT(DISTINCT user_id)::int as cnt FROM generations WHERE created_at >= ${dateFilter}`);
+    const f4 = await pool.query(`SELECT COUNT(DISTINCT user_id)::int as cnt FROM orders WHERE status = 'paid' AND paid_at >= ${dateFilter}`);
+
+    const rev = await pool.query(`SELECT COALESCE(SUM(amount_rub),0)::int as total FROM orders WHERE status = 'paid' AND paid_at >= ${dateFilter}`);
+
+    const daily = await pool.query(`
+      SELECT DATE(created_at AT TIME ZONE 'Asia/Yakutsk') as day, type,
+             COUNT(*)::int as ops, COALESCE(SUM(ABS(amount)),0)::int as credits
+      FROM transactions WHERE amount < 0 AND type IN ${ptypes}
+        AND created_at >= (NOW() - INTERVAL '${trendDays} days')
+      GROUP BY day, type ORDER BY day DESC
+    `);
+
+    const topUsers = await pool.query(`
+      SELECT t.user_id, u.username, u.first_name,
+        SUM(ABS(t.amount))::int as total,
+        SUM(CASE WHEN t.type='chat' THEN ABS(t.amount) ELSE 0 END)::int as chat,
+        SUM(CASE WHEN t.type='image' THEN ABS(t.amount) ELSE 0 END)::int as image,
+        SUM(CASE WHEN t.type='video' THEN ABS(t.amount) ELSE 0 END)::int as video,
+        SUM(CASE WHEN t.type='motion' THEN ABS(t.amount) ELSE 0 END)::int as motion,
+        SUM(CASE WHEN t.type='avatar' THEN ABS(t.amount) ELSE 0 END)::int as avatar
+      FROM transactions t JOIN users u ON u.id = t.user_id
+      WHERE t.amount < 0 AND t.type IN ${ptypes} AND t.created_at >= ${dateFilter}
+      GROUP BY t.user_id, u.username, u.first_name
+      ORDER BY total DESC LIMIT 20
+    `);
+
+    res.json({
+      byProduct: byProduct.rows,
+      funnel: { start: f1.rows[0].cnt, opened: f2.rows[0].cnt, generated: f3.rows[0].cnt, paid: f4.rows[0].cnt },
+      revenue: rev.rows[0].total,
+      daily: daily.rows,
+      topUsers: topUsers.rows,
+    });
+  } catch (e: any) {
+    console.error('[product-analytics] error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});

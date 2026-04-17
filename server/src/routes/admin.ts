@@ -1713,10 +1713,13 @@ adminRouter.delete('/task-plans/subtask/:id', async (req: Request, res: Response
 // ─── Аналитика продуктов ──────────────────────────────
 adminRouter.get('/product-analytics', async (req: Request, res: Response) => {
   try {
-    const period = (req.query.period as string) || 'week';
+    const period = (req.query.period as string) || 'today';
     let dateFilter: string;
     let trendDays: number;
-    if (period === 'week') {
+    if (period === 'today') {
+      dateFilter = `(NOW() AT TIME ZONE 'Asia/Yakutsk')::date`;
+      trendDays = 1;
+    } else if (period === 'week') {
       dateFilter = `DATE_TRUNC('week', NOW() AT TIME ZONE 'Asia/Yakutsk')`;
       trendDays = 7;
     } else if (period === '10d') {

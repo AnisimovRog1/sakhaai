@@ -276,8 +276,9 @@ table.bordered tr:last-child td{border-bottom:none}
 
     <!-- USERS -->
     <div id="tab-analytics" class="hidden">
-      <div class="flex gap-2 mb-4">
-        <button class="btn btn-primary btn-sm" data-aperiod="week" onclick="loadAnalytics('week')">Неделя</button>
+      <div class="flex gap-2 mb-4 flex-wrap">
+        <button class="btn btn-primary btn-sm" data-aperiod="today" onclick="loadAnalytics('today')">Сегодня</button>
+        <button class="btn btn-ghost btn-sm" data-aperiod="week" onclick="loadAnalytics('week')">Неделя</button>
         <button class="btn btn-ghost btn-sm" data-aperiod="10d" onclick="loadAnalytics('10d')">10 дней</button>
         <button class="btn btn-ghost btn-sm" data-aperiod="15d" onclick="loadAnalytics('15d')">15 дней</button>
         <button class="btn btn-ghost btn-sm" data-aperiod="all" onclick="loadAnalytics('all')">Всё время</button>
@@ -621,7 +622,7 @@ function G(p){return apiFetch(p)}
 function P(p,d){return apiFetch(p,{method:'POST',body:JSON.stringify(d)})}
 function D(p){return apiFetch(p,{method:'DELETE'})}
 
-function showTab(el,n){document.querySelectorAll('[id^=tab-]').forEach(function(e){e.classList.add('hidden')});document.getElementById('tab-'+n).classList.remove('hidden');document.querySelectorAll('.nav-item').forEach(function(e){e.classList.remove('active')});el.classList.add('active');var titles={dashboard:'Панель',users:'Пользователи',pushes:'Пуши',referrals:'Рефералы',campaigns:'Кампании',adstats:'Реклама',analytics:'Аналитика',taskplans:'Планы',strategy:'Стратегия работы',shares:'Шеринг'};var pt=document.getElementById('pageTitle');if(pt)pt.textContent=titles[n]||n;if(n==='analytics')loadAnalytics('week');if(n==='users')loadUsers();if(n==='pushes'){loadPushTemplates();loadPushLog();loadSeqs();loadPushStats()}if(n==='campaigns'){loadCampaigns();loadPromoCodes();loadPromoUses()}if(n==='referrals')loadReferrals();if(n==='adstats')loadAdStats();if(n==='strategy')loadPlansTab();if(n==='taskplans')loadTaskPlans();if(n==='shares')loadSharesTab()}
+function showTab(el,n){document.querySelectorAll('[id^=tab-]').forEach(function(e){e.classList.add('hidden')});document.getElementById('tab-'+n).classList.remove('hidden');document.querySelectorAll('.nav-item').forEach(function(e){e.classList.remove('active')});el.classList.add('active');var titles={dashboard:'Панель',users:'Пользователи',pushes:'Пуши',referrals:'Рефералы',campaigns:'Кампании',adstats:'Реклама',analytics:'Аналитика',taskplans:'Планы',strategy:'Стратегия работы',shares:'Шеринг'};var pt=document.getElementById('pageTitle');if(pt)pt.textContent=titles[n]||n;if(n==='analytics')loadAnalytics('today');if(n==='users')loadUsers();if(n==='pushes'){loadPushTemplates();loadPushLog();loadSeqs();loadPushStats()}if(n==='campaigns'){loadCampaigns();loadPromoCodes();loadPromoUses()}if(n==='referrals')loadReferrals();if(n==='adstats')loadAdStats();if(n==='strategy')loadPlansTab();if(n==='taskplans')loadTaskPlans();if(n==='shares')loadSharesTab()}
 
 // Курс ЦБ
 async function loadExRate(){
@@ -2062,27 +2063,26 @@ function copyTemplate(i){
 }
 
 // ── Аналитика продуктов ──
-var PROD_ICONS={chat:'\\u{1F4AC}',image:'\\u{1F3A8}',video:'\\u{1F3AC}',motion:'\\u2728',avatar:'\\u{1F5E3}'};
 var PROD_NAMES={chat:'Чат',image:'Фото',video:'Видео',motion:'Motion',avatar:'Аватар'};
 async function loadAnalytics(period){
   document.querySelectorAll('[data-aperiod]').forEach(function(b){b.classList.remove('btn-primary');b.classList.add('btn-ghost')});
   var active=document.querySelector('[data-aperiod="'+period+'"]');if(active){active.classList.remove('btn-ghost');active.classList.add('btn-primary')}
   var d=await G('/admin/product-analytics?period='+period);if(!d||d.error)return;
 
-  // Карточки продуктов
   var totalCr=0;d.byProduct.forEach(function(p){totalCr+=p.credits});
   var maxCr=0;d.byProduct.forEach(function(p){if(p.credits>maxCr)maxCr=p.credits});
   var allTypes=['chat','image','video','motion','avatar'];
+
+  // Карточки продуктов — текст
   var el=document.getElementById('productCards');
   el.innerHTML=allTypes.map(function(t){
     var item=d.byProduct.find(function(p){return p.type===t})||{ops:0,credits:0};
     var pct=totalCr>0?Math.round(item.credits/totalCr*100):0;
     var isMax=item.credits===maxCr&&maxCr>0;
     return '<div class="glass p-4 text-center'+(isMax?' border-2 border-violet-500/60':'')+'">'+
-      '<div class="text-2xl mb-1">'+(PROD_ICONS[t]||t)+'</div>'+
-      '<div class="text-xs text-slate-400 mb-2">'+(PROD_NAMES[t]||t)+'</div>'+
-      '<div class="text-xl font-bold '+(isMax?'gradient-text':'text-white')+'">'+Number(item.credits).toLocaleString('ru')+'</div>'+
-      '<div class="text-xs text-slate-500">'+item.ops+' операций</div>'+
+      '<div class="text-sm font-bold mb-2 '+(isMax?'gradient-text':'text-white')+'">'+(PROD_NAMES[t]||t)+'</div>'+
+      '<div class="text-xl font-bold '+(isMax?'gradient-text':'text-white')+'">'+Number(item.credits).toLocaleString('ru')+' кр</div>'+
+      '<div class="text-xs text-slate-400 mt-1">'+item.ops+' операций</div>'+
       '<div class="text-xs font-bold '+(isMax?'text-violet-400':'text-slate-500')+' mt-1">'+pct+'%</div></div>'
   }).join('');
 
@@ -2092,26 +2092,24 @@ async function loadAnalytics(period){
     var item=d.byProduct.find(function(p){return p.type===t})||{credits:0};
     var rubShare=totalCr>0?Math.round(item.credits/totalCr*d.revenue):0;
     return '<div class="glass p-3 text-center">'+
-      '<div class="text-sm mb-1">'+(PROD_ICONS[t]||t)+' '+(PROD_NAMES[t]||t)+'</div>'+
-      '<div class="text-lg font-bold text-green-400">'+Number(rubShare).toLocaleString('ru')+' \\u20BD</div></div>'
+      '<div class="text-sm font-bold text-white mb-1">'+(PROD_NAMES[t]||t)+'</div>'+
+      '<div class="text-lg font-bold text-green-400">'+Number(rubShare).toLocaleString('ru')+' &#8381;</div></div>'
   }).join('');
 
-  // Воронка
+  // Воронка — таблица
   var fn=d.funnel;
-  var steps=[
-    {name:'/start',val:fn.start},
-    {name:'Открыли app',val:fn.opened},
-    {name:'Генерация',val:fn.generated},
-    {name:'Покупка',val:fn.paid}
-  ];
   var fEl=document.getElementById('funnelBlock');
-  fEl.innerHTML='<div class="glass p-4">'+steps.map(function(s,i){
-    var w=fn.start>0?Math.max(5,Math.round(s.val/fn.start*100)):0;
-    var conv=i>0&&steps[i-1].val>0?Math.round(s.val/steps[i-1].val*100):100;
-    var colors=['from-violet-600 to-cyan-500','from-cyan-500 to-green-500','from-green-500 to-amber-500','from-amber-500 to-red-500'];
-    return '<div class="mb-3"><div class="flex justify-between text-xs mb-1"><span class="text-white font-bold">'+s.name+'</span><span class="text-slate-400">'+s.val+(i>0?' ('+conv+'% \\u2192)':'')+'</span></div>'+
-      '<div class="w-full bg-white/5 rounded-full h-3"><div class="h-full rounded-full bg-gradient-to-r '+colors[i]+'" style="width:'+w+'%"></div></div></div>'
-  }).join('')+'</div>';
+  var convOpen=fn.start>0?Math.round(fn.opened/fn.start*100):0;
+  var convGen=fn.opened>0?Math.round(fn.generated/fn.opened*100):0;
+  var convPay=fn.generated>0?Math.round(fn.paid/fn.generated*100):0;
+  var convTotal=fn.start>0?Math.round(fn.paid/fn.start*100):0;
+  fEl.innerHTML='<div class="glass p-4"><table class="bordered w-full text-sm"><tbody>'+
+    '<tr><td class="font-bold">/start (регистрация)</td><td class="text-right text-xl font-bold text-white">'+fn.start+'</td><td></td></tr>'+
+    '<tr><td class="font-bold">Открыли приложение</td><td class="text-right text-xl font-bold text-cyan-400">'+fn.opened+'</td><td class="text-right text-sm text-slate-400">'+convOpen+'% от /start</td></tr>'+
+    '<tr><td class="font-bold">Сделали генерацию</td><td class="text-right text-xl font-bold text-green-400">'+fn.generated+'</td><td class="text-right text-sm text-slate-400">'+convGen+'% от открывших</td></tr>'+
+    '<tr><td class="font-bold">Купили пакет</td><td class="text-right text-xl font-bold text-amber-400">'+fn.paid+'</td><td class="text-right text-sm text-slate-400">'+convPay+'% от генераций</td></tr>'+
+    '<tr class="border-t-2 border-white/20"><td class="font-bold">Общая конверсия</td><td class="text-right text-xl font-bold gradient-text">'+convTotal+'%</td><td class="text-right text-sm text-slate-400">/start &#8594; покупка</td></tr>'+
+    '</tbody></table></div>';
 
   // Тренд по дням
   var days={};d.daily.forEach(function(r){
@@ -2121,22 +2119,22 @@ async function loadAnalytics(period){
   var dayNames=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
   var dKeys=Object.keys(days).sort().reverse();
   var dtEl=document.getElementById('dailyTable');
-  dtEl.innerHTML='<table class="bordered w-full text-xs"><thead><tr><th>Дата</th><th>День</th><th>\\u{1F4AC}</th><th>\\u{1F3A8}</th><th>\\u{1F3AC}</th><th>\\u2728</th><th>\\u{1F5E3}</th><th>Всего кр</th><th>Операций</th></tr></thead><tbody>'+
+  dtEl.innerHTML='<table class="bordered w-full text-xs"><thead><tr><th>Дата</th><th>День</th><th>Чат</th><th>Фото</th><th>Видео</th><th>Motion</th><th>Аватар</th><th>Всего кр</th><th>Операций</th></tr></thead><tbody>'+
     dKeys.map(function(day){
       var dd=new Date(day);var dn=dayNames[dd.getDay()];
       var row=days[day];var totalC=0;var totalO=0;
-      var cells=allTypes.map(function(t){var c=row[t]||{ops:0,credits:0};totalC+=c.credits;totalO+=c.ops;return '<td>'+(c.ops||'<span class="text-slate-700">-</span>')+'</td>'}).join('');
-      return '<tr><td class="text-slate-400">'+dd.toLocaleDateString('ru')+'</td><td class="font-bold">'+dn+'</td>'+cells+'<td class="text-green-400 font-bold">'+Number(totalC).toLocaleString('ru')+'</td><td>'+totalO+'</td></tr>'
+      var cells=allTypes.map(function(t){var c=row[t]||{ops:0,credits:0};totalC+=c.credits;totalO+=c.ops;return '<td class="text-center">'+(c.ops?c.ops+' <span class="text-slate-600">('+Number(c.credits).toLocaleString('ru')+')</span>':'<span class="text-slate-700">-</span>')+'</td>'}).join('');
+      return '<tr><td class="text-slate-400 whitespace-nowrap">'+dd.toLocaleDateString('ru')+'</td><td class="font-bold">'+dn+'</td>'+cells+'<td class="text-green-400 font-bold text-right">'+Number(totalC).toLocaleString('ru')+'</td><td class="text-right">'+totalO+'</td></tr>'
     }).join('')+'</tbody></table>';
 
   // Топ юзеры
   var tuEl=document.getElementById('topUsersAnalytics');
   if(!d.topUsers.length){tuEl.innerHTML='<p class="text-slate-500 text-center py-4">Нет данных</p>';return}
-  tuEl.innerHTML='<table class="bordered w-full text-xs"><thead><tr><th>Юзер</th><th>Всего</th><th>\\u{1F4AC}</th><th>\\u{1F3A8}</th><th>\\u{1F3AC}</th><th>\\u2728</th><th>\\u{1F5E3}</th></tr></thead><tbody>'+
+  tuEl.innerHTML='<table class="bordered w-full text-xs"><thead><tr><th>Юзер</th><th>Всего кр</th><th>Чат</th><th>Фото</th><th>Видео</th><th>Motion</th><th>Аватар</th></tr></thead><tbody>'+
     d.topUsers.map(function(u){
       return '<tr><td>'+esc(u.first_name||'')+(u.username?' @'+esc(u.username):'')+'</td>'+
-        '<td class="font-bold gradient-text">'+Number(u.total).toLocaleString('ru')+'</td>'+
-        '<td>'+u.chat+'</td><td>'+u.image+'</td><td>'+u.video+'</td><td>'+u.motion+'</td><td>'+u.avatar+'</td></tr>'
+        '<td class="font-bold gradient-text text-right">'+Number(u.total).toLocaleString('ru')+'</td>'+
+        '<td class="text-right">'+Number(u.chat).toLocaleString('ru')+'</td><td class="text-right">'+Number(u.image).toLocaleString('ru')+'</td><td class="text-right">'+Number(u.video).toLocaleString('ru')+'</td><td class="text-right">'+Number(u.motion).toLocaleString('ru')+'</td><td class="text-right">'+Number(u.avatar).toLocaleString('ru')+'</td></tr>'
     }).join('')+'</tbody></table>'
 }
 

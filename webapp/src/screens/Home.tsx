@@ -262,7 +262,14 @@ export function Home({ user, onCreditsUpdate }: Props) {
               return (
                 <button
                   key={pkg.key}
-                  onClick={() => setSelectedPkg(sel ? null : pkg)}
+                  onClick={() => {
+                    setSelectedPkg(sel ? null : pkg);
+                    setPromoInput('');
+                    setPromoStatus('idle');
+                    setPromoBonus(0);
+                    setValidPromoCode(null);
+                    setPromoError('');
+                  }}
                   className={`relative rounded-2xl p-4 text-left transition-all duration-200 active:scale-[0.97] ${
                     sel
                       ? 'bg-blue-500/20 border-2 border-blue-400/60 shadow-lg shadow-blue-500/15'

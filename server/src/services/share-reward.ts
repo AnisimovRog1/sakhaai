@@ -48,13 +48,19 @@ export async function processShareReward(
     return { ok: false, reason: 'daily_limit' };
   }
 
-  // Записываем бонус + начисляем кредиты
-  await pool.query(
+  // Атомарный INSERT с проверкой результата — addCredits только если реально вставили
+  const insertResult = await pool.query(
     `INSERT INTO share_rewards (sharer_id, receiver_id, generation_id, credits_awarded)
      VALUES ($1, $2, $3, $4)
-     ON CONFLICT (sharer_id, receiver_id) DO NOTHING`,
+     ON CONFLICT (sharer_id, receiver_id) DO NOTHING
+     RETURNING id`,
     [sharerId, receiverId, generationId ?? null, SHARE_BONUS]
   );
+
+  if (insertResult.rows.length === 0) {
+    // Гонка: другой запрос успел вставить первым — не дублируем бонус
+    return { ok: false, reason: 'already_rewarded' };
+  }
 
   await addCredits(sharerId, SHARE_BONUS, 'share_bonus',
     `Бонус за шеринг: пользователь ${receiverId} открыл ссылку`);

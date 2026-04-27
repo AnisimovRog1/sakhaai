@@ -169,7 +169,7 @@ bot.command('start', async (ctx) => {
 
 bot.command('help', async (ctx) => {
   let text = '📖 Команды:\n/start — открыть приложение\n/help — эта справка';
-  if (isAdmin(ctx.chat.id)) {
+  if (ctx.from && isAdmin(ctx.from.id)) {
     text += `\n\n🔐 Админ-команды:\n` +
       `/stats — отчёт за сегодня\n` +
       `/stats 7d — за 7 дней\n` +
@@ -228,7 +228,7 @@ bot.command('support', async (ctx) => {
 // ═══════════════════════════════════════════════════════
 
 bot.command('admin', async (ctx) => {
-  if (!isAdmin(ctx.chat.id)) return;
+  if (!ctx.from || !isAdmin(ctx.from.id)) return;
 
   const keyboard = new InlineKeyboard()
     .text('📊 Отчёт сегодня', 'cmd_stats_today')
@@ -390,7 +390,7 @@ bot.callbackQuery('cmd_menu', async (ctx) => {
 // ═══════════════════════════════════════════════════════
 
 bot.command('stats', async (ctx) => {
-  if (!isAdmin(ctx.chat.id)) return;
+  if (!ctx.from || !isAdmin(ctx.from.id)) return;
 
   const period = ctx.match.trim() || 'today';
   try {
@@ -431,7 +431,7 @@ bot.command('stats', async (ctx) => {
 
 // ─── /year ──────────────────────────────────────────────
 bot.command('year', async (ctx) => {
-  if (!isAdmin(ctx.chat.id)) return;
+  if (!ctx.from || !isAdmin(ctx.from.id)) return;
   try {
     const months = await httpGet(`${SERVER_URL}/admin/year`);
     if (!Array.isArray(months) || months.length === 0) {
@@ -451,7 +451,7 @@ bot.command('year', async (ctx) => {
 
 // ─── /deposits ──────────────────────────────────────────
 bot.command('deposits', async (ctx) => {
-  if (!isAdmin(ctx.chat.id)) return;
+  if (!ctx.from || !isAdmin(ctx.from.id)) return;
   try {
     const deps = await httpGet(`${SERVER_URL}/admin/deposits`);
     if (!Array.isArray(deps) || deps.length === 0) {
@@ -469,7 +469,7 @@ bot.command('deposits', async (ctx) => {
 
 // ─── /referrals ─────────────────────────────────────────
 bot.command('referrals', async (ctx) => {
-  if (!isAdmin(ctx.chat.id)) return;
+  if (!ctx.from || !isAdmin(ctx.from.id)) return;
   try {
     const refs = await httpGet(`${SERVER_URL}/admin/referrals`);
     if (!Array.isArray(refs) || refs.length === 0) {
@@ -487,7 +487,7 @@ bot.command('referrals', async (ctx) => {
 
 // ─── /errors ────────────────────────────────────────────
 bot.command('errors', async (ctx) => {
-  if (!isAdmin(ctx.chat.id)) return;
+  if (!ctx.from || !isAdmin(ctx.from.id)) return;
   try {
     const data = await httpGet(`${SERVER_URL}/admin/errors`);
     const byType = (data.byType || []).map((e: any) => `  ${e.type}: ${e.count}`).join('\n');
@@ -507,7 +507,7 @@ bot.command('errors', async (ctx) => {
 // ═══════════════════════════════════════════════════════
 
 bot.command('users', async (ctx) => {
-  if (!isAdmin(ctx.chat.id)) return;
+  if (!ctx.from || !isAdmin(ctx.from.id)) return;
   try {
     const users = await httpGet(`${SERVER_URL}/admin/users`);
     if (!Array.isArray(users) || users.length === 0) { await ctx.reply('Юзеров нет'); return; }
@@ -521,7 +521,7 @@ bot.command('users', async (ctx) => {
 });
 
 bot.command('user', async (ctx) => {
-  if (!isAdmin(ctx.chat.id)) return;
+  if (!ctx.from || !isAdmin(ctx.from.id)) return;
   const userId = ctx.match.trim();
   if (!userId) { await ctx.reply('Формат: /user <user_id>'); return; }
   try {
@@ -546,7 +546,7 @@ bot.command('user', async (ctx) => {
 });
 
 bot.command('addcredits', async (ctx) => {
-  if (!isAdmin(ctx.chat.id)) return;
+  if (!ctx.from || !isAdmin(ctx.from.id)) return;
   const args = ctx.match.split(' ');
   if (args.length < 2) { await ctx.reply('Формат: /addcredits <user_id> <amount>'); return; }
   const [userId, amountStr] = args;
@@ -559,7 +559,7 @@ bot.command('addcredits', async (ctx) => {
 });
 
 bot.command('refund', async (ctx) => {
-  if (!isAdmin(ctx.chat.id)) return;
+  if (!ctx.from || !isAdmin(ctx.from.id)) return;
   const args = ctx.match.split(' ');
   if (args.length < 2) { await ctx.reply('Формат: /refund <user_id> <amount>'); return; }
   const [userId, amountStr] = args;
@@ -572,7 +572,7 @@ bot.command('refund', async (ctx) => {
 });
 
 bot.command('ban', async (ctx) => {
-  if (!isAdmin(ctx.chat.id)) return;
+  if (!ctx.from || !isAdmin(ctx.from.id)) return;
   const userId = ctx.match.trim();
   if (!userId) { await ctx.reply('Формат: /ban <user_id>'); return; }
   try {
@@ -582,7 +582,7 @@ bot.command('ban', async (ctx) => {
 });
 
 bot.command('unban', async (ctx) => {
-  if (!isAdmin(ctx.chat.id)) return;
+  if (!ctx.from || !isAdmin(ctx.from.id)) return;
   const userId = ctx.match.trim();
   if (!userId) { await ctx.reply('Формат: /unban <user_id>'); return; }
   try {
@@ -592,7 +592,7 @@ bot.command('unban', async (ctx) => {
 });
 
 bot.command('broadcast', async (ctx) => {
-  if (!isAdmin(ctx.chat.id)) return;
+  if (!ctx.from || !isAdmin(ctx.from.id)) return;
   const text = ctx.match.trim();
   if (!text) { await ctx.reply('Формат: /broadcast <текст>'); return; }
   try {
@@ -665,7 +665,7 @@ const pushDrafts = new Map<number, PushDraft>();
 
 // /push — главное меню пушей
 bot.command('push', async (ctx) => {
-  if (!isAdmin(ctx.chat.id)) return;
+  if (!ctx.from || !isAdmin(ctx.from.id)) return;
   const keyboard = new InlineKeyboard()
     .text('📝 Создать пуш', 'push_create')
     .text('📋 Мои шаблоны', 'push_templates')
@@ -761,7 +761,7 @@ bot.on('inline_query', async (ctx) => {
 
 // Получение медиа от админа
 bot.on('message:photo', async (ctx) => {
-  if (!isAdmin(ctx.chat.id)) return;
+  if (!ctx.from || !isAdmin(ctx.from.id)) return;
   const draft = pushDrafts.get(ctx.chat.id);
   if (draft?.step === 'wait_media') {
     draft.mediaFileId = ctx.message.photo[ctx.message.photo.length - 1].file_id;
@@ -795,7 +795,7 @@ bot.on('message:photo', async (ctx) => {
 });
 
 bot.on('message:video', async (ctx) => {
-  if (!isAdmin(ctx.chat.id)) return;
+  if (!ctx.from || !isAdmin(ctx.from.id)) return;
   const draft = pushDrafts.get(ctx.chat.id);
   if (draft?.step === 'wait_media') {
     draft.mediaFileId = ctx.message.video.file_id;
@@ -828,7 +828,7 @@ bot.on('message:video', async (ctx) => {
 
 // Текст от админа (шаг 3 или шаг 5-name)
 bot.on('message:text', async (ctx, next) => {
-  if (!isAdmin(ctx.chat.id)) { await next(); return; }
+  if (!ctx.from || !isAdmin(ctx.from.id)) { await next(); return; }
   const draft = pushDrafts.get(ctx.chat.id);
   if (!draft) { await next(); return; }
 
@@ -1260,7 +1260,7 @@ async function processAutoSequences() {
 
 bot.on('message', async (ctx) => {
   // Админ отвечает reply на пересланное → отправляем юзеру
-  if (isAdmin(ctx.chat.id) && ctx.message.reply_to_message) {
+  if (ctx.from && isAdmin(ctx.from.id) && ctx.message.reply_to_message) {
     const reply = ctx.message.reply_to_message;
     // Ищем ID юзера в forwarded сообщении или в тексте заголовка
     const fwdId = (reply as any).forward_from?.id;
@@ -1276,7 +1276,7 @@ bot.on('message', async (ctx) => {
   }
 
   // Обычные юзеры — кнопка открытия приложения + пересылаем админу
-  if (isAdmin(ctx.chat.id)) return;
+  if (ctx.from && isAdmin(ctx.from.id)) return;
 
   // Отвечаем юзеру с кнопкой мини-аппа
   const appKb = new InlineKeyboard().webApp('🚀 Открыть UraanxAI', WEBAPP_URL);

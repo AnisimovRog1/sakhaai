@@ -1713,48 +1713,62 @@ adminRouter.delete('/task-plans/subtask/:id', async (req: Request, res: Response
 // ─── Аналитика продуктов ──────────────────────────────
 adminRouter.get('/product-analytics', async (req: Request, res: Response) => {
   try {
-    const period = (req.query.period as string) || 'today';
-    let dateFilter: string;
+    // Whitelist периода — защита от SQL-инъекций
+    const periodRaw = (req.query.period as string) || 'today';
+    const allowedPeriods = ['today', 'week', '10d', '15d', 'all'];
+    const period = allowedPeriods.includes(periodRaw) ? periodRaw : 'today';
+
+    // Вычисляем startDate в JS, передаём через параметр
+    const now = new Date();
+    let startDate: Date;
     let trendDays: number;
     if (period === 'today') {
-      dateFilter = `(NOW() AT TIME ZONE 'Asia/Yakutsk')::date`;
+      // Начало якутского сегодня (UTC+9)
+      const yakutskNow = new Date(now.getTime() + 9 * 3600 * 1000);
+      const yakutskMidnightUTC = Date.UTC(yakutskNow.getUTCFullYear(), yakutskNow.getUTCMonth(), yakutskNow.getUTCDate());
+      startDate = new Date(yakutskMidnightUTC - 9 * 3600 * 1000);
       trendDays = 1;
     } else if (period === 'week') {
-      dateFilter = `DATE_TRUNC('week', NOW() AT TIME ZONE 'Asia/Yakutsk')`;
+      // Понедельник текущей недели (UTC+9)
+      const yakutsk = new Date(now.getTime() + 9 * 3600 * 1000);
+      const dow = (yakutsk.getUTCDay() + 6) % 7; // пн=0
+      startDate = new Date(yakutsk); startDate.setUTCDate(yakutsk.getUTCDate() - dow);
+      startDate.setUTCHours(0, 0, 0, 0);
+      startDate = new Date(startDate.getTime() - 9 * 3600 * 1000);
       trendDays = 7;
     } else if (period === '10d') {
-      dateFilter = `(NOW() - INTERVAL '10 days')`;
+      startDate = new Date(now.getTime() - 10 * 24 * 3600 * 1000);
       trendDays = 10;
     } else if (period === '15d') {
-      dateFilter = `(NOW() - INTERVAL '15 days')`;
+      startDate = new Date(now.getTime() - 15 * 24 * 3600 * 1000);
       trendDays = 15;
     } else {
-      dateFilter = `'2020-01-01'`;
+      startDate = new Date('2020-01-01');
       trendDays = 30;
     }
+    const trendStartDate = new Date(now.getTime() - trendDays * 24 * 3600 * 1000);
 
-    const ptypes = `('chat','image','video','motion','avatar')`;
+    const PTYPES = ['chat', 'image', 'video', 'motion', 'avatar'];
 
     const byProduct = await pool.query(`
       SELECT type, COUNT(*)::int as ops, COALESCE(SUM(ABS(amount)),0)::int as credits
-      FROM transactions WHERE amount < 0 AND type IN ${ptypes} AND created_at >= ${dateFilter}
+      FROM transactions WHERE amount < 0 AND type = ANY($1) AND created_at >= $2
       GROUP BY type
-    `);
+    `, [PTYPES, startDate]);
 
-    const f1 = await pool.query(`SELECT COUNT(*)::int as cnt FROM users WHERE created_at >= ${dateFilter}`);
-    const f2 = await pool.query(`SELECT COUNT(*)::int as cnt FROM users WHERE app_opened = true AND created_at >= ${dateFilter}`);
-    const f3 = await pool.query(`SELECT COUNT(DISTINCT user_id)::int as cnt FROM generations WHERE created_at >= ${dateFilter}`);
-    const f4 = await pool.query(`SELECT COUNT(DISTINCT user_id)::int as cnt FROM orders WHERE status = 'paid' AND paid_at >= ${dateFilter}`);
+    const f1 = await pool.query(`SELECT COUNT(*)::int as cnt FROM users WHERE created_at >= $1`, [startDate]);
+    const f2 = await pool.query(`SELECT COUNT(*)::int as cnt FROM users WHERE app_opened = true AND created_at >= $1`, [startDate]);
+    const f3 = await pool.query(`SELECT COUNT(DISTINCT user_id)::int as cnt FROM generations WHERE created_at >= $1`, [startDate]);
+    const f4 = await pool.query(`SELECT COUNT(DISTINCT user_id)::int as cnt FROM orders WHERE status = 'paid' AND paid_at >= $1`, [startDate]);
 
-    const rev = await pool.query(`SELECT COALESCE(SUM(amount_rub),0)::int as total FROM orders WHERE status = 'paid' AND paid_at >= ${dateFilter}`);
+    const rev = await pool.query(`SELECT COALESCE(SUM(amount_rub),0)::int as total FROM orders WHERE status = 'paid' AND paid_at >= $1`, [startDate]);
 
     const daily = await pool.query(`
       SELECT DATE(created_at AT TIME ZONE 'Asia/Yakutsk') as day, type,
              COUNT(*)::int as ops, COALESCE(SUM(ABS(amount)),0)::int as credits
-      FROM transactions WHERE amount < 0 AND type IN ${ptypes}
-        AND created_at >= (NOW() - INTERVAL '${trendDays} days')
+      FROM transactions WHERE amount < 0 AND type = ANY($1) AND created_at >= $2
       GROUP BY day, type ORDER BY day DESC
-    `);
+    `, [PTYPES, trendStartDate]);
 
     const topUsers = await pool.query(`
       SELECT t.user_id, u.username, u.first_name,
@@ -1765,10 +1779,10 @@ adminRouter.get('/product-analytics', async (req: Request, res: Response) => {
         SUM(CASE WHEN t.type='motion' THEN ABS(t.amount) ELSE 0 END)::int as motion,
         SUM(CASE WHEN t.type='avatar' THEN ABS(t.amount) ELSE 0 END)::int as avatar
       FROM transactions t JOIN users u ON u.id = t.user_id
-      WHERE t.amount < 0 AND t.type IN ${ptypes} AND t.created_at >= ${dateFilter}
+      WHERE t.amount < 0 AND t.type = ANY($1) AND t.created_at >= $2
       GROUP BY t.user_id, u.username, u.first_name
       ORDER BY total DESC LIMIT 20
-    `);
+    `, [PTYPES, startDate]);
 
     res.json({
       byProduct: byProduct.rows,

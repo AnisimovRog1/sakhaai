@@ -66,56 +66,63 @@ paymentRouter.post('/create', requireAuth, async (req: Request, res: Response) =
     const pack = PACKAGES[pkg];
     if (!pack) { res.status(400).json({ error: 'Неизвестный пакет' }); return; }
 
-    // Проверяем скидку -30% (одноразовая, 24ч)
+    // Проверка скидки + промокода + создание заказа в одной транзакции (атомарно)
     let finalAmount = pack.amountRub;
     let discountPercent = 0;
+    let validPromoCode: string | null = null;
+    let promoBonus = 0;
+    const orderId = crypto.randomUUID();
+    const client = await pool.connect();
     try {
-      const discRow = await pool.query(
-        `SELECT discount_type, discount_expires_at, discount_used FROM users WHERE id = $1`,
+      await client.query('BEGIN');
+
+      // Скидка -30% (одноразовая, 24ч) — с блокировкой строки юзера
+      const discRow = await client.query(
+        `SELECT discount_type, discount_expires_at, discount_used FROM users WHERE id = $1 FOR UPDATE`,
         [req.userId]
       );
       const disc = discRow.rows[0];
       if (disc && !disc.discount_used && disc.discount_expires_at && new Date(disc.discount_expires_at) > new Date()) {
         if (disc.discount_type === 'pro' && pkg === 'pro') {
-          finalAmount = Math.round(pack.amountRub * 0.7); // 559₽
+          finalAmount = Math.round(pack.amountRub * 0.7);
           discountPercent = 30;
         } else if (disc.discount_type === 'max' && pkg === 'max') {
-          finalAmount = Math.round(pack.amountRub * 0.7); // 1393₽
+          finalAmount = Math.round(pack.amountRub * 0.7);
           discountPercent = 30;
         }
       }
-    } catch (err) {
-      console.error('Discount check error:', err);
-      // При ошибке — обычная цена, не ломаем оплату
+
+      // Промокод — проверка с блокировкой promo_codes
+      if (promoCode) {
+        const promoResult = await client.query(
+          'SELECT * FROM promo_codes WHERE LOWER(code) = LOWER($1) AND is_active = true FOR UPDATE',
+          [promoCode.trim()]
+        );
+        const promo = promoResult.rows[0];
+        if (promo && (!promo.max_uses || promo.used_count < promo.max_uses)) {
+          const usedResult = await client.query('SELECT id FROM promo_uses WHERE user_id = $1', [req.userId]);
+          if (usedResult.rows.length === 0) {
+            validPromoCode = promo.code;
+            promoBonus = promo.bonus_credits;
+          }
+        }
+      }
+
+      await client.query(
+        `INSERT INTO orders (id, user_id, package, amount_rub, credits, discount_percent, promo_code, promo_bonus) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [orderId, req.userId, pkg, finalAmount, pack.credits, discountPercent, validPromoCode, promoBonus],
+      );
+      await client.query('COMMIT');
+    } catch (txErr) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw txErr;
+    } finally {
+      client.release();
     }
 
     if (discountPercent > 0) {
       console.log(`💰 Скидка -${discountPercent}%: user=${req.userId}, pkg=${pkg}, ${pack.amountRub}₽ → ${finalAmount}₽`);
     }
-
-    // Промокод — валидация и сохранение
-    let validPromoCode: string | null = null;
-    let promoBonus = 0;
-    if (promoCode) {
-      const promoResult = await pool.query(
-        'SELECT * FROM promo_codes WHERE LOWER(code) = LOWER($1) AND is_active = true',
-        [promoCode.trim()]
-      );
-      const promo = promoResult.rows[0];
-      if (promo && (!promo.max_uses || promo.used_count < promo.max_uses)) {
-        const usedResult = await pool.query('SELECT id FROM promo_uses WHERE user_id = $1', [req.userId]);
-        if (usedResult.rows.length === 0) {
-          validPromoCode = promo.code;
-          promoBonus = promo.bonus_credits;
-        }
-      }
-    }
-
-    const orderId = crypto.randomUUID();
-    await pool.query(
-      `INSERT INTO orders (id, user_id, package, amount_rub, credits, discount_percent, promo_code, promo_bonus) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-      [orderId, req.userId, pkg, finalAmount, pack.credits, discountPercent, validPromoCode, promoBonus],
-    );
 
     // Вызываем UnitPay API — initPayment
     const apiParams = new URLSearchParams({

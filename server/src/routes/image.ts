@@ -51,6 +51,7 @@ imageRouter.post('/generate', async (req: Request, res: Response) => {
   });
   if (creditsLeft === null) return;
 
+  let refundedAmount = 0;
   try {
     const hasRefImages = Array.isArray(refImages) && refImages.length > 0;
     let parsedImages: Array<{ mimeType: string; base64: string }> | undefined;
@@ -114,9 +115,9 @@ imageRouter.post('/generate', async (req: Request, res: Response) => {
 
     // Рефанд за неудачные фото
     if (failedCount > 0) {
-      const refundAmount = costPerImage * failedCount;
-      await addCredits(req.userId!, refundAmount, 'image', `Рефанд: ${failedCount} фото не получились`).catch(console.error);
-      console.log(`[image] partial refund: ${refundAmount} credits for ${failedCount} failed`);
+      refundedAmount = costPerImage * failedCount;
+      await addCredits(req.userId!, refundedAmount, 'image', `Рефанд: ${failedCount} фото не получились`).catch(console.error);
+      console.log(`[image] partial refund: ${refundedAmount} credits for ${failedCount} failed`);
     }
 
     // Сохраняем каждый результат в историю
@@ -142,7 +143,11 @@ imageRouter.post('/generate', async (req: Request, res: Response) => {
       refunded: failedCount,
     });
   } catch (e: any) {
-    await addCredits(req.userId!, totalCost, 'image', `Рефанд: ошибка генерации`).catch(console.error);
+    // Рефанд только за то, что ещё не возвращено в partial refund
+    const remaining = totalCost - refundedAmount;
+    if (remaining > 0) {
+      await addCredits(req.userId!, remaining, 'image', `Рефанд: ошибка генерации`).catch(console.error);
+    }
     console.error('[image] error + refund:', e?.message);
     res.status(500).json({ error: e.message ?? 'Ошибка генерации' });
   }
